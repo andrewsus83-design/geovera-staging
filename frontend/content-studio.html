@@ -605,6 +605,18 @@
             document.getElementById('upgradePrompt').classList.remove('show');
             document.getElementById('contentStudio').classList.add('show');
 
+            // Disable video tab for Basic tier
+            if (currentTier === 'basic') {
+                const videoTab = document.querySelector('.tab[onclick*="video"]');
+                if (videoTab) {
+                    videoTab.disabled = true;
+                    videoTab.title = "Video generation requires Premium or Partner tier";
+                    videoTab.style.opacity = "0.5";
+                    videoTab.style.cursor = "not-allowed";
+                    videoTab.style.pointerEvents = "none";
+                }
+            }
+
             // Load quota and library
             await loadQuota();
             await loadContentLibrary();
@@ -613,9 +625,15 @@
         }
 
         async function loadQuota() {
-            const { data } = await supabaseClient.rpc('get_content_quota_remaining', {
+            const { data, error } = await supabaseClient.rpc('get_content_quota_remaining', {
                 p_brand_id: currentBrandId
             });
+
+            if (error) {
+                console.error('Failed to load quota:', error);
+                showAlert('Could not load quota information', 'error');
+                return;
+            }
 
             if (data && data.length > 0) {
                 const quota = data[0];
@@ -651,6 +669,12 @@
                 .order('created_at', { ascending: false });
 
             const library = document.getElementById('contentLibrary');
+
+            if (error) {
+                library.innerHTML = '<p style="color:#dc2626;text-align:center">Failed to load content library</p>';
+                console.error('Library load error:', error);
+                return;
+            }
 
             if (!data || data.length === 0) {
                 library.innerHTML = '<p style="text-align:center;color:#94a3b8">No content generated yet. Create your first piece above!</p>';
