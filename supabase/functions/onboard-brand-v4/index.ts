@@ -74,29 +74,29 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // Get authenticated user
+    // Validate Authorization header exists
     const authHeader = req.headers.get("Authorization");
-    let userId: string | null = null;
-    let userEmail: string | null = null;
-
-    if (authHeader) {
-      const userClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-        { global: { headers: { Authorization: authHeader } } },
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header - Please login first" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-      const { data: { user } } = await userClient.auth.getUser();
-      if (user) {
-        userId = user.id;
-        userEmail = user.email;
-      }
     }
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized - Please login first" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Extract token and verify user
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error("[onboard-brand-v4] Auth error:", userError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    const userId = user.id;
+    const userEmail = user.email;
 
     // ============================================================
     // STEP 1: Welcome to GeoVera! (just acknowledge)
