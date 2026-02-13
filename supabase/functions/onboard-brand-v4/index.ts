@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // Validate Authorization header exists
+    // Validate Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -83,27 +83,43 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Extract token and verify user
+    // Extract token from Authorization header
     const token = authHeader.replace("Bearer ", "");
 
-    // Create anon client with Authorization header for proper JWT validation
-    const anonClient = createClient(
+    // Create ANON client to validate user JWT
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
-    const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
+    let userId: string;
+    let userEmail: string;
 
-    if (userError || !user) {
-      console.error("[onboard-brand-v4] Auth error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    try {
+      // Pass token explicitly to getUser() - this is the correct way!
+      const { data: { user }, error: userError } = await userClient.auth.getUser(token);
 
-    const userId = user.id;
-    const userEmail = user.email;
+      if (userError || !user) {
+        console.error("[onboard-brand-v4] Auth error:", userError);
+        console.error("[onboard-brand-v4] User object:", user);
+        console.error("[onboard-brand-v4] Auth header:", authHeader?.substring(0, 50) + "...");
+        return new Response(
+          JSON.stringify({
+            error: "Unauthorized - Invalid or expired token",
+            debug: {
+              hasError: !!userError,
+              errorMessage: userError?.message,
+              hasUser: !!user,
+              authHeaderPresent: !!authHeader
+            }
+          }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      userId = user.id;
+      userEmail = user.email || "";
+      console.log("[onboard-brand-v4] User authenticated:", userId);
 
     // ============================================================
     // STEP 1: Welcome to GeoVera! (just acknowledge)
@@ -510,6 +526,14 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: "Invalid step" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+    } catch (jwtError) {
+      console.error("[onboard-brand-v4] JWT parsing error:", jwtError);
+      return new Response(
+        JSON.stringify({ error: "Invalid or malformed JWT token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (err) {
     console.error("Unexpected error:", err);
