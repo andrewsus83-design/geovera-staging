@@ -1,0 +1,35 @@
+{
+  "buildCommand": "echo 'No build needed'",
+  "outputDirectory": "frontend",
+  "installCommand": "echo 'No install needed'",
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/signup", "destination": "/login.html" },
+    { "source": "/email-confirmed", "destination": "/email-confirmed.html" },
+    { "source": "/onboarding", "destination": "/onboarding-v4.html" },
+    { "source": "/pricing", "destination": "/pricing.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/chat", "destination": "/chat.html" },
+    { "source": "/content-studio", "destination": "/content-studio.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}
