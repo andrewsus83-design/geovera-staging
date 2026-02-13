@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - GeoVera</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            overflow: hidden;
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0B0F19;
+            color: #ffffff;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .scroll-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            background: rgba(11, 15, 25, 0.95);
+            backdrop-filter: blur(9px);
+            border-bottom: 1px solid rgba(22, 163, 74, 0.2);
+            padding: 18px 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 0 27px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .logo img {
+            height: 27px;
+            width: auto;
+        }
+
+        .logo span {
+            font-size: 19.8px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.45px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 27px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 12.6px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #16A34A;
+        }
+
+        .hero {
+            padding: 72px 27px 54px;
+            text-align: center;
+            border-bottom: 1px solid rgba(22, 163, 74, 0.15);
+        }
+
+        .hero h1 {
+            font-family: Georgia, serif;
+            font-size: 48.6px;
+            font-weight: 700;
+            letter-spacing: -1.8px;
+            margin-bottom: 13.5px;
+            color: #ffffff;
+        }
+
+        .hero p {
+            font-size: 16.2px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 540px;
+            margin: 0 auto 9px;
+        }
+
+        .hero .cta-subtext {
+            font-size: 12.6px;
+            color: #16A34A;
+            font-weight: 600;
+        }
+
+        .pricing-container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 54px 27px;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 27px;
+            margin-bottom: 72px;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 36px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .pricing-card:hover {
+            border-color: #16A34A;
+            transform: translateY(-4.5px);
+        }
+
+        .pricing-card.featured {
+            background: rgba(22, 163, 74, 0.05);
+            border: 2px solid #16A34A;
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -10.8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #16A34A;
+            color: #0B0F19;
+            padding: 4.5px 13.5px;
+            font-size: 10.8px;
+            font-weight: 700;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .card-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 22.5px;
+            margin-bottom: 22.5px;
+        }
+
+        .card-header h3 {
+            font-family: Georgia, serif;
+            font-size: 25.2px;
+            font-weight: 700;
+            margin-bottom: 9px;
+            color: #ffffff;
+        }
+
+        .price {
+            display: flex;
+            align-items: baseline;
+            gap: 4.5px;
+            margin-bottom: 9px;
+        }
+
+        .price .currency {
+            font-size: 23.4px;
+            font-weight: 600;
+            color: #16A34A;
+        }
+
+        .price .amount {
+            font-size: 43.2px;
+            font-weight: 800;
+            color: #16A34A;
+            letter-spacing: -1.35px;
+        }
+
+        .price .period {
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .price-description {
+            font-size: 12.6px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .features {
+            list-style: none;
+            margin-bottom: 27px;
+        }
+
+        .features li {
+            padding: 10.8px 0;
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .features li::before {
+            content: "✓";
+            color: #16A34A;
+            font-weight: 700;
+            font-size: 15.3px;
+        }
+
+        .cta-button {
+            width: 100%;
+            padding: 13.5px;
+            background: #16A34A;
+            color: #0B0F19;
+            border: none;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+        }
+
+        .cta-button:hover {
+            background: #15803d;
+            transform: translateY(-1.8px);
+        }
+
+        .cta-button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .cta-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #16A34A;
+        }
+
+        .comparison-section {
+            margin-bottom: 72px;
+        }
+
+        .comparison-section h2 {
+            font-family: Georgia, serif;
+            font-size: 32.4px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 36px;
+            color: #ffffff;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15.3px 18px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 12.6px;
+        }
+
+        .comparison-table th {
+            background: rgba(22, 163, 74, 0.1);
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+            font-size: 10.8px;
+        }
+
+        .comparison-table td {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .check-mark {
+            color: #16A34A;
+            font-weight: 700;
+        }
+
+        .faq-section {
+            margin-bottom: 72px;
+        }
+
+        .faq-section h2 {
+            font-family: Georgia, serif;
+            font-size: 32.4px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 36px;
+            color: #ffffff;
+        }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 13.5px;
+            padding: 22.5px 27px;
+        }
+
+        .faq-item h3 {
+            font-size: 15.3px;
+            font-weight: 700;
+            margin-bottom: 9px;
+            color: #ffffff;
+        }
+
+        .faq-item p {
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        footer {
+            border-top: 1px solid rgba(22, 163, 74, 0.2);
+            padding: 36px 27px;
+            text-align: center;
+            background: rgba(11, 15, 25, 0.8);
+        }
+
+        footer p {
+            font-size: 12.6px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .comparison-table {
+                font-size: 10.8px;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 10.8px 13.5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-container">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="logo">
+                    <img src="/assets/geovera.svg" alt="GeoVera">
+                    <span>GeoVera</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/pricing.html">Pricing</a>
+                    <a href="/signup">Get Started</a>
+                </div>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <h1>Choose Your Monthly Plan</h1>
+            <p>Flexible monthly billing. Have a coupon code? Apply at checkout.</p>
+        </section>
+
+        <div class="pricing-container">
+            <div class="pricing-grid">
+                <!-- Basic Tier -->
+                <div class="pricing-card">
+                    <div class="card-header">
+                        <h3>Basic</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">399</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <p class="price-description">Billed monthly</p>
+                    </div>
+                    <ul class="features">
+                        <li>1 brand</li>
+                        <li>Basic analytics</li>
+                        <li>10 reports/month</li>
+                        <li>Email support</li>
+                    </ul>
+                    <a href="/signup" class="cta-button">Get Started</a>
+                </div>
+
+                <!-- Premium Tier -->
+                <div class="pricing-card featured">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="card-header">
+                        <h3>Premium</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">699</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <p class="price-description">Billed monthly</p>
+                    </div>
+                    <ul class="features">
+                        <li>3 brands</li>
+                        <li>Advanced analytics</li>
+                        <li>100 reports/month</li>
+                        <li>Priority support</li>
+                        <li>API access</li>
+                    </ul>
+                    <a href="/signup" class="cta-button">Get Started</a>
+                </div>
+
+                <!-- Partner Tier -->
+                <div class="pricing-card">
+                    <div class="card-header">
+                        <h3>Partner</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">1,099</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <p class="price-description">Billed monthly</p>
+                    </div>
+                    <ul class="features">
+                        <li>Unlimited brands</li>
+                        <li>Custom analytics</li>
+                        <li>Unlimited reports</li>
+                        <li>Dedicated support</li>
+                        <li>White-label option</li>
+                    </ul>
+                    <a href="mailto:sales@geovera.xyz" class="cta-button secondary">Contact Sales</a>
+                </div>
+            </div>
+
+            <!-- Feature Comparison Table -->
+            <div class="comparison-section">
+                <h2>Feature Comparison</h2>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Basic</th>
+                            <th>Premium</th>
+                            <th>Partner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Number of Brands</td>
+                            <td>1</td>
+                            <td>3</td>
+                            <td>Unlimited</td>
+                        </tr>
+                        <tr>
+                            <td>Monthly Reports</td>
+                            <td>10</td>
+                            <td>100</td>
+                            <td>Unlimited</td>
+                        </tr>
+                        <tr>
+                            <td>Basic Analytics</td>
+                            <td><span class="check-mark">✓</span></td>
+                            <td><span class="check-mark">✓</span></td>
+                            <td><span class="check-mark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Advanced Analytics</td>
+                            <td>—</td>
+                            <td><span class="check-mark">✓</span></td>
+                            <td><span class="check-mark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Custom Analytics</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td><span class="check-mark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>API Access</td>
+                            <td>—</td>
+                            <td><span class="check-mark">✓</span></td>
+                            <td><span class="check-mark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>White-label Option</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td><span class="check-mark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Support</td>
+                            <td>Email</td>
+                            <td>Priority</td>
+                            <td>Dedicated</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <footer>
+            <p>&copy; 2024 GeoVera. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
