@@ -154,15 +154,20 @@ async function fetchOfficialEmbedCode(
         break;
 
       case "instagram":
-        // Instagram oEmbed API (requires Facebook access token)
-        // For now, return null - will need FB_ACCESS_TOKEN env var
-        const fbAccessToken = Deno.env.get("FACEBOOK_ACCESS_TOKEN");
-        if (!fbAccessToken) {
-          console.warn("Instagram embeds require FACEBOOK_ACCESS_TOKEN - skipping");
+        // Instagram public embed (official & no auth required)
+        // Extract post ID from URL (e.g., /p/C8gN5YxSdXj/ -> C8gN5YxSdXj)
+        const instagramMatch = postUrl.match(/\/p\/([A-Za-z0-9_-]+)/);
+        if (!instagramMatch) {
+          console.warn("Invalid Instagram URL format - skipping");
           return null;
         }
-        oembedUrl = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(postUrl)}&access_token=${fbAccessToken}`;
-        break;
+        const postId = instagramMatch[1];
+
+        // Return iframe embed HTML (official Instagram embed)
+        return `<iframe src="https://www.instagram.com/p/${postId}/embed/" width="400" height="600" frameborder="0" scrolling="no" allowtransparency="true"></iframe>`;
+
+        // Note: We skip oEmbed API call and return HTML directly
+        // This is Instagram's official public embed method
 
       default:
         console.warn(`Unknown platform: ${platform} - skipping embed`);
