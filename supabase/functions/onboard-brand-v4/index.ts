@@ -193,8 +193,8 @@ Deno.serve(async (req: Request) => {
       }
 
       // Create brand WITHOUT tier (will be set later in Step 5)
-      const { data: brand, error: brandError } = await supabase
-        .from('gv_brands')
+      const { data: brand, error: brandError} = await supabase
+        .from('brands')
         .insert({
           brand_name: brand_name.trim(),
           category: category,
@@ -276,13 +276,14 @@ Deno.serve(async (req: Request) => {
 
       // Update brand with social media links
       const { data: updatedBrand, error: updateError } = await supabase
-        .from('gv_brands')
+        .from('brands')
         .update({
           web_url: body.web_url?.trim() || null,
           whatsapp: body.whatsapp?.trim() || null,
           instagram_url: body.instagram_url?.trim() || null,
           tiktok_url: body.tiktok_url?.trim() || null,
           youtube_url: body.youtube_url?.trim() || null,
+          facebook_url: body.facebook_url?.trim() || null,
         })
         .eq('id', body.brand_id)
         .select()
@@ -330,7 +331,7 @@ Deno.serve(async (req: Request) => {
 
       // Get brand details
       const { data: brand } = await supabase
-        .from('gv_brands')
+        .from('brands')
         .select('*')
         .eq('id', body.brand_id)
         .single();
@@ -363,7 +364,7 @@ Deno.serve(async (req: Request) => {
 
       // Mark brand_change_confirmed = true
       const { error: confirmUpdateError } = await supabase
-        .from('gv_brands')
+        .from('brands')
         .update({
           brand_change_confirmed: true,
         })
@@ -398,7 +399,7 @@ Deno.serve(async (req: Request) => {
       if (body.skip_tier_selection) {
         // Mark onboarding as completed WITHOUT tier
         const { error: completeError } = await supabase
-          .from('gv_brands')
+          .from('brands')
           .update({
             onboarding_completed: true,
           })
@@ -458,7 +459,7 @@ Deno.serve(async (req: Request) => {
 
       // Update brand with tier and billing
       const { data: updatedBrand, error: updateError } = await supabase
-        .from('gv_brands')
+        .from('brands')
         .update({
           subscription_tier: tier,
           billing_cycle: billing_cycle,

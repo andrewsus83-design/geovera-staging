@@ -658,6 +658,69 @@
             margin-bottom: 14.4px;
         }
 
+        .tier-savings {
+            font-size: 12px;
+            color: #059669;
+            font-weight: 600;
+            margin-top: -10px;
+            margin-bottom: 14.4px;
+            display: none;
+        }
+
+        .tier-savings.show {
+            display: block;
+        }
+
+        .billing-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14.4px;
+            margin: 28.8px auto;
+            max-width: 400px;
+        }
+
+        .billing-label {
+            font-size: 14.4px;
+            font-weight: 600;
+            color: var(--gv-body);
+            transition: color 0.3s ease;
+        }
+
+        .billing-label.active {
+            color: var(--gv-hero);
+        }
+
+        .billing-switch {
+            position: relative;
+            width: 56px;
+            height: 28px;
+            background: #E5E7EB;
+            border-radius: 28px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .billing-switch.yearly {
+            background: var(--gv-hero);
+        }
+
+        .billing-switch-handle {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .billing-switch.yearly .billing-switch-handle {
+            transform: translateX(28px);
+        }
+
         .tier-features {
             list-style: none;
             padding: 0;
@@ -843,16 +906,6 @@
                 </div>
 
                 <div class="input-wrapper">
-                    <label class="input-label">Business Type *</label>
-                    <select id="business_type" class="input-field" required>
-                        <option value="">Select business type</option>
-                        <option value="b2b">B2B (Business to Business)</option>
-                        <option value="b2c">B2C (Business to Consumer)</option>
-                        <option value="both">Both B2B & B2C</option>
-                    </select>
-                </div>
-
-                <div class="input-wrapper">
                     <label class="input-label">Country *</label>
                     <select id="country" class="input-field" required>
                         <option value="">Select your country</option>
@@ -870,9 +923,9 @@
                 </div>
 
                 <div class="input-wrapper">
-                    <label class="input-label">Google Maps URL (Optional)</label>
+                    <label class="input-label">Google Maps URL (for physical stores)</label>
                     <input type="url" id="gmaps_url" class="input-field" placeholder="https://maps.google.com/...">
-                    <p class="helper-text">Your Google Business profile link</p>
+                    <p class="helper-text">📍 Add if you have a physical location for GEO visibility. Leave empty if online-only.</p>
                 </div>
 
                 <div class="action-bar">
@@ -919,18 +972,10 @@
                     </div>
 
                     <div class="social-input-group">
-                        <div class="social-icon">💼</div>
+                        <div class="social-icon">📺</div>
                         <div style="flex: 1;">
-                            <label class="input-label">LinkedIn</label>
-                            <input type="text" id="linkedin_url" class="input-field" placeholder="linkedin.com/company/yourbrand">
-                        </div>
-                    </div>
-
-                    <div class="social-input-group">
-                        <div class="social-icon">🐦</div>
-                        <div style="flex: 1;">
-                            <label class="input-label">Twitter/X</label>
-                            <input type="text" id="twitter_url" class="input-field" placeholder="@yourbrand or full URL">
+                            <label class="input-label">YouTube</label>
+                            <input type="text" id="youtube_url" class="input-field" placeholder="youtube.com/@yourbrand or channel URL">
                         </div>
                     </div>
                 </div>
@@ -980,10 +1025,19 @@
             <h2 class="question-title">All set!</h2>
             <p class="question-subtitle">Your brand profile is being created. Choose a plan to get started.</p>
 
+            <div class="billing-toggle">
+                <span class="billing-label active" id="monthlyLabel">Monthly</span>
+                <div class="billing-switch" id="billingSwitch" onclick="toggleBillingCycle()">
+                    <div class="billing-switch-handle"></div>
+                </div>
+                <span class="billing-label" id="yearlyLabel">Yearly <span style="color: #059669;">(Save 1 month FREE!)</span></span>
+            </div>
+
             <div class="tier-grid">
-                <div class="tier-card" onclick="selectTier('basic')">
+                <div class="tier-card" onclick="selectTier('basic')" data-tier="basic">
                     <div class="tier-name">Basic</div>
-                    <div class="tier-price">$399/mo</div>
+                    <div class="tier-price" data-monthly="399" data-yearly="4389">$399/mo</div>
+                    <div class="tier-savings">Save $399 (1 month FREE!)</div>
                     <ul class="tier-features">
                         <li>Essential AI monitoring</li>
                         <li>1 brand</li>
@@ -992,10 +1046,11 @@
                     </ul>
                 </div>
 
-                <div class="tier-card recommended" onclick="selectTier('premium')">
+                <div class="tier-card recommended" onclick="selectTier('premium')" data-tier="premium">
                     <div class="tier-badge">Recommended</div>
                     <div class="tier-name">Premium</div>
-                    <div class="tier-price">$699/mo</div>
+                    <div class="tier-price" data-monthly="699" data-yearly="7689">$699/mo</div>
+                    <div class="tier-savings">Save $699 (1 month FREE!)</div>
                     <ul class="tier-features">
                         <li>Advanced AI analytics</li>
                         <li>Up to 5 brands</li>
@@ -1004,9 +1059,10 @@
                     </ul>
                 </div>
 
-                <div class="tier-card" onclick="selectTier('partner')">
+                <div class="tier-card" onclick="selectTier('partner')" data-tier="partner">
                     <div class="tier-name">Partner</div>
-                    <div class="tier-price">$1,099/mo</div>
+                    <div class="tier-price" data-monthly="1099" data-yearly="12089">$1,099/mo</div>
+                    <div class="tier-savings">Save $1,099 (1 month FREE!)</div>
                     <ul class="tier-features">
                         <li>Unlimited brands</li>
                         <li>Custom integrations</li>
@@ -1082,9 +1138,17 @@
             e.preventDefault();
             formData.brand_name = document.getElementById('brand_name').value.trim();
             formData.category = document.getElementById('category').value;
-            formData.business_type = document.getElementById('business_type').value;
             formData.country = document.getElementById('country').value;
             formData.gmaps_url = document.getElementById('gmaps_url').value.trim() || null;
+
+            // Auto-detect business type based on Google Maps URL presence
+            if (formData.gmaps_url) {
+                formData.business_type = 'hybrid'; // Has physical location + online presence
+            } else {
+                formData.business_type = 'online'; // Online-only business (no physical location)
+            }
+
+            console.log('[GeoVera] Step 1 completed - Business type auto-detected:', formData.business_type);
             nextStep();
         }
 
@@ -1094,9 +1158,9 @@
             formData.ig_url = document.getElementById('ig_url').value.trim() || null;
             formData.tiktok_url = document.getElementById('tiktok_url').value.trim() || null;
             formData.fb_url = document.getElementById('fb_url').value.trim() || null;
-            formData.linkedin_url = document.getElementById('linkedin_url').value.trim() || null;
-            formData.twitter_url = document.getElementById('twitter_url').value.trim() || null;
+            formData.youtube_url = document.getElementById('youtube_url').value.trim() || null;
 
+            console.log('[GeoVera] Step 2 completed - Social media URLs collected');
             // Show review
             populateReview();
             nextStep();
@@ -1208,19 +1272,13 @@
             try {
                 console.log('[GeoVera] Submitting onboarding...', formData);
 
-                // Map frontend business_type to backend expected values
-                const businessTypeMap = {
-                    'b2b': 'online',
-                    'b2c': 'online',
-                    'both': 'hybrid'
-                };
-
                 // STEP 2: Create brand
+                // business_type is already auto-detected in handleStep1 (online/hybrid)
                 const step2Payload = {
                     step: 2,
                     brand_name: formData.brand_name,
                     category: formData.category,
-                    business_type: businessTypeMap[formData.business_type] || 'online',
+                    business_type: formData.business_type, // Already set to 'online' or 'hybrid'
                     country: formData.country,
                     google_maps_url: formData.gmaps_url || null,
                 };
@@ -1256,7 +1314,8 @@
                     brand_id: brandId,
                     instagram_url: formData.ig_url || null,
                     tiktok_url: formData.tiktok_url || null,
-                    web_url: formData.fb_url || null, // Using fb_url as web_url
+                    facebook_url: formData.fb_url || null,
+                    youtube_url: formData.youtube_url || null,
                 };
 
                 const step3Response = await fetch(`${SUPABASE_URL}/functions/v1/onboard-brand-v4`, {
@@ -1307,8 +1366,49 @@
         }
 
         // Tier selection
+        // Billing cycle toggle
+        let billingCycle = 'monthly'; // Default
+
+        function toggleBillingCycle() {
+            const switchEl = document.getElementById('billingSwitch');
+            const monthlyLabel = document.getElementById('monthlyLabel');
+            const yearlyLabel = document.getElementById('yearlyLabel');
+            const tierCards = document.querySelectorAll('.tier-card');
+
+            // Toggle state
+            if (billingCycle === 'monthly') {
+                billingCycle = 'yearly';
+                switchEl.classList.add('yearly');
+                monthlyLabel.classList.remove('active');
+                yearlyLabel.classList.add('active');
+            } else {
+                billingCycle = 'monthly';
+                switchEl.classList.remove('yearly');
+                monthlyLabel.classList.add('active');
+                yearlyLabel.classList.remove('active');
+            }
+
+            // Update all tier prices
+            tierCards.forEach(card => {
+                const priceEl = card.querySelector('.tier-price');
+                const savingsEl = card.querySelector('.tier-savings');
+                const monthlyPrice = parseInt(priceEl.getAttribute('data-monthly'));
+                const yearlyPrice = parseInt(priceEl.getAttribute('data-yearly'));
+
+                if (billingCycle === 'yearly') {
+                    priceEl.textContent = `$${yearlyPrice.toLocaleString()}/year`;
+                    savingsEl.classList.add('show');
+                } else {
+                    priceEl.textContent = `$${monthlyPrice}/mo`;
+                    savingsEl.classList.remove('show');
+                }
+            });
+
+            console.log('[GeoVera] Billing cycle changed to:', billingCycle);
+        }
+
         async function selectTier(tier) {
-            console.log('[GeoVera] Tier selected:', tier);
+            console.log('[GeoVera] Tier selected:', tier, 'Billing:', billingCycle);
 
             // Tier is already in correct format (basic, premium, partner)
             // No mapping needed anymore
@@ -1319,7 +1419,7 @@
                     step: 5,
                     brand_id: formData.brand_id,
                     tier: backendTier,
-                    billing_cycle: 'monthly', // Default to monthly
+                    billing_cycle: billingCycle, // Use selected billing cycle
                 };
 
                 const response = await fetch(`${SUPABASE_URL}/functions/v1/onboard-brand-v4`, {
