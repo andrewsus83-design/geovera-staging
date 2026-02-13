@@ -1310,14 +1310,9 @@
         async function selectTier(tier) {
             console.log('[GeoVera] Tier selected:', tier);
 
-            // Map tier names to backend values
-            const tierMap = {
-                'free': 'basic',
-                'pro': 'premium',
-                'enterprise': 'partner'
-            };
-
-            const backendTier = tierMap[tier] || 'basic';
+            // Tier is already in correct format (basic, premium, partner)
+            // No mapping needed anymore
+            const backendTier = tier;
 
             try {
                 const step5Payload = {
