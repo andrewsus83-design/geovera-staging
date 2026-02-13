@@ -50,6 +50,9 @@
 | | | | |
 | **🏢 Core Platform** | | | |
 | Onboarding Wizard | ✅ 5 steps | ✅ 5 steps | ✅ 5 steps |
+| **Initial Brand Analysis (Claude)** | ✅ **300 QA** | ✅ **300 QA** | ✅ **300 QA** |
+| **Daily AI Insights (Claude)** | ✅ **30 QA/day** | ✅ **40 QA/day** | ✅ **50 QA/day** |
+| **Perplexity Deep Research** | ✅ **Yes** | ✅ **Yes** | ✅ **Yes** |
 | Brand Profile Setup | ✅ Yes | ✅ Yes | ✅ Yes |
 | Social Media Integration | ✅ 4 platforms | ✅ 4 platforms | ✅ 4 platforms |
 | Google Maps Integration | ✅ Yes | ✅ Yes | ✅ Yes |
@@ -126,7 +129,10 @@
 - AI-powered content (Perplexity + Claude + OpenAI)
 
 **Platform:**
-- Complete onboarding wizard
+- Complete onboarding wizard (5 steps)
+- **300 QA Brand Analysis** - Deep Claude AI analysis during onboarding
+- **30 Daily QA Insights** - AI-powered daily brand insights
+- **Perplexity Deep Research** - Trending topic discovery
 - Brand profile with social media
 - Google Maps integration
 - Dashboard access
@@ -164,6 +170,7 @@
 #### ✅ DEPLOYED NOW:
 **Everything in Basic, PLUS:**
 - **2 articles/day** (60/month) - 2x content
+- **40 Daily QA Insights** (vs 30 in Basic) - More AI analysis
 - Priority email support
 
 #### 🚧 COMING Q2-Q3 2026:
@@ -202,6 +209,7 @@
 #### ✅ DEPLOYED NOW:
 **Everything in Premium, PLUS:**
 - **3 articles/day** (90/month) - 3x content
+- **50 Daily QA Insights** (vs 40 in Premium) - Maximum AI analysis
 - **EXCLUSIVE Radar Access:**
   - Mindshare: Creator rankings
   - Marketshare: Competitive analysis
