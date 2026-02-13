@@ -1,0 +1,184 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+interface GenerateVideoRequest {
+  brand_id: string;
+  topic: string;
+  duration_seconds?: number;
+  target_platform?: string;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const authHeader = req.headers.get("Authorization")!;
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const requestData: GenerateVideoRequest = await req.json();
+    const { brand_id, topic, duration_seconds = 60, target_platform = "tiktok" } = requestData;
+
+    // Check subscription - Videos require Premium or Partner
+    const { data: brand } = await supabaseClient
+      .from("gv_brands")
+      .select("subscription_tier, brand_name")
+      .eq("id", brand_id)
+      .single();
+
+    if (!brand?.subscription_tier || brand.subscription_tier === "free" || brand.subscription_tier === "basic") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Video generation requires Premium or Partner subscription",
+          code: "TIER_INSUFFICIENT",
+          message: "Videos available on Premium ($699/mo) and Partner ($1,099/mo) only",
+          current_tier: brand?.subscription_tier || "free"
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check quota
+    const { data: quotaExceeded } = await supabaseClient.rpc("check_tier_limit", {
+      p_brand_id: brand_id,
+      p_limit_type: "videos"
+    });
+
+    if (quotaExceeded === true) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Monthly video quota exceeded",
+          code: "QUOTA_EXCEEDED"
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate script with Claude
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 2000,
+        messages: [{
+          role: "user",
+          content: `Create a ${duration_seconds}-second video script for ${target_platform} about: ${topic}
+
+Brand: ${brand.brand_name}
+Platform: ${target_platform}
+Duration: ${duration_seconds} seconds
+
+Format:
+[HOOK - 0-3s]: (opening line)
+[MAIN - 3-${duration_seconds-3}s]: (key points)
+[CTA - ${duration_seconds-3}-${duration_seconds}s]: (call to action)
+
+Include:
+- Visual suggestions
+- Text overlay recommendations
+- Platform best practices
+- Hashtag suggestions`
+        }]
+      })
+    });
+
+    const claudeData = await claudeResponse.json();
+
+    if (!claudeResponse.ok) {
+      throw new Error(`Claude error: ${claudeData.error?.message || "Unknown error"}`);
+    }
+
+    const video_script = claudeData.content[0].text;
+    const cost_usd = 0.015;
+
+    // Save to content library
+    const { data: contentData } = await supabaseClient
+      .from("gv_content_library")
+      .insert({
+        brand_id,
+        user_id: user.id,
+        content_type: "video",
+        title: topic,
+        slug: topic.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        content_variations: {
+          script: video_script,
+          duration_seconds,
+          platform: target_platform
+        },
+        content_goal: "visibility",
+        target_platforms: [target_platform],
+        ai_provider_used: "anthropic",
+        model_used: "claude-3-5-sonnet-20241022",
+        generation_cost_usd: cost_usd,
+        publish_status: "draft"
+      })
+      .select()
+      .single();
+
+    // Increment usage
+    await supabaseClient.rpc("increment_content_usage", {
+      p_brand_id: brand_id,
+      p_content_type: "video"
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        content_id: contentData.id,
+        video: {
+          script: video_script,
+          duration: duration_seconds,
+          platform: target_platform,
+          cost_usd: cost_usd.toFixed(4)
+        }
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[generate-video] Error:", error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        code: "GENERATION_FAILED"
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
