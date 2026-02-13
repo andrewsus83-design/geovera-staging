@@ -83,14 +83,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Extract token and verify user - use ANON client for user token validation
+    // Extract token and verify user
     const token = authHeader.replace("Bearer ", "");
+
+    // Create anon client with Authorization header for proper JWT validation
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
-    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+
+    const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
 
     if (userError || !user) {
       console.error("[onboard-brand-v4] Auth error:", userError);
