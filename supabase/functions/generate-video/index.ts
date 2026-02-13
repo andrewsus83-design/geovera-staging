@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "https://geovera.xyz",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -27,12 +27,29 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Validate API key exists
+    const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!claudeKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Anthropic API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    // Validate Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
@@ -47,13 +64,20 @@ Deno.serve(async (req: Request) => {
     const { brand_id, topic, duration_seconds = 60, target_platform = "tiktok" } = requestData;
 
     // Check subscription - Videos require Premium or Partner
-    const { data: brand } = await supabaseClient
+    const { data: brand, error: brandError } = await supabaseClient
       .from("gv_brands")
       .select("subscription_tier, brand_name")
       .eq("id", brand_id)
       .single();
 
-    if (!brand?.subscription_tier || brand.subscription_tier === "free" || brand.subscription_tier === "basic") {
+    if (brandError || !brand) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Brand not found", code: "BRAND_NOT_FOUND" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!brand.subscription_tier || brand.subscription_tier === "free" || brand.subscription_tier === "basic" || brand.subscription_tier === null) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -67,10 +91,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check quota
-    const { data: quotaExceeded } = await supabaseClient.rpc("check_tier_limit", {
+    const { data: quotaExceeded, error: quotaError } = await supabaseClient.rpc("check_tier_limit", {
       p_brand_id: brand_id,
       p_limit_type: "videos"
     });
+
+    if (quotaError) {
+      throw new Error(`Quota check failed: ${quotaError.message}`);
+    }
 
     if (quotaExceeded === true) {
       return new Response(
@@ -126,7 +154,7 @@ Include:
     const cost_usd = 0.015;
 
     // Save to content library
-    const { data: contentData } = await supabaseClient
+    const { data: contentData, error: contentError } = await supabaseClient
       .from("gv_content_library")
       .insert({
         brand_id,
@@ -149,11 +177,20 @@ Include:
       .select()
       .single();
 
+    if (contentError) {
+      throw new Error(`Failed to save content: ${contentError.message}`);
+    }
+
     // Increment usage
-    await supabaseClient.rpc("increment_content_usage", {
+    const { error: usageError } = await supabaseClient.rpc("increment_content_usage", {
       p_brand_id: brand_id,
       p_content_type: "video"
     });
+
+    if (usageError) {
+      console.error("[generate-video] Usage increment failed:", usageError);
+      throw new Error(`Failed to update usage: ${usageError.message}`);
+    }
 
     return new Response(
       JSON.stringify({

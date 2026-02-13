@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "https://geovera.xyz",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -28,12 +28,29 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Validate API key exists
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "OpenAI API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    // Validate Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
@@ -81,6 +98,10 @@ Deno.serve(async (req: Request) => {
       p_brand_id: brand_id,
       p_limit_type: "articles"
     });
+
+    if (quotaError) {
+      throw new Error(`Quota check failed: ${quotaError.message}`);
+    }
 
     if (quotaExceeded === true) {
       return new Response(
@@ -183,10 +204,15 @@ Requirements:
     }
 
     // Increment usage
-    await supabaseClient.rpc("increment_content_usage", {
+    const { error: usageError } = await supabaseClient.rpc("increment_content_usage", {
       p_brand_id: brand_id,
       p_content_type: "article"
     });
+
+    if (usageError) {
+      console.error("[generate-article] Usage increment failed:", usageError);
+      throw new Error(`Failed to update usage: ${usageError.message}`);
+    }
 
     return new Response(
       JSON.stringify({
