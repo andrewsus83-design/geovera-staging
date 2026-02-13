@@ -10,7 +10,8 @@
     { "source": "/onboarding", "destination": "/onboarding-v4.html" },
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/chat", "destination": "/chat.html" }
+    { "source": "/chat", "destination": "/chat.html" },
+    { "source": "/content-studio", "destination": "/content-studio.html" }
   ],
   "headers": [
     {
