@@ -74,13 +74,16 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 ### Chat Features
 | Feature | Basic | Premium | Partner |
 |---------|-------|---------|---------|
-| AI Models | ✅ GPT-4o, Claude 3.5, Perplexity | ✅ GPT-4o, Claude 3.5, Perplexity | ✅ GPT-4o, Claude 3.5, Perplexity |
+| AI Models | ✅ GPT-4o, Claude 3.5, Perplexity | ✅ GPT-4o, Claude 3.5, Perplexy | ✅ GPT-4o, Claude 3.5, Perplexity |
 | Daily questions | 5 | 10 | 20 |
 | Monthly total | 300 | 300 | 300 |
 | Reset cycle | Daily | Daily | Daily |
 | Conversation history | ✅ Saved per brand | ✅ Saved per brand | ✅ Saved per brand |
 | Context awareness | ✅ Brand-specific | ✅ Brand-specific | ✅ Brand-specific |
 | Export chats | ✅ Yes | ✅ Yes | ✅ Yes |
+| Learning scope | ✅ **Global industry data** | ✅ **Global industry data** | ✅ **Global industry data** |
+
+**Exception:** AI Chat can learn from similar industries globally to provide best practices and insights, but recommendations are contextualized to your country's market.
 
 ---
 
@@ -110,7 +113,16 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 | Follower range | ❌ | ❌ | ✅ Custom ranges |
 | Engagement filters | ❌ | ❌ | ✅ Yes |
 
-**Important:** Radar searches are filtered to match your brand's registered category. If your brand is "Fashion", you'll only discover fashion creators.
+**Important Geographic Restrictions:**
+- Radar searches are filtered to match your brand's registered **category AND country**
+- If your brand is "Fashion" in "Indonesia", you'll ONLY discover fashion creators in Indonesia
+- No multi-country access - data is localized to your brand's market
+
+**Why country-specific?**
+- Relevant creator recommendations
+- Localized market insights
+- Cultural and language alignment
+- Better engagement rates
 
 ---
 
@@ -124,6 +136,9 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 | Creator profiles | ✅ Full access | ✅ Full access | ✅ Full access |
 | Notes & tags | ✅ Yes | ✅ Yes | ✅ Yes |
 | Export data | ✅ CSV, JSON | ✅ CSV, JSON | ✅ CSV, JSON |
+| Geographic scope | Brand's country ONLY | Brand's country ONLY | Brand's country ONLY |
+
+**Note:** You can only add creators from your brand's country to collections (discovered via Radar for Partner tier).
 
 ---
 
@@ -135,8 +150,11 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 | Daily briefs | ✅ Enabled | ✅ Enabled | ✅ Enabled |
 | AI-generated tasks | ✅ 5 tasks/day | ✅ 10 tasks/day | ✅ 20 tasks/day |
 | Insight depth | Standard | Standard | Deep |
-| Trend analysis | ✅ Yes | ✅ Yes | ✅ Yes |
-| Competitor tracking | ✅ Yes | ✅ Yes | ✅ Yes |
+| Trend analysis | ✅ **Country-specific** | ✅ **Country-specific** | ✅ **Country-specific** |
+| Competitor tracking | ✅ **Country-specific** | ✅ **Country-specific** | ✅ **Country-specific** |
+| Geographic scope | Brand's country ONLY | Brand's country ONLY | Brand's country ONLY |
+
+**Note:** All insights, trends, and competitor data are filtered to your brand's registered country for maximum relevance.
 
 ---
 
@@ -146,9 +164,12 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 | Feature | Basic | Premium | Partner |
 |---------|-------|---------|---------|
 | Real-time dashboard | ✅ Yes | ✅ Yes | ✅ Yes |
-| Campaign tracking | ✅ Yes | ✅ Yes | ✅ Yes |
+| Campaign tracking | ✅ **Country-specific** | ✅ **Country-specific** | ✅ **Country-specific** |
 | Performance metrics | ✅ All metrics | ✅ All metrics | ✅ All metrics |
 | Data export | ✅ CSV, PDF | ✅ CSV, PDF | ✅ CSV, PDF |
+| Geographic scope | Brand's country ONLY | Brand's country ONLY | Brand's country ONLY |
+
+**Note:** All analytics data is scoped to your brand's country for accurate market performance tracking.
 
 ### Reports
 | Feature | Basic | Premium | Partner |
@@ -192,9 +213,49 @@ When users hit limits, they see friendly upgrade modals, not blocking errors.
 
 ---
 
+## 🌍 Geographic Scope - Critical Business Logic
+
+**GeoVera is COUNTRY-SPECIFIC by design.**
+
+### Why Country-Specific?
+1. **Relevant Data** - Market trends specific to your location
+2. **Cultural Context** - Language, customs, local preferences
+3. **Better ROI** - Creators who actually serve your market
+4. **Regulatory Compliance** - Local marketing laws and standards
+5. **Accurate Insights** - Compare with local competitors, not global
+
+### What's Filtered by Country?
+
+✅ **Radar (Partner only)** - Creators in your country + category ONLY
+✅ **Insights** - Trends, competitors, opportunities in your country
+✅ **Analytics** - Performance data from your country's market
+✅ **Hub** - Creator collections from your country
+✅ **Content Studio** - Topic suggestions based on local trends
+
+❌ **Exception: AI Chat** - Can learn from global industry best practices
+
+### Example:
+**Brand:** TheWatchCo
+**Country:** Indonesia (ID)
+**Category:** Fashion
+
+**What you see:**
+- Radar: Fashion creators in Indonesia only
+- Insights: Indonesian fashion trends
+- Analytics: Indonesian market performance
+- Competitors: Other fashion brands in Indonesia
+- Content: Topics trending in Indonesia
+
+**What you DON'T see:**
+- Creators from Singapore, Malaysia, USA, etc.
+- Global fashion trends (unless via AI Chat)
+- International competitor data
+
+---
+
 ## 🎁 All Tiers Include
 
-✅ **Full platform access** - No feature restrictions
+✅ **Full platform access** - No feature restrictions (within your country)
 ✅ **5-step onboarding wizard** - Brand setup in minutes
 ✅ **Brand Authority Hub** - Comprehensive brand management
 ✅ **Real-time creator data** - From Apify production APIs
