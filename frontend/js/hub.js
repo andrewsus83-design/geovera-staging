@@ -36,7 +36,27 @@ async function initializeSupabase() {
 
         // Get current user
         const { data: { user } } = await supabaseClient.auth.getUser();
+
+        if (!user) {
+            window.location.href = '/frontend/login.html';
+            return;
+        }
+
         currentUser = user;
+
+        // GUARD: Check subscription tier (NO FREE TIER!)
+        const { data: subscription } = await supabaseClient
+            .from('gv_user_subscriptions')
+            .select('tier_id, status')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .single();
+
+        if (!subscription) {
+            alert('Please subscribe to a plan to access this page');
+            window.location.href = '/frontend/pricing.html';
+            return;
+        }
 
         if (user) {
             await loadUserTierAndUsage();

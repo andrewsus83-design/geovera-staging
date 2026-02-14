@@ -1023,6 +1023,24 @@
             window.location.href = '/login.html';
         }
 
+        // GUARD: Check subscription tier (NO FREE TIER!)
+        // Note: Onboarding page handles subscription setup, so we check if user completed onboarding
+        // If they already have an active subscription, redirect to dashboard
+        async function checkExistingSubscription() {
+            const { data: subscription } = await supabaseClient
+                .from('gv_user_subscriptions')
+                .select('tier_id, status')
+                .eq('user_id', user.id)
+                .eq('status', 'active')
+                .single();
+
+            if (subscription) {
+                console.log('[GeoVera] User already has active subscription, redirecting to dashboard');
+                window.location.href = 'dashboard.html';
+            }
+        }
+        checkExistingSubscription();
+
         // State
         let currentStep = 1;
         const totalSteps = 5;
@@ -1040,9 +1058,57 @@
             plan: 'basic'
         };
 
+        // Check if user should be on onboarding
+        async function checkOnboardingAccess() {
+            try {
+                const { data: { user } } = await sbClient.auth.getUser();
+
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+
+                // Check if user already has brands (completed onboarding)
+                const { data: brands } = await sbClient
+                    .from('user_brands')
+                    .select('brand_id')
+                    .eq('user_id', user.id)
+                    .eq('role', 'owner');
+
+                if (brands && brands.length > 0) {
+                    // Already onboarded - check subscription
+                    const { data: subscription } = await sbClient
+                        .from('gv_user_subscriptions')
+                        .select('tier_id, status')
+                        .eq('user_id', user.id)
+                        .eq('status', 'active')
+                        .single();
+
+                    if (subscription) {
+                        // Has subscription and already onboarded → Dashboard
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        // Already onboarded but no subscription → Pricing
+                        window.location.href = 'pricing.html';
+                    }
+                    return false;
+                }
+
+                return true; // First timer - continue onboarding
+            } catch (err) {
+                console.error('Onboarding access check failed:', err);
+                return true; // Allow onboarding on error
+            }
+        }
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('[GeoVera] Initializing wizard');
+
+            // Check if user should access onboarding
+            const canOnboard = await checkOnboardingAccess();
+            if (!canOnboard) return; // Redirected
+
             initializeTimezone();
             loadProgress();
             setupEventListeners();

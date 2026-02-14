@@ -206,6 +206,20 @@
                 return;
             }
 
+            // GUARD: Check subscription tier (NO FREE TIER!)
+            const { data: subscription } = await supabase
+                .from('gv_user_subscriptions')
+                .select('tier_id, status')
+                .eq('user_id', user.id)
+                .eq('status', 'active')
+                .single();
+
+            if (!subscription) {
+                alert('Please subscribe to a plan to access this page');
+                window.location.href = '/frontend/pricing.html';
+                return;
+            }
+
             document.getElementById('email').value = user.email;
             document.getElementById('name').value = user.user_metadata?.full_name || '';
 

@@ -626,6 +626,20 @@
                     return null;
                 }
 
+                // GUARD: Check subscription tier (NO FREE TIER!)
+                const { data: subscription } = await supabase
+                    .from('gv_user_subscriptions')
+                    .select('tier_id, status')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .single();
+
+                if (!subscription) {
+                    alert('Please subscribe to a plan to access the dashboard');
+                    window.location.href = 'pricing.html';
+                    return null;
+                }
+
                 return user;
             } catch (err) {
                 console.error('Auth check failed:', err);

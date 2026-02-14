@@ -556,7 +556,24 @@
 
                 localStorage.setItem('access_token', data.session.access_token);
 
-                // Check brands
+                // CRITICAL: Check subscription tier FIRST (NO FREE TIER!)
+                const { data: subscription } = await sbClient
+                    .from('gv_user_subscriptions')
+                    .select('tier_id, status, gv_subscription_tiers(tier_name)')
+                    .eq('user_id', data.user.id)
+                    .eq('status', 'active')
+                    .single();
+
+                // If NO active subscription → Force pricing page
+                if (!subscription) {
+                    showMsg('Please select a subscription plan to continue', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'pricing.html';
+                    }, 1000);
+                    return;
+                }
+
+                // Has subscription → Check brands for onboarding
                 const { data: brands } = await sbClient
                     .from('user_brands')
                     .select('brand_id')
@@ -600,9 +617,9 @@
 
                 if (data.session) {
                     localStorage.setItem('access_token', data.session.access_token);
-                    showMsg('Account created! Redirecting...', 'success');
+                    showMsg('Account created! Please select a plan...', 'success');
                     setTimeout(() => {
-                        window.location.href = 'onboarding.html';
+                        window.location.href = 'pricing.html';
                     }, 1000);
                 } else {
                     showMsg('Check your email to verify your account!', 'success');
@@ -623,7 +640,7 @@
                 const { error } = await sbClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: window.location.origin + '/frontend/onboarding.html'
+                        redirectTo: window.location.origin + '/frontend/pricing.html'
                     }
                 });
                 if (error) throw error;
