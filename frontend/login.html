@@ -558,8 +558,8 @@
 
                 // CRITICAL: Check subscription tier FIRST (NO FREE TIER!)
                 const { data: subscription } = await sbClient
-                    .from('gv_user_subscriptions')
-                    .select('tier_id, status, gv_subscription_tiers(tier_name)')
+                    .from('gv_subscriptions')
+                    .select('plan, status')
                     .eq('user_id', data.user.id)
                     .eq('status', 'active')
                     .single();

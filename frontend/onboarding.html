@@ -1028,8 +1028,8 @@
         // If they already have an active subscription, redirect to dashboard
         async function checkExistingSubscription() {
             const { data: subscription } = await supabaseClient
-                .from('gv_user_subscriptions')
-                .select('tier_id, status')
+                .from('gv_subscriptions')
+                .select('plan, status')
                 .eq('user_id', user.id)
                 .eq('status', 'active')
                 .single();
@@ -1078,8 +1078,8 @@
                 if (brands && brands.length > 0) {
                     // Already onboarded - check subscription
                     const { data: subscription } = await sbClient
-                        .from('gv_user_subscriptions')
-                        .select('tier_id, status')
+                        .from('gv_subscriptions')
+                        .select('plan, status')
                         .eq('user_id', user.id)
                         .eq('status', 'active')
                         .single();

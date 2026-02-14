@@ -46,8 +46,8 @@ async function initializeSupabase() {
 
         // GUARD: Check subscription tier (NO FREE TIER!)
         const { data: subscription } = await supabaseClient
-            .from('gv_user_subscriptions')
-            .select('tier_id, status')
+            .from('gv_subscriptions')
+            .select('plan, status')
             .eq('user_id', user.id)
             .eq('status', 'active')
             .single();
@@ -73,7 +73,7 @@ async function loadUserTierAndUsage() {
 
         // Get subscription tier
         const { data: subscription, error: subError } = await supabaseClient
-            .from('gv_user_subscriptions')
+            .from('gv_subscriptions')
             .select('tier_name')
             .eq('user_id', currentUser.id)
             .eq('status', 'active')
