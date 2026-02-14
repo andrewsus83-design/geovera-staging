@@ -236,6 +236,13 @@
                 return null;
             }
 
+            // RADAR EXCLUSIVE: Only PARTNER tier can access
+            if (subscription.plan !== 'PARTNER') {
+                alert('Radar is exclusively available for Partner tier subscribers. Upgrade to Partner to unlock creator discovery!');
+                window.location.href = '/frontend/pricing.html';
+                return null;
+            }
+
             return user;
         }
 
