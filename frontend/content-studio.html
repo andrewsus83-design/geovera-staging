@@ -5,7 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Studio - GeoVera</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env-loader.js"></script>
     <style>
+        :root {
+            --gv-hero: #16A34A;
+            --gv-anchor: #0B0F19;
+            --gv-body: #6B7280;
+            --gv-canvas: #FFFFFF;
+            --gv-divider: #E5E7EB;
+            --gv-bg-light: #F9FAFB;
+            --gv-risk: #DC2626;
+            --font-display: Georgia, 'Times New Roman', serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,10 +26,111 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: var(--font-body);
             background: #0a0a0a;
             color: #ffffff;
             line-height: 1.6;
+        }
+
+        /* Skip Link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--gv-hero);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            z-index: 100;
+            font-weight: 600;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Site Header */
+        .site-header {
+            background: #0B0F19;
+            border-bottom: 1px solid var(--gv-divider);
+            padding: 16px 0;
+            margin-bottom: 32px;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gv-hero);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .nav-desktop {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-desktop a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-desktop a:hover,
+        .nav-desktop a[aria-current="page"] {
+            color: var(--gv-hero);
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-button {
+            background: transparent;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
         }
 
         .container {
@@ -43,86 +157,63 @@
             color: #94a3b8;
         }
 
-        /* Upgrade Prompt for Free Tier */
-        .upgrade-prompt {
+        /* Limit Reached Modal */
+        .limit-modal {
             display: none;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 2px solid #16A34A;
-            border-radius: 16px;
-            padding: 60px 40px;
-            text-align: center;
-            margin-top: 80px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
-        .upgrade-prompt.show {
-            display: block;
+        .limit-modal.show {
+            display: flex;
         }
 
-        .upgrade-prompt h2 {
-            font-size: 32px;
-            margin-bottom: 20px;
-            color: #16A34A;
-        }
-
-        .upgrade-prompt p {
-            font-size: 18px;
-            color: #cbd5e1;
-            margin-bottom: 30px;
-        }
-
-        .tier-options {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin: 40px 0;
-        }
-
-        .tier-card {
+        .limit-modal-content {
             background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: left;
+            border: 2px solid #16A34A;
+            border-radius: 0;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
         }
 
-        .tier-card h3 {
-            font-size: 24px;
-            margin-bottom: 12px;
+        .limit-modal h2 {
+            font-size: 28px;
+            margin-bottom: 16px;
             color: #16A34A;
         }
 
-        .tier-card .price {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-
-        .tier-card ul {
-            list-style: none;
+        .limit-modal p {
+            font-size: 16px;
+            color: #cbd5e1;
             margin-bottom: 24px;
         }
 
-        .tier-card li {
-            padding: 8px 0;
-            color: #cbd5e1;
-        }
-
-        .tier-card li:before {
-            content: "✓ ";
-            color: #16A34A;
-            font-weight: bold;
+        .limit-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
         }
 
         .btn-upgrade {
             display: inline-block;
             background: #16A34A;
             color: white;
-            padding: 16px 32px;
-            border-radius: 8px;
+            padding: 12px 24px;
+            border-radius: 0;
             text-decoration: none;
             font-weight: 600;
-            font-size: 18px;
+            font-size: 16px;
             transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
         }
 
         .btn-upgrade:hover {
@@ -130,13 +221,21 @@
             transform: translateY(-2px);
         }
 
-        .note {
-            margin-top: 30px;
-            padding: 20px;
-            background: #1e293b;
-            border-left: 4px solid #16A34A;
-            border-radius: 8px;
-            color: #cbd5e1;
+        .btn-close {
+            background: transparent;
+            color: #94a3b8;
+            padding: 12px 24px;
+            border: 1px solid #334155;
+            border-radius: 0;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            border-color: #16A34A;
+            color: #16A34A;
         }
 
         /* Content Studio */
@@ -198,7 +297,7 @@
             padding: 12px 16px;
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 8px;
+            border-radius: 0;
             color: #ffffff;
             font-size: 16px;
         }
@@ -230,7 +329,7 @@
             color: white;
             padding: 14px 32px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -249,7 +348,7 @@
         .quota-info {
             background: #1e293b;
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 0;
             margin-bottom: 24px;
             border-left: 4px solid #16A34A;
         }
@@ -257,7 +356,7 @@
         .quota-bar {
             background: #0f172a;
             height: 8px;
-            border-radius: 4px;
+            border-radius: 0;
             overflow: hidden;
             margin-top: 8px;
         }
@@ -270,7 +369,7 @@
 
         .alert {
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 0;
             margin-bottom: 24px;
             display: none;
         }
@@ -319,7 +418,7 @@
         .content-card {
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 12px;
+            border-radius: 0;
             padding: 24px;
             transition: all 0.3s ease;
         }
@@ -350,138 +449,139 @@
         .platform-tag {
             background: #0f172a;
             padding: 4px 12px;
-            border-radius: 4px;
+            border-radius: 0;
             font-size: 12px;
             color: #16A34A;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <header class="site-header" role="banner">
+        <div class="header-container">
+            <a href="/frontend/index.html" class="header-logo" aria-label="GeoVera Intelligence - Return to homepage">
+                <div class="logo-icon" aria-hidden="true">G</div>
+                <span class="logo-text">GeoVera</span>
+            </a>
+            <nav class="nav-desktop" aria-label="Main navigation">
+                <a href="/frontend/dashboard.html">Dashboard</a>
+                <a href="/frontend/insights.html">Insights</a>
+                <a href="/frontend/radar.html">Radar</a>
+                <a href="/frontend/content-studio.html" aria-current="page">Content Studio</a>
+                <a href="/frontend/chat.html">AI Chat</a>
+                <a href="/frontend/settings.html">Settings</a>
+            </nav>
+            <div class="user-menu">
+                <button class="user-button" aria-label="Open user menu">
+                    <span id="userEmail">User</span>
+                    <span aria-hidden="true">▼</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" id="main-content">
         <div class="header">
             <h1>Content Studio</h1>
             <p>AI-powered content generation for your brand</p>
         </div>
 
-        <div id="alert" class="alert"></div>
+        <div id="alert" class="alert" role="alert" aria-live="polite"></div>
 
-        <!-- Upgrade Prompt (Free Tier) -->
-        <div id="upgradePrompt" class="upgrade-prompt">
-            <h2>🎨 Content Generation Requires Paid Subscription</h2>
-            <p>Upgrade to unlock AI-powered content creation for your brand</p>
-
-            <div class="tier-options">
-                <div class="tier-card">
-                    <h3>Basic</h3>
-                    <div class="price">$399<span style="font-size:18px">/mo</span></div>
-                    <ul>
-                        <li>1 AI Article per month</li>
-                        <li>1 AI Image per month</li>
-                        <li>5 Keywords tracking</li>
-                        <li>5 Daily Insights</li>
-                    </ul>
+        <!-- Limit Reached Modal -->
+        <div id="limitModal" class="limit-modal" role="dialog" aria-modal="true" aria-labelledby="limitTitle" aria-describedby="limitMessage">
+            <div class="limit-modal-content">
+                <h2 id="limitTitle">Monthly Limit Reached</h2>
+                <p id="limitMessage">You've reached your monthly limit for this content type.</p>
+                <div class="limit-modal-buttons">
+                    <a href="/frontend/pricing.html" class="btn-upgrade" aria-label="Upgrade your plan to increase limits">Upgrade Plan</a>
+                    <button class="btn-close" onclick="closeLimitModal()" aria-label="Close this dialog">Close</button>
                 </div>
-
-                <div class="tier-card">
-                    <h3>Premium</h3>
-                    <div class="price">$699<span style="font-size:18px">/mo</span></div>
-                    <ul>
-                        <li>3 AI Articles per month</li>
-                        <li>3 AI Images per month</li>
-                        <li>1 Video Script per month</li>
-                        <li>8 Keywords tracking</li>
-                        <li>8 Daily Insights</li>
-                    </ul>
-                </div>
-
-                <div class="tier-card">
-                    <h3>Partner</h3>
-                    <div class="price">$1,099<span style="font-size:18px">/mo</span></div>
-                    <ul>
-                        <li>6 AI Articles per month</li>
-                        <li>6 AI Images per month</li>
-                        <li>3 Video Scripts per month</li>
-                        <li>15 Keywords tracking</li>
-                        <li>12 Daily Insights</li>
-                    </ul>
-                </div>
-            </div>
-
-            <a href="/pricing" class="btn-upgrade">View Pricing & Upgrade</a>
-
-            <div class="note">
-                <strong>Note:</strong> Your brand data is still being collected for market insights and analysis.
-                Upgrade to access AI content generation features.
             </div>
         </div>
 
         <!-- Content Studio (Paid Tiers) -->
         <div id="contentStudio" class="content-studio">
-            <div id="quotaInfo" class="quota-info">
+            <div id="quotaInfo" class="quota-info" role="status" aria-label="Monthly content generation usage">
                 <strong>Monthly Quota</strong>
-                <div id="quotaText"></div>
-                <div class="quota-bar">
+                <div id="quotaText" aria-live="polite"></div>
+                <div class="quota-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Total usage percentage">
                     <div id="quotaFill" class="quota-fill"></div>
                 </div>
             </div>
 
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('article')">📝 Articles</button>
-                <button class="tab" onclick="switchTab('image')">🖼️ Images</button>
-                <button class="tab" onclick="switchTab('video')">🎬 Videos</button>
-                <button class="tab" onclick="switchTab('library')">📚 Library</button>
+            <div class="tabs" role="tablist" aria-label="Content generation types">
+                <button class="tab active" role="tab" aria-selected="true" aria-controls="articleTab" id="articlesTabBtn" onclick="switchTab('article')" aria-label="Generate articles">
+                    <span aria-hidden="true">📝</span> Articles
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="imageTab" id="imagesTabBtn" onclick="switchTab('image')" aria-label="Generate images">
+                    <span aria-hidden="true">🖼️</span> Images
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="videoTab" id="videosTabBtn" onclick="switchTab('video')" aria-label="Generate video scripts">
+                    <span aria-hidden="true">🎬</span> Videos
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="libraryTab" id="libraryTabBtn" onclick="switchTab('library')" aria-label="View content library">
+                    <span aria-hidden="true">📚</span> Library
+                </button>
             </div>
 
             <!-- Article Generation -->
-            <div id="articleTab" class="tab-content active">
+            <div id="articleTab" class="tab-content active" role="tabpanel" aria-labelledby="articlesTabBtn">
                 <h2 style="margin-bottom:24px">Generate AI Article</h2>
-                <form id="articleForm" onsubmit="generateArticle(event)">
+                <form id="articleForm" onsubmit="generateArticle(event)" aria-label="Article generation form">
                     <div class="form-group">
-                        <label>Article Topic *</label>
-                        <input type="text" id="articleTopic" required placeholder="e.g., How to improve local SEO in 2026">
+                        <label for="articleTopic">Article Topic <span aria-label="required">*</span></label>
+                        <input type="text" id="articleTopic" required aria-required="true" aria-describedby="topicHelp" placeholder="e.g., How to improve local SEO in 2026">
+                        <small id="topicHelp" style="color:#94a3b8;display:block;margin-top:4px">What should this article be about?</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Keywords (comma-separated)</label>
-                        <input type="text" id="articleKeywords" placeholder="SEO, local business, Google Maps">
+                        <label for="articleKeywords">Keywords (comma-separated)</label>
+                        <input type="text" id="articleKeywords" aria-describedby="keywordsHelp" placeholder="SEO, local business, Google Maps">
+                        <small id="keywordsHelp" style="color:#94a3b8;display:block;margin-top:4px">Keywords for SEO optimization</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Target Audience</label>
-                        <input type="text" id="articleAudience" placeholder="Small business owners">
+                        <label for="articleAudience">Target Audience</label>
+                        <input type="text" id="articleAudience" aria-describedby="audienceHelp" placeholder="Small business owners">
+                        <small id="audienceHelp" style="color:#94a3b8;display:block;margin-top:4px">Who is this article for?</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Target Platforms</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="platform" value="linkedin" checked> LinkedIn
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="platform" value="medium"> Medium
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="platform" value="blog"> Blog
-                            </label>
-                        </div>
+                        <fieldset>
+                            <legend>Target Platforms</legend>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="platform" value="linkedin" checked aria-label="Publish to LinkedIn"> LinkedIn
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="platform" value="medium" aria-label="Publish to Medium"> Medium
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="platform" value="blog" aria-label="Publish to Blog"> Blog
+                                </label>
+                            </div>
+                        </fieldset>
                     </div>
 
-                    <button type="submit" class="btn-generate" id="generateArticleBtn">Generate Article</button>
+                    <button type="submit" class="btn-generate" id="generateArticleBtn" aria-label="Generate article based on provided topic and settings">Generate Article</button>
                 </form>
             </div>
 
             <!-- Image Generation -->
-            <div id="imageTab" class="tab-content">
+            <div id="imageTab" class="tab-content" role="tabpanel" aria-labelledby="imagesTabBtn" hidden>
                 <h2 style="margin-bottom:24px">Generate AI Image</h2>
-                <form id="imageForm" onsubmit="generateImage(event)">
+                <form id="imageForm" onsubmit="generateImage(event)" aria-label="Image generation form">
                     <div class="form-group">
-                        <label>Image Description *</label>
-                        <textarea id="imagePrompt" required placeholder="e.g., Modern office space with people collaborating on laptops, bright natural lighting, professional atmosphere"></textarea>
+                        <label for="imagePrompt">Image Description <span aria-label="required">*</span></label>
+                        <textarea id="imagePrompt" required aria-required="true" aria-describedby="imagePromptHelp" placeholder="e.g., Modern office space with people collaborating on laptops, bright natural lighting, professional atmosphere"></textarea>
+                        <small id="imagePromptHelp" style="color:#94a3b8;display:block;margin-top:4px">Describe the image you want to generate</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Image Size</label>
-                        <select id="imageSize">
+                        <label for="imageSize">Image Size</label>
+                        <select id="imageSize" aria-label="Select image dimensions and aspect ratio">
                             <option value="1024x1024">Square (1024x1024) - Instagram, LinkedIn</option>
                             <option value="1792x1024">Landscape (1792x1024) - Blog headers</option>
                             <option value="1024x1792">Portrait (1024x1792) - Stories</option>
@@ -489,37 +589,40 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Target Platforms</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="imageplatform" value="instagram" checked> Instagram
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="imageplatform" value="linkedin"> LinkedIn
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="imageplatform" value="blog"> Blog
-                            </label>
-                        </div>
+                        <fieldset>
+                            <legend>Target Platforms</legend>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="imageplatform" value="instagram" checked aria-label="Publish to Instagram"> Instagram
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="imageplatform" value="linkedin" aria-label="Publish to LinkedIn"> LinkedIn
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="imageplatform" value="blog" aria-label="Publish to Blog"> Blog
+                                </label>
+                            </div>
+                        </fieldset>
                     </div>
 
-                    <button type="submit" class="btn-generate" id="generateImageBtn">Generate Image</button>
+                    <button type="submit" class="btn-generate" id="generateImageBtn" aria-label="Generate image based on provided description">Generate Image</button>
                 </form>
             </div>
 
             <!-- Video Script Generation -->
-            <div id="videoTab" class="tab-content">
+            <div id="videoTab" class="tab-content" role="tabpanel" aria-labelledby="videosTabBtn" hidden>
                 <h2 style="margin-bottom:24px">Generate Video Script</h2>
-                <p style="color:#94a3b8;margin-bottom:24px">Available on Premium and Partner tiers only</p>
-                <form id="videoForm" onsubmit="generateVideo(event)">
+                <p style="color:#94a3b8;margin-bottom:24px">Generate short-form video scripts for social media</p>
+                <form id="videoForm" onsubmit="generateVideo(event)" aria-label="Video script generation form">
                     <div class="form-group">
-                        <label>Video Topic *</label>
-                        <input type="text" id="videoTopic" required placeholder="e.g., 3 Tips for Growing Your Local Business">
+                        <label for="videoTopic">Video Topic <span aria-label="required">*</span></label>
+                        <input type="text" id="videoTopic" required aria-required="true" aria-describedby="videoTopicHelp" placeholder="e.g., 3 Tips for Growing Your Local Business">
+                        <small id="videoTopicHelp" style="color:#94a3b8;display:block;margin-top:4px">What should this video script be about?</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Video Duration</label>
-                        <select id="videoDuration">
+                        <label for="videoDuration">Video Duration</label>
+                        <select id="videoDuration" aria-label="Select video duration in seconds">
                             <option value="15">15 seconds (TikTok, Reels)</option>
                             <option value="30">30 seconds</option>
                             <option value="60" selected>60 seconds</option>
@@ -528,46 +631,49 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Target Platform</label>
-                        <select id="videoPlatform">
+                        <label for="videoPlatform">Target Platform</label>
+                        <select id="videoPlatform" aria-label="Select target social media platform">
                             <option value="tiktok">TikTok</option>
                             <option value="instagram">Instagram Reels</option>
                             <option value="youtube">YouTube Shorts</option>
                         </select>
                     </div>
 
-                    <button type="submit" class="btn-generate" id="generateVideoBtn">Generate Script</button>
+                    <button type="submit" class="btn-generate" id="generateVideoBtn" aria-label="Generate video script based on provided topic">Generate Script</button>
                 </form>
             </div>
 
             <!-- Content Library -->
-            <div id="libraryTab" class="tab-content">
+            <div id="libraryTab" class="tab-content" role="tabpanel" aria-labelledby="libraryTabBtn" hidden>
                 <h2 style="margin-bottom:24px">Content Library</h2>
-                <div id="contentLibrary" class="content-library">
+                <div id="contentLibrary" class="content-library" role="region" aria-label="Previously generated content" aria-live="polite">
                     <div class="loading">
-                        <div class="spinner"></div>
+                        <div class="spinner" role="status" aria-label="Loading content"></div>
                         <p>Loading your content...</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
-        const SUPABASE_URL = 'https://vozjwptzutolvkvfpknk.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvempWcHR6dXRvbHZrdmZwa25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgxMzkzNjEsImV4cCI6MjA1MzcxNTM2MX0.WGfOPIeN4p7eo8-SBdHXWYKWLH5C6jOqg0xDGjpz8yk';
+        const ENV_CONFIG = window.getEnvConfig();
+        const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+        const SUPABASE_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentBrandId = null;
         let currentTier = null;
+        let tierLimits = null;
+        let currentUsage = null;
 
         async function checkAuth() {
             const { data: { user } } = await supabaseClient.auth.getUser();
 
             if (!user) {
-                window.location.href = '/login';
+                window.location.href = 'login.html';
                 return false;
             }
 
@@ -578,44 +684,45 @@
             const user = await checkAuth();
             if (!user) return;
 
-            // Get user's brand
+            // Get user's brand and subscription
             const { data: userBrands } = await supabaseClient
                 .from('user_brands')
-                .select('brand_id, gv_brands(id, brand_name, subscription_tier)')
+                .select('brand_id, gv_brands(id, brand_name)')
                 .eq('user_id', user.id);
 
             if (!userBrands || userBrands.length === 0) {
                 showAlert('No brand found. Please complete onboarding first.', 'error');
-                setTimeout(() => window.location.href = '/onboarding', 2000);
+                setTimeout(() => window.location.href = 'onboarding.html', 2000);
                 return;
             }
 
             const brand = userBrands[0].gv_brands;
             currentBrandId = brand.id;
-            currentTier = brand.subscription_tier;
 
-            // Check if free tier
-            if (!currentTier || currentTier === 'free') {
-                document.getElementById('upgradePrompt').classList.add('show');
-                document.getElementById('contentStudio').classList.remove('show');
+            // Get subscription tier and limits
+            const { data: subscription } = await supabaseClient
+                .from('gv_subscriptions')
+                .select(`
+                    tier_name,
+                    gv_subscription_tiers (
+                        articles_per_month,
+                        images_per_month,
+                        videos_per_month
+                    )
+                `)
+                .eq('user_id', user.id)
+                .single();
+
+            if (!subscription || !subscription.gv_subscription_tiers) {
+                showAlert('No subscription found. Please contact support.', 'error');
                 return false;
             }
 
-            // Show content studio
-            document.getElementById('upgradePrompt').classList.remove('show');
-            document.getElementById('contentStudio').classList.add('show');
+            currentTier = subscription.tier_name;
+            tierLimits = subscription.gv_subscription_tiers;
 
-            // Disable video tab for Basic tier
-            if (currentTier === 'basic') {
-                const videoTab = document.querySelector('.tab[onclick*="video"]');
-                if (videoTab) {
-                    videoTab.disabled = true;
-                    videoTab.title = "Video generation requires Premium or Partner tier";
-                    videoTab.style.opacity = "0.5";
-                    videoTab.style.cursor = "not-allowed";
-                    videoTab.style.pointerEvents = "none";
-                }
-            }
+            // Always show content studio - ALL tiers have access
+            document.getElementById('contentStudio').classList.add('show');
 
             // Load quota and library
             await loadQuota();
@@ -624,40 +731,59 @@
             return true;
         }
 
+        function closeLimitModal() {
+            document.getElementById('limitModal').classList.remove('show');
+        }
+
+        function showLimitModal(contentType, used, limit) {
+            const messages = {
+                'article': `You've used ${used} of ${limit} AI articles this month. Upgrade for more!`,
+                'image': `You've used ${used} of ${limit} AI images this month. Upgrade for more!`,
+                'video': `You've used ${used} of ${limit} video scripts this month. Upgrade for more!`
+            };
+            document.getElementById('limitMessage').textContent = messages[contentType] || 'You\'ve reached your monthly limit.';
+            document.getElementById('limitModal').classList.add('show');
+        }
+
         async function loadQuota() {
-            const { data, error } = await supabaseClient.rpc('get_content_quota_remaining', {
-                p_brand_id: currentBrandId
-            });
+            try {
+                // Get current usage from gv_tier_usage
+                const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
+                const { data: usage } = await supabaseClient
+                    .from('gv_tier_usage')
+                    .select('*')
+                    .eq('brand_id', currentBrandId)
+                    .eq('usage_month', currentMonth)
+                    .single();
 
-            if (error) {
-                console.error('Failed to load quota:', error);
-                showAlert('Could not load quota information', 'error');
-                return;
-            }
-
-            if (data && data.length > 0) {
-                const quota = data[0];
-                const tierLimits = {
-                    'basic': { articles: 1, images: 1, videos: 0 },
-                    'premium': { articles: 3, images: 3, videos: 1 },
-                    'partner': { articles: 6, images: 6, videos: 3 }
+                // Default to 0 if no usage record exists yet
+                currentUsage = usage || {
+                    content_articles: 0,
+                    content_images: 0,
+                    content_videos: 0
                 };
 
-                const limits = tierLimits[currentTier] || tierLimits.basic;
-                const articlesUsed = limits.articles - quota.articles_remaining;
-                const imagesUsed = limits.images - quota.images_remaining;
-                const videosUsed = limits.videos - quota.videos_remaining;
+                const articlesUsed = currentUsage.content_articles || 0;
+                const imagesUsed = currentUsage.content_images || 0;
+                const videosUsed = currentUsage.content_videos || 0;
 
                 document.getElementById('quotaText').innerHTML = `
-                    Articles: ${articlesUsed}/${limits.articles} |
-                    Images: ${imagesUsed}/${limits.images} |
-                    Videos: ${videosUsed}/${limits.videos}
+                    Articles: ${articlesUsed}/${tierLimits.articles_per_month} |
+                    Images: ${imagesUsed}/${tierLimits.images_per_month} |
+                    Videos: ${videosUsed}/${tierLimits.videos_per_month}
                 `;
 
                 const totalUsed = articlesUsed + imagesUsed + videosUsed;
-                const totalLimit = limits.articles + limits.images + limits.videos;
-                const percentage = (totalUsed / totalLimit) * 100;
-                document.getElementById('quotaFill').style.width = `${percentage}%`;
+                const totalLimit = tierLimits.articles_per_month + tierLimits.images_per_month + tierLimits.videos_per_month;
+                const percentage = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
+                const percentageRounded = Math.min(Math.round(percentage), 100);
+                const quotaBar = document.querySelector('.quota-bar');
+                const quotaFill = document.getElementById('quotaFill');
+                quotaFill.style.width = `${percentageRounded}%`;
+                quotaBar.setAttribute('aria-valuenow', percentageRounded);
+            } catch (error) {
+                console.error('Failed to load quota:', error);
+                showAlert('Could not load quota information', 'error');
             }
         }
 
@@ -698,6 +824,13 @@
 
         async function generateArticle(e) {
             e.preventDefault();
+
+            // Check if limit reached
+            const articlesUsed = currentUsage?.content_articles || 0;
+            if (articlesUsed >= tierLimits.articles_per_month) {
+                showLimitModal('article', articlesUsed, tierLimits.articles_per_month);
+                return;
+            }
 
             const btn = document.getElementById('generateArticleBtn');
             btn.disabled = true;
@@ -746,6 +879,13 @@
         async function generateImage(e) {
             e.preventDefault();
 
+            // Check if limit reached
+            const imagesUsed = currentUsage?.content_images || 0;
+            if (imagesUsed >= tierLimits.images_per_month) {
+                showLimitModal('image', imagesUsed, tierLimits.images_per_month);
+                return;
+            }
+
             const btn = document.getElementById('generateImageBtn');
             btn.disabled = true;
             btn.textContent = 'Generating...';
@@ -791,8 +931,10 @@
         async function generateVideo(e) {
             e.preventDefault();
 
-            if (currentTier === 'basic') {
-                showAlert('Video generation requires Premium or Partner tier', 'error');
+            // Check if limit reached
+            const videosUsed = currentUsage?.content_videos || 0;
+            if (videosUsed >= tierLimits.videos_per_month) {
+                showLimitModal('video', videosUsed, tierLimits.videos_per_month);
                 return;
             }
 
@@ -840,17 +982,53 @@
 
         function switchTab(tabName) {
             // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
             event.target.classList.add('active');
+            event.target.setAttribute('aria-selected', 'true');
 
             // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + 'Tab').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.hidden = true;
+            });
+            const activePanel = document.getElementById(tabName + 'Tab');
+            activePanel.classList.add('active');
+            activePanel.hidden = false;
 
             if (tabName === 'library') {
                 loadContentLibrary();
             }
         }
+
+        // Keyboard navigation for tabs
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('[role="tab"]');
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('keydown', (e) => {
+                    let targetTab = null;
+                    if (e.key === 'ArrowRight') {
+                        targetTab = tabs[(index + 1) % tabs.length];
+                    } else if (e.key === 'ArrowLeft') {
+                        targetTab = tabs[(index - 1 + tabs.length) % tabs.length];
+                    }
+                    if (targetTab) {
+                        e.preventDefault();
+                        targetTab.click();
+                        targetTab.focus();
+                    }
+                });
+            });
+
+            // Modal escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('limitModal').classList.contains('show')) {
+                    closeLimitModal();
+                }
+            });
+        });
 
         function showAlert(message, type) {
             const alert = document.getElementById('alert');

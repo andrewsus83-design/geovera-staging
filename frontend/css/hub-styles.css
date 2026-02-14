@@ -628,6 +628,272 @@ a:focus {
 }
 
 /* ============================================
+   USAGE INDICATOR & TIER LIMITS
+   ============================================ */
+
+.usage-indicator-container {
+    display: flex;
+    align-items: center;
+}
+
+.usage-indicator {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    min-width: 180px;
+}
+
+.usage-bar {
+    width: 100%;
+    height: 0.375rem;
+    background: #f3f4f6;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.usage-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+.usage-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.usage-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.create-collection-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: #16a34a;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.create-collection-btn:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.create-collection-btn:focus {
+    outline: 2px solid #16a34a;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   LIMIT MODAL
+   ============================================ */
+
+.limit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+.limit-modal {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 500px;
+    width: 100%;
+    animation: slideUp 0.3s ease;
+    border: 2px solid #e5e7eb;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.limit-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.limit-modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    font-family: 'Inter', sans-serif;
+}
+
+.limit-modal-close {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+}
+
+.limit-modal-close:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.limit-modal-body {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.limit-modal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1.5rem;
+    background: #f0fdf4;
+    border-radius: 9999px;
+}
+
+.limit-modal-description {
+    font-size: 1rem;
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.limit-modal-cta {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+}
+
+.limit-modal-plans {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.limit-plan-card {
+    padding: 1.25rem;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.limit-plan-card.highlight {
+    background: #f0fdf4;
+    border-color: #16a34a;
+    position: relative;
+}
+
+.limit-plan-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+}
+
+.limit-plan-limit {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.limit-plan-badge {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 0.75rem;
+    background: #16a34a;
+    color: white;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 9999px;
+}
+
+.limit-modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.limit-modal-btn-secondary {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.limit-modal-btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #111827;
+}
+
+.limit-modal-btn-primary {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    background: #16a34a;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 2px solid #16a34a;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.limit-modal-btn-primary:hover {
+    background: #15803d;
+    border-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
    PRINT STYLES
    ============================================ */
 

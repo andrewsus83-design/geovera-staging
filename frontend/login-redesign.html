@@ -459,10 +459,12 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env-loader.js"></script>
     <script>
         // SUPABASE CONFIG
-        const SUPABASE_URL = 'https://vozjwptzutolvkvfpknk.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvemp3cHR6dXRvbHZrdmZwa25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4ODI0NzcsImV4cCI6MjA4NTQ1ODQ3N30.p-RiTR1Iva9Y4KiZu8gnF2CZjvnMWNAHUVCbp57PDF8';
+        const ENV_CONFIG = window.getEnvConfig();
+        const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+        const SUPABASE_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
         const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // SHOW MESSAGE
@@ -522,7 +524,7 @@
                     if (brands && brands.length > 0) {
                         window.location.href = 'dashboard.html';
                     } else {
-                        window.location.href = 'onboarding-redesign.html';
+                        window.location.href = 'onboarding.html';
                     }
                 }, 1000);
 
@@ -555,7 +557,7 @@
                     localStorage.setItem('access_token', data.session.access_token);
                     showMsg('Account created! Redirecting...', 'success');
                     setTimeout(() => {
-                        window.location.href = 'onboarding-redesign.html';
+                        window.location.href = 'onboarding.html';
                     }, 1000);
                 } else {
                     showMsg('Check your email to verify your account!', 'success');
@@ -576,7 +578,7 @@
                 const { error } = await sbClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: window.location.origin + '/onboarding-redesign.html'
+                        redirectTo: window.location.origin + '/onboarding.html'
                     }
                 });
                 if (error) throw error;

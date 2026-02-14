@@ -4,6 +4,191 @@
  */
 
 // ============================================
+// TIER USAGE MANAGEMENT
+// ============================================
+
+let supabaseClient = null;
+let currentUser = null;
+let currentCollections = 0;
+let tierLimit = 3; // Default to basic
+let currentTier = 'basic';
+
+// Tier limits configuration
+const TIER_LIMITS = {
+    basic: 3,
+    premium: 10,
+    partner: Infinity
+};
+
+// Initialize Supabase
+async function initializeSupabase() {
+    try {
+        if (typeof window.GeoVeraConfig === 'undefined' || !window.GeoVeraConfig.supabase.url) {
+            console.warn('Supabase config not loaded, running in demo mode');
+            return;
+        }
+
+        const { createClient } = supabase;
+        supabaseClient = createClient(
+            window.GeoVeraConfig.supabase.url,
+            window.GeoVeraConfig.supabase.anonKey
+        );
+
+        // Get current user
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        currentUser = user;
+
+        if (user) {
+            await loadUserTierAndUsage();
+        }
+    } catch (error) {
+        console.error('Error initializing Supabase:', error);
+    }
+}
+
+// Load user tier and usage
+async function loadUserTierAndUsage() {
+    try {
+        if (!supabaseClient || !currentUser) return;
+
+        // Get subscription tier
+        const { data: subscription, error: subError } = await supabaseClient
+            .from('gv_user_subscriptions')
+            .select('tier_name')
+            .eq('user_id', currentUser.id)
+            .eq('status', 'active')
+            .single();
+
+        if (subError) {
+            console.warn('Error loading subscription:', subError);
+            currentTier = 'basic';
+            tierLimit = TIER_LIMITS.basic;
+        } else if (!subscription) {
+            console.warn('No active subscription found, using basic tier');
+            currentTier = 'basic';
+            tierLimit = TIER_LIMITS.basic;
+        } else {
+            currentTier = subscription.tier_name.toLowerCase();
+            tierLimit = TIER_LIMITS[currentTier] || TIER_LIMITS.basic;
+        }
+
+        // Get current collections count from gv_hub_collections
+        // Note: Collections are currently public, but we'll filter by user when user-specific collections are implemented
+        const { count, error: countError } = await supabaseClient
+            .from('gv_hub_collections')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'published');
+
+        if (countError) {
+            console.warn('Error counting collections:', countError);
+            // Use mock data for now
+            currentCollections = 2; // Demo: show 2/3 for Basic tier
+        } else {
+            // For demo purposes, use a fixed number until user-specific collections are added
+            currentCollections = Math.min(count || 2, tierLimit);
+        }
+
+        // Update UI
+        updateUsageIndicator();
+        document.getElementById('usageIndicatorContainer').style.display = 'flex';
+
+    } catch (error) {
+        console.error('Error loading tier and usage:', error);
+        // Fallback to demo values
+        currentTier = 'basic';
+        tierLimit = TIER_LIMITS.basic;
+        currentCollections = 2;
+        updateUsageIndicator();
+        document.getElementById('usageIndicatorContainer').style.display = 'flex';
+    }
+}
+
+// Update usage indicator
+function updateUsageIndicator() {
+    const usageText = document.getElementById('usageText');
+    const usageFill = document.getElementById('usageFill');
+    const tierText = document.getElementById('tierText');
+
+    if (!usageText || !usageFill || !tierText) return;
+
+    // Update text
+    const limitText = tierLimit === Infinity ? '∞' : tierLimit;
+    usageText.textContent = `Collections: ${currentCollections}/${limitText}`;
+    tierText.textContent = currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+
+    // Update progress bar
+    const percentage = tierLimit === Infinity ? 0 : (currentCollections / tierLimit) * 100;
+    usageFill.style.width = `${Math.min(percentage, 100)}%`;
+
+    // Update color based on usage
+    usageFill.classList.remove('warning', 'danger');
+    if (percentage >= 100) {
+        usageFill.classList.add('danger');
+    } else if (percentage >= 80) {
+        usageFill.classList.add('warning');
+    }
+}
+
+// Check if user can create collection
+function canCreateCollection() {
+    if (currentTier === 'partner' || tierLimit === Infinity) {
+        return true;
+    }
+    return currentCollections < tierLimit;
+}
+
+// Show limit modal
+function showLimitModal() {
+    const modal = document.getElementById('limitModal');
+    const currentCount = document.getElementById('currentCount');
+    const maxCount = document.getElementById('maxCount');
+    const currentTierSpan = document.getElementById('currentTier');
+
+    if (!modal) return;
+
+    currentCount.textContent = currentCollections;
+    maxCount.textContent = tierLimit;
+    currentTierSpan.textContent = currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Focus trap
+    const firstFocusable = modal.querySelector('.limit-modal-close');
+    if (firstFocusable) firstFocusable.focus();
+}
+
+// Close limit modal
+function closeLimitModal() {
+    const modal = document.getElementById('limitModal');
+    if (!modal) return;
+
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Handle create collection button click
+async function handleCreateCollection() {
+    if (!currentUser) {
+        alert('Please sign in to create collections');
+        window.location.href = '/frontend/login.html';
+        return;
+    }
+
+    if (!canCreateCollection()) {
+        showLimitModal();
+        return;
+    }
+
+    // TODO: Implement actual collection creation
+    alert('Collection creation coming soon! This would open a modal to create a new collection.');
+
+    // For demo: increment count and update UI
+    currentCollections++;
+    updateUsageIndicator();
+}
+
+// ============================================
 // HOMEPAGE FUNCTIONALITY
 // ============================================
 
@@ -665,10 +850,37 @@ function scrollToTop() {
 // ============================================
 
 // Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Supabase and load tier data
+    await initializeSupabase();
+
+    // Initialize page functionality
     initHomepage();
     initCollectionPage();
     setupLazyLoading();
+
+    // Setup create collection button
+    const createBtn = document.getElementById('createCollectionBtn');
+    if (createBtn) {
+        createBtn.addEventListener('click', handleCreateCollection);
+    }
+
+    // Setup modal close on escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeLimitModal();
+        }
+    });
+
+    // Setup modal close on backdrop click
+    const modal = document.getElementById('limitModal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeLimitModal();
+            }
+        });
+    }
 
     // Log initialization
     console.log('Authority Hub initialized successfully');
@@ -687,11 +899,18 @@ window.addEventListener('resize', () => {
     }, 250);
 });
 
+// Make functions globally available for inline onclick handlers
+window.closeLimitModal = closeLimitModal;
+
 // Export functions for external use if needed
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initHomepage,
         initCollectionPage,
-        initializeCharts
+        initializeCharts,
+        initializeSupabase,
+        loadUserTierAndUsage,
+        handleCreateCollection,
+        closeLimitModal
     };
 }

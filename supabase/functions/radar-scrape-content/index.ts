@@ -361,10 +361,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get creator info
+    // Get creator info (including tier and last_scraped_at for frequency check)
     const { data: creator, error: creatorError } = await supabaseClient
       .from("gv_creators")
-      .select("id, name, instagram_handle, tiktok_handle, youtube_handle")
+      .select("id, username, platform, tier, follower_count, engagement_rate, last_scraped_at")
       .eq("id", creator_id)
       .single();
 
@@ -379,24 +379,59 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get platform handle
-    let handle: string | null = null;
-    if (platform === "instagram") handle = creator.instagram_handle;
-    else if (platform === "tiktok") handle = creator.tiktok_handle;
-    else if (platform === "youtube") handle = creator.youtube_handle;
+    // Check if creator needs update based on tier frequency
+    const { data: needsUpdateResult, error: needsUpdateError } = await supabaseClient
+      .rpc('creator_needs_update', { p_creator_id: creator_id });
+
+    if (needsUpdateError) {
+      console.error('[radar-scrape-content] Error checking update frequency:', needsUpdateError);
+    } else if (!needsUpdateResult) {
+      // Get tier update frequency for response
+      const tierFrequencies = { high: 24, medium: 48, low: 72 };
+      const updateFrequency = tierFrequencies[creator.tier as keyof typeof tierFrequencies] || 48;
+      const lastScraped = creator.last_scraped_at ? new Date(creator.last_scraped_at) : null;
+      const nextUpdate = lastScraped
+        ? new Date(lastScraped.getTime() + updateFrequency * 60 * 60 * 1000)
+        : null;
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          skipped: true,
+          message: `Creator was recently scraped. Update not needed yet.`,
+          code: "UPDATE_NOT_NEEDED",
+          creator_id,
+          creator_username: creator.username,
+          tier: creator.tier,
+          update_frequency_hours: updateFrequency,
+          last_scraped_at: lastScraped?.toISOString(),
+          next_update_at: nextUpdate?.toISOString(),
+          hours_until_next_update: nextUpdate
+            ? Math.max(0, (nextUpdate.getTime() - Date.now()) / (1000 * 60 * 60))
+            : null
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[radar-scrape-content] Creator tier: ${creator.tier}, proceeding with scrape`);
+
+
+    // Use username as handle (creators table has username field)
+    const handle = creator.username;
 
     if (!handle) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `No ${platform} handle found for this creator`,
+          error: `No username found for this creator`,
           code: "HANDLE_NOT_FOUND"
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[radar-scrape-content] Scraping ${platform} for @${handle}`);
+    console.log(`[radar-scrape-content] Scraping ${platform} for @${handle} (tier: ${creator.tier})`);
 
     // Initialize Apify client
     const apifyClient = new ApifyClient({ token: apifyToken });
@@ -460,24 +495,32 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Update creator's last_scraped_at
+    // Update creator's last_scraped_at (tier will be auto-updated by trigger if needed)
+    const now = new Date().toISOString();
     await supabaseClient
       .from("gv_creators")
       .update({
-        last_scraped_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        last_scraped_at: now
       })
       .eq("id", creator_id);
 
-    console.log(`[radar-scrape-content] Successfully saved ${insertedCount} posts`);
+    console.log(`[radar-scrape-content] Successfully saved ${insertedCount} posts, updated last_scraped_at`);
+
+    // Calculate next update time based on tier
+    const tierFrequencies = { high: 24, medium: 48, low: 72 };
+    const updateFrequency = tierFrequencies[creator.tier as keyof typeof tierFrequencies] || 48;
+    const nextUpdateAt = new Date(Date.now() + updateFrequency * 60 * 60 * 1000);
 
     return new Response(
       JSON.stringify({
         success: true,
         creator_id,
-        creator_name: creator.name,
+        creator_username: creator.username,
         platform,
         handle,
+        tier: creator.tier,
+        update_frequency_hours: updateFrequency,
+        next_update_at: nextUpdateAt.toISOString(),
         scraped_count: rawPosts.length,
         filtered_count: filteredPosts.length,
         saved_count: insertedCount,

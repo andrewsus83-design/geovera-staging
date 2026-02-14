@@ -111,6 +111,62 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Fetch brand visual guidelines
+    const { data: visualGuidelines } = await supabaseClient
+      .from("gv_brand_visual_guidelines")
+      .select("*")
+      .eq("brand_id", brand_id)
+      .single();
+
+    // Build enhanced prompt with brand consistency
+    let brandGuidanceText = "";
+
+    if (visualGuidelines && visualGuidelines.training_status === "trained") {
+      brandGuidanceText = `\n\nBRAND VISUAL GUIDELINES:`;
+
+      // Add visual style
+      if (visualGuidelines.visual_style) {
+        brandGuidanceText += `\n- Visual Style: ${visualGuidelines.visual_style}`;
+      }
+
+      // Add mood
+      if (visualGuidelines.visual_mood && visualGuidelines.visual_mood.length > 0) {
+        brandGuidanceText += `\n- Mood: ${visualGuidelines.visual_mood.join(", ")}`;
+      }
+
+      // Add color palette
+      const allColors = [
+        ...(visualGuidelines.primary_colors || []),
+        ...(visualGuidelines.secondary_colors || []),
+        ...(visualGuidelines.accent_colors || [])
+      ];
+      if (allColors.length > 0) {
+        brandGuidanceText += `\n- Brand Colors: ${allColors.slice(0, 5).join(", ")}`;
+      }
+
+      // Add style keywords
+      if (visualGuidelines.style_keywords && visualGuidelines.style_keywords.length > 0) {
+        brandGuidanceText += `\n- Style Keywords: ${visualGuidelines.style_keywords.join(", ")}`;
+      }
+
+      // Add lighting preference
+      if (visualGuidelines.lighting_preference) {
+        brandGuidanceText += `\n- Lighting: ${visualGuidelines.lighting_preference}`;
+      }
+
+      // Add composition preferences
+      if (visualGuidelines.composition_preferences && visualGuidelines.composition_preferences.length > 0) {
+        brandGuidanceText += `\n- Composition: ${visualGuidelines.composition_preferences.join(", ")}`;
+      }
+
+      // Add preferred video style
+      if (visualGuidelines.preferred_video_style) {
+        brandGuidanceText += `\n- Video Style: ${visualGuidelines.preferred_video_style}`;
+      }
+
+      brandGuidanceText += `\n\nIMPORTANT: Ensure all visual suggestions align with these brand guidelines. Maintain brand consistency throughout.`;
+    }
+
     // Generate script with Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -128,7 +184,7 @@ Deno.serve(async (req: Request) => {
 
 Brand: ${brand.brand_name}
 Platform: ${target_platform}
-Duration: ${duration_seconds} seconds
+Duration: ${duration_seconds} seconds${brandGuidanceText}
 
 Format:
 [HOOK - 0-3s]: (opening line)
@@ -136,10 +192,13 @@ Format:
 [CTA - ${duration_seconds-3}-${duration_seconds}s]: (call to action)
 
 Include:
-- Visual suggestions
-- Text overlay recommendations
+- Visual suggestions (aligned with brand colors and style)
+- Text overlay recommendations (using brand aesthetic)
+- Scene descriptions (matching brand visual style)
+- Lighting and composition notes (following brand guidelines)
 - Platform best practices
-- Hashtag suggestions`
+- Hashtag suggestions
+- Brand consistency notes`
         }]
       })
     });
@@ -153,7 +212,7 @@ Include:
     const video_script = claudeData.content[0].text;
     const cost_usd = 0.015;
 
-    // Save to content library
+    // Save to content library with brand consistency metadata
     const { data: contentData, error: contentError } = await supabaseClient
       .from("gv_content_library")
       .insert({
@@ -165,14 +224,17 @@ Include:
         content_variations: {
           script: video_script,
           duration_seconds,
-          platform: target_platform
+          platform: target_platform,
+          brand_guidelines_applied: visualGuidelines ? true : false
         },
         content_goal: "visibility",
         target_platforms: [target_platform],
         ai_provider_used: "anthropic",
         model_used: "claude-3-5-sonnet-20241022",
+        generation_prompt: `Video script for ${topic} with brand guidelines`,
         generation_cost_usd: cost_usd,
-        publish_status: "draft"
+        publish_status: "draft",
+        brand_colors_used: visualGuidelines?.primary_colors || null
       })
       .select()
       .single();

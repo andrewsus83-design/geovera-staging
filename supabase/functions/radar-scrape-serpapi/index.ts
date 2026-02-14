@@ -78,13 +78,13 @@ class SerpAPIClient {
     return url.toString();
   }
 
-  async getYouTubeChannel(handle: string): Promise<any> {
+  async getYouTubeChannel(handle: string, country: string = "us", language: string = "en"): Promise<any> {
     const cleanHandle = handle.replace("@", "");
     const url = this.buildUrl({
       engine: "youtube",
       search_query: `@${cleanHandle}`,
-      gl: "id", // Indonesia
-      hl: "id", // Indonesian language
+      gl: country.toLowerCase(), // GLOBAL: Support any country (us, uk, sg, id, etc.)
+      hl: language.toLowerCase(), // GLOBAL: Support any language (en, id, es, etc.)
     });
 
     const response = await fetch(url);
@@ -95,13 +95,13 @@ class SerpAPIClient {
     return await response.json();
   }
 
-  async getYouTubeVideos(handle: string, maxResults: number = 20): Promise<any> {
+  async getYouTubeVideos(handle: string, maxResults: number = 20, country: string = "us", language: string = "en"): Promise<any> {
     const cleanHandle = handle.replace("@", "");
     const url = this.buildUrl({
       engine: "youtube",
       search_query: `@${cleanHandle}`,
-      gl: "id",
-      hl: "id",
+      gl: country.toLowerCase(), // GLOBAL: Support any country
+      hl: language.toLowerCase(), // GLOBAL: Support any language
       num: maxResults.toString(),
     });
 
@@ -124,7 +124,7 @@ class SerpAPIClient {
       engine: "google_trends",
       q: params.q,
       data_type: params.data_type || "TIMESERIES",
-      geo: params.geo || "ID",
+      geo: params.geo || "US", // GLOBAL: Default to US (was ID for Indonesia)
       date: params.date || "now 7-d",
       cat: params.cat || "0",
     });
@@ -147,7 +147,7 @@ class SerpAPIClient {
       engine: "google_trends",
       q: params.q,
       data_type: "RELATED_QUERIES",
-      geo: params.geo || "ID",
+      geo: params.geo || "US", // GLOBAL: Default to US (was ID for Indonesia)
       date: params.date || "now 7-d",
       cat: params.cat || "0",
     });

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Radar - GeoVera Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/accessibility.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --gv-hero: #16A34A; --gv-anchor: #0B0F19; --gv-body: #6B7280;
+            --gv-canvas: #FFFFFF; --gv-divider: #E5E7EB; --gv-bg-light: #F9FAFB;
+            --font-display: Georgia, 'Times New Roman', serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        body { font-family: var(--font-body); background: var(--gv-bg-light); color: var(--gv-anchor); line-height: 1.6; min-height: 100vh; }
+        .site-header { background: var(--gv-anchor); color: white; border-bottom: 4px solid var(--gv-hero); position: sticky; top: 0; z-index: 1000; }
+        .header-container { max-width: 1440px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
+        .header-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
+        .logo-icon { width: 44px; height: 44px; background: var(--gv-hero); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: white; }
+        .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
+        .nav-desktop { display: flex; align-items: center; gap: 32px; }
+        .nav-link { color: white; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 16px; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; display: flex; align-items: center; }
+        .nav-link:hover { color: var(--gv-hero); }
+        .nav-link.active { color: var(--gv-hero); }
+        .user-button { background: var(--gv-hero); color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; border-radius: 0; }
+        .mobile-menu-toggle { display: none; background: none; border: none; color: white; cursor: pointer; min-width: 44px; min-height: 44px; padding: 8px; }
+        .main-container { max-width: 1440px; margin: 0 auto; padding: 32px 24px; }
+        .page-header { background: white; border: 4px solid var(--gv-anchor); padding: 32px; margin-bottom: 32px; }
+        .page-title { font-family: var(--font-display); font-size: 36px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 16px; color: var(--gv-body); }
+        .usage-indicator { display: inline-block; background: var(--gv-bg-light); border: 2px solid var(--gv-divider); padding: 8px 16px; font-size: 14px; margin-top: 16px; }
+        .usage-limit { font-weight: 700; color: var(--gv-hero); }
+        .search-section { background: white; border: 2px solid var(--gv-divider); padding: 32px; margin-bottom: 32px; }
+        .section-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.02em; }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 24px; }
+        .filter-group { display: flex; flex-direction: column; gap: 8px; }
+        .filter-label { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .filter-select, .filter-input { width: 100%; padding: 12px; border: 2px solid var(--gv-divider); background: white; font-family: var(--font-body); font-size: 14px; min-height: 44px; border-radius: 0; }
+        .filter-select:focus, .filter-input:focus { outline: 2px solid var(--gv-hero); outline-offset: 2px; border-color: var(--gv-hero); }
+        .search-button { background: var(--gv-hero); color: white; border: none; padding: 14px 32px; font-size: 16px; font-weight: 700; cursor: pointer; border-radius: 0; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; transition: all 0.2s; width: 100%; }
+        .search-button:hover { background: #15803d; }
+        .search-button:disabled { background: var(--gv-body); cursor: not-allowed; }
+        .results-section { background: white; border: 2px solid var(--gv-divider); padding: 32px; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        .creator-card { border: 2px solid var(--gv-divider); padding: 24px; transition: all 0.3s; }
+        .creator-card:hover { border-color: var(--gv-hero); transform: translateY(-2px); }
+        .creator-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--gv-bg-light); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+        .creator-name { font-weight: 700; font-size: 18px; text-align: center; margin-bottom: 8px; }
+        .creator-stats { text-align: center; font-size: 14px; color: var(--gv-body); margin-bottom: 16px; }
+        .platform-icons { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+        .platform-icon { width: 24px; height: 24px; }
+        .save-button { width: 100%; background: transparent; color: var(--gv-anchor); border: 2px solid var(--gv-anchor); padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 0; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; transition: all 0.2s; }
+        .save-button:hover { background: var(--gv-anchor); color: white; }
+        .empty-state { text-align: center; padding: 64px 32px; color: var(--gv-body); }
+        .loading-spinner { text-align: center; padding: 64px; font-size: 18px; color: var(--gv-body); }
+        @media (max-width: 768px) {
+            .nav-desktop { display: none; }
+            .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .page-title { font-size: 28px; }
+            .filters-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only live-region" id="announcements"></div>
+
+    <header class="site-header" role="banner">
+        <div class="header-container">
+            <a href="/frontend/index.html" class="header-logo" aria-label="GeoVera Intelligence - Return to homepage">
+                <div class="logo-icon" aria-hidden="true">G</div>
+                <span class="logo-text">GeoVera</span>
+            </a>
+            <nav class="nav-desktop" aria-label="Main navigation">
+                <a href="/frontend/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/frontend/insights.html" class="nav-link">Insights</a>
+                <a href="/frontend/hub.html" class="nav-link">Hub</a>
+                <a href="/frontend/radar.html" class="nav-link active" aria-current="page">Radar</a>
+                <a href="/frontend/content-studio.html" class="nav-link">Content Studio</a>
+                <a href="/frontend/chat.html" class="nav-link">AI Chat</a>
+                <a href="/frontend/settings.html" class="nav-link">Settings</a>
+            </nav>
+            <div class="user-menu">
+                <button class="user-button" id="user-btn" aria-label="User menu"><span>Account</span></button>
+            </div>
+            <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">☰</button>
+        </div>
+    </header>
+
+    <main class="main-container" id="main-content" role="main">
+        <section class="page-header" aria-labelledby="page-title">
+            <h1 class="page-title" id="page-title">Creator Radar</h1>
+            <p class="page-subtitle">Discover creators from 50+ countries across Instagram, TikTok, and YouTube</p>
+            <div class="usage-indicator" role="status" aria-live="polite">
+                <span id="usage-text">Searches used: <span class="usage-limit">0/10</span> this month (Basic)</span>
+            </div>
+        </section>
+
+        <section class="search-section" aria-labelledby="search-title">
+            <h2 class="section-title" id="search-title">Search Filters</h2>
+            <form id="search-form" aria-label="Creator search filters">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="country-select" class="filter-label">Country</label>
+                        <select id="country-select" class="filter-select" aria-label="Select country">
+                            <option value="global">Global</option>
+                            <option value="US">United States</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="CA">Canada</option>
+                            <option value="AU">Australia</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="ES">Spain</option>
+                            <option value="IT">Italy</option>
+                            <option value="BR">Brazil</option>
+                            <option value="MX">Mexico</option>
+                            <option value="JP">Japan</option>
+                            <option value="KR">South Korea</option>
+                            <option value="CN">China</option>
+                            <option value="IN">India</option>
+                            <option value="ID">Indonesia</option>
+                            <option value="TH">Thailand</option>
+                            <option value="VN">Vietnam</option>
+                            <option value="PH">Philippines</option>
+                            <option value="SG">Singapore</option>
+                            <option value="MY">Malaysia</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="SE">Sweden</option>
+                            <option value="NO">Norway</option>
+                            <option value="DK">Denmark</option>
+                            <option value="FI">Finland</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="category-select" class="filter-label">Category</label>
+                        <select id="category-select" class="filter-select" aria-label="Select category">
+                            <option value="">All Categories</option>
+                            <option value="beauty">Beauty</option>
+                            <option value="fashion">Fashion</option>
+                            <option value="travel">Travel</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="tech">Technology</option>
+                            <option value="fitness">Fitness & Health</option>
+                            <option value="lifestyle">Lifestyle</option>
+                            <option value="gaming">Gaming</option>
+                            <option value="entertainment">Entertainment</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="followers-select" class="filter-label">Follower Range</label>
+                        <select id="followers-select" class="filter-select" aria-label="Select follower range">
+                            <option value="">Any Size</option>
+                            <option value="1k-10k">1K - 10K (Nano)</option>
+                            <option value="10k-100k">10K - 100K (Micro)</option>
+                            <option value="100k-1m">100K - 1M (Mid-tier)</option>
+                            <option value="1m+">1M+ (Macro)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="engagement-select" class="filter-label">Engagement Rate</label>
+                        <select id="engagement-select" class="filter-select" aria-label="Select engagement rate">
+                            <option value="">Any Rate</option>
+                            <option value="2">Above 2%</option>
+                            <option value="5">Above 5%</option>
+                            <option value="10">Above 10%</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="platform-select" class="filter-label">Platform</label>
+                        <select id="platform-select" class="filter-select" aria-label="Select platform">
+                            <option value="">All Platforms</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="search-button" id="search-btn" aria-label="Search for creators">
+                    Search Creators
+                </button>
+            </form>
+        </section>
+
+        <section class="results-section" aria-labelledby="results-title">
+            <h2 class="section-title" id="results-title">Search Results</h2>
+            <div id="results-container">
+                <div class="empty-state" role="status">
+                    <p>Use the filters above to discover creators. Start with a country and category.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/frontend/config.js" type="module"></script>
+    <script type="module">
+        import config from '/frontend/config.js';
+        const supabase = window.supabase.createClient(config.supabase.url, config.supabase.anonKey);
+
+        const tierLimits = {
+            basic: { searches: 10 },
+            premium: { searches: 50 },
+            partner: { searches: -1 } // unlimited
+        };
+
+        let currentTier = 'basic';
+        let searchesUsed = 0;
+
+        async function checkAuth() {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error || !user) {
+                window.location.href = '/frontend/login.html';
+                return null;
+            }
+            return user;
+        }
+
+        async function loadUsage() {
+            const user = await checkAuth();
+            if (!user) return;
+
+            // Get subscription tier
+            const { data: subscription } = await supabase
+                .from('gv_subscriptions')
+                .select('tier_name')
+                .eq('user_id', user.id)
+                .single();
+
+            if (subscription) {
+                currentTier = subscription.tier_name;
+            }
+
+            // Get searches this month (mock for now)
+            searchesUsed = 0;
+
+            updateUsageDisplay();
+        }
+
+        function updateUsageDisplay() {
+            const limit = tierLimits[currentTier].searches;
+            const limitText = limit === -1 ? 'Unlimited' : limit;
+            const usageText = limit === -1 
+                ? `Searches used: ${searchesUsed} this month (${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)})`
+                : `Searches used: ${searchesUsed}/${limitText} this month (${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)})`;
+            
+            document.getElementById('usage-text').innerHTML = usageText;
+
+            // Disable search if limit reached
+            const limit_reached = limit !== -1 && searchesUsed >= limit;
+            document.getElementById('search-btn').disabled = limit_reached;
+            
+            if (limit_reached) {
+                document.getElementById('search-btn').textContent = 'Monthly Limit Reached';
+            }
+        }
+
+        document.getElementById('search-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const limit = tierLimits[currentTier].searches;
+            if (limit !== -1 && searchesUsed >= limit) {
+                alert('Monthly search limit reached. Upgrade to Premium for more searches!');
+                return;
+            }
+
+            const country = document.getElementById('country-select').value;
+            const category = document.getElementById('category-select').value;
+            const followers = document.getElementById('followers-select').value;
+            const engagement = document.getElementById('engagement-select').value;
+            const platform = document.getElementById('platform-select').value;
+
+            document.getElementById('results-container').innerHTML = '<div class="loading-spinner">Searching creators...</div>';
+            document.getElementById('announcements').textContent = 'Searching for creators';
+
+            // Simulate API call
+            setTimeout(() => {
+                searchesUsed++;
+                updateUsageDisplay();
+
+                const mockResults = generateMockResults(country, category);
+                displayResults(mockResults);
+                
+                document.getElementById('announcements').textContent = `Found ${mockResults.length} creators`;
+            }, 1500);
+        });
+
+        function generateMockResults(country, category) {
+            const names = ['Emma Chen', 'Sofia Rodriguez', 'Aria Kim', 'Luna Martinez', 'Maya Patel', 'Zara Johnson'];
+            const results = [];
+            
+            for (let i = 0; i < 6; i++) {
+                results.push({
+                    id: i,
+                    name: names[i],
+                    followers: Math.floor(Math.random() * 500000) + 10000,
+                    engagement: (Math.random() * 8 + 2).toFixed(1),
+                    category: category || 'beauty',
+                    platforms: ['instagram', 'tiktok']
+                });
+            }
+            
+            return results;
+        }
+
+        function displayResults(results) {
+            if (results.length === 0) {
+                document.getElementById('results-container').innerHTML = '<div class="empty-state"><p>No creators found. Try adjusting your filters.</p></div>';
+                return;
+            }
+
+            const html = '<div class="results-grid">' + results.map(creator => `
+                <article class="creator-card" role="article" aria-label="Creator: ${creator.name}">
+                    <div class="creator-avatar" aria-hidden="true">${creator.name.charAt(0)}</div>
+                    <h3 class="creator-name">${creator.name}</h3>
+                    <div class="creator-stats">
+                        <div>${creator.followers.toLocaleString()} followers</div>
+                        <div>${creator.engagement}% engagement</div>
+                    </div>
+                    <div class="platform-icons" aria-label="Platforms: ${creator.platforms.join(', ')}">
+                        ${creator.platforms.map(p => `<span class="platform-icon">${p === 'instagram' ? '📷' : p === 'tiktok' ? '🎵' : '▶️'}</span>`).join('')}
+                    </div>
+                    <button class="save-button" onclick="saveCreator(${creator.id})" aria-label="Save ${creator.name} to collection">
+                        Save to Collection
+                    </button>
+                </article>
+            `).join('') + '</div>';
+
+            document.getElementById('results-container').innerHTML = html;
+        }
+
+        window.saveCreator = function(id) {
+            alert('Creator saved! Go to Hub to view your collections.');
+        };
+
+        document.getElementById('user-btn').addEventListener('click', () => {
+            window.location.href = '/frontend/settings.html';
+        });
+
+        loadUsage();
+    </script>
+</body>
+</html>

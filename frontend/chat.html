@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env-loader.js"></script>
     <style>
         * {
             margin: 0;
@@ -311,7 +312,7 @@
 
         .message-bubble {
             padding: 11.7px 13.5px;
-            border-radius: 9px;
+            border-radius: 0;
             margin-bottom: 4.5px;
             line-height: 1.6;
         }
@@ -355,7 +356,7 @@
             padding: 11.7px 13.5px;
             background: var(--light-bg);
             border: 1px solid var(--border);
-            border-radius: 9px;
+            border-radius: 0;
             width: fit-content;
         }
 
@@ -489,7 +490,7 @@
             border: 1px solid #ef4444;
             color: #991b1b;
             padding: 11.7px 13.5px;
-            border-radius: 9px;
+            border-radius: 0;
             font-size: 12.6px;
             margin-bottom: 18px;
             display: none;
@@ -497,6 +498,203 @@
 
         .error-message.active {
             display: block;
+        }
+
+        /* Usage Indicator */
+        .usage-indicator {
+            background: #f0fdf4;
+            border-left: 4px solid var(--green);
+            padding: 9px 13.5px;
+            margin-bottom: 13.5px;
+            font-size: 11.7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 9px;
+        }
+
+        .usage-text {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .usage-bar {
+            flex: 1;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 0;
+            overflow: hidden;
+            max-width: 180px;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: var(--green);
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: #eab308;
+        }
+
+        .usage-fill.danger {
+            background: #ef4444;
+        }
+
+        .usage-count {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 12.6px;
+        }
+
+        /* Limit Modal */
+        .limit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 27px;
+        }
+
+        .limit-modal.active {
+            display: flex;
+        }
+
+        .limit-modal-content {
+            background: white;
+            max-width: 450px;
+            width: 100%;
+            border: 4px solid var(--dark-navy);
+        }
+
+        .limit-modal-header {
+            padding: 18px 27px;
+            background: #fef3c7;
+            border-bottom: 2px solid #f59e0b;
+        }
+
+        .limit-modal-header h3 {
+            font-family: 'Georgia', serif;
+            font-size: 19.8px;
+            color: var(--dark-navy);
+            margin-bottom: 4.5px;
+        }
+
+        .limit-modal-header p {
+            font-size: 12.6px;
+            color: var(--text-secondary);
+        }
+
+        .limit-modal-body {
+            padding: 27px;
+        }
+
+        .limit-modal-body p {
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            margin-bottom: 18px;
+        }
+
+        .tier-comparison {
+            background: var(--light-bg);
+            padding: 13.5px;
+            margin-bottom: 18px;
+        }
+
+        .tier-comparison-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 9px 0;
+            font-size: 12.6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tier-comparison-row:last-child {
+            border-bottom: none;
+        }
+
+        .tier-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .tier-limit {
+            color: var(--text-secondary);
+        }
+
+        .limit-modal-actions {
+            display: flex;
+            gap: 9px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 11.7px 18px;
+            border: none;
+            border-radius: 0;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .modal-btn-primary {
+            background: var(--green);
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #15803d;
+        }
+
+        .modal-btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .modal-btn-secondary:hover {
+            background: var(--light-bg);
+        }
+
+        /* Screen Reader Only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Skip Link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--green);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            z-index: 100;
+            font-weight: 600;
+        }
+
+        .skip-link:focus {
+            top: 0;
         }
 
         /* Responsive */
@@ -535,28 +733,31 @@
     </style>
 </head>
 <body>
+    <!-- Skip to Main Content Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Header -->
-    <header class="header">
+    <header class="header" role="banner">
         <div class="header-content">
             <div class="logo-section">
-                <div class="logo">G</div>
+                <div class="logo" role="img" aria-label="GeoVera logo">G</div>
                 <div class="brand-name">GeoVera</div>
             </div>
-            <nav class="nav-menu">
-                <a href="/dashboard" class="nav-link">Dashboard</a>
-                <a href="/chat" class="nav-link active">AI Chat</a>
-                <a href="#" class="nav-link">Reports</a>
-                <a href="#" class="nav-link">Settings</a>
+            <nav class="nav-menu" aria-label="Main navigation">
+                <a href="/dashboard" class="nav-link" aria-label="Go to Dashboard">Dashboard</a>
+                <a href="/chat" class="nav-link active" aria-label="AI Chat (current page)" aria-current="page">AI Chat</a>
+                <a href="#" class="nav-link" aria-label="Go to Reports">Reports</a>
+                <a href="#" class="nav-link" aria-label="Go to Settings">Settings</a>
             </nav>
             <div class="user-menu">
-                <button class="user-button" onclick="toggleUserMenu()">
+                <button class="user-button" onclick="toggleUserMenu()" aria-label="Open user menu" aria-expanded="false" aria-haspopup="true">
                     <span id="userEmail">User</span>
-                    <span>▼</span>
+                    <span aria-hidden="true">▼</span>
                 </button>
-                <div class="user-dropdown" id="userDropdown">
-                    <a href="#">Profile</a>
-                    <a href="#">Settings</a>
-                    <a href="#" onclick="logout()">Logout</a>
+                <div class="user-dropdown" id="userDropdown" role="menu" aria-label="User menu">
+                    <a href="#" role="menuitem" aria-label="Go to Profile">Profile</a>
+                    <a href="#" role="menuitem" aria-label="Go to Settings">Settings</a>
+                    <a href="#" onclick="logout()" role="menuitem" aria-label="Logout of account">Logout</a>
                 </div>
             </div>
         </div>
@@ -565,33 +766,33 @@
     <!-- Main Chat Container -->
     <div class="chat-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
-            <div class="sessions-header">Recent Chats</div>
-            <div class="sessions-list" id="sessionsList">
+        <aside class="sidebar" role="complementary" aria-label="Chat sessions">
+            <button class="new-chat-btn" onclick="createNewChat()" aria-label="Create new chat session">+ New Chat</button>
+            <h2 class="sessions-header" class="sr-only">Recent Chats</h2>
+            <div class="sessions-list" id="sessionsList" role="list" aria-label="Recent chat sessions">
                 <!-- Sessions will be loaded here -->
             </div>
-        </div>
+        </aside>
 
         <!-- Chat Area -->
-        <div class="chat-area">
-            <div id="loadingState" class="loading" style="display: none;">
+        <main class="chat-area" id="main-content">
+            <div id="loadingState" class="loading" style="display: none;" role="status" aria-live="polite">
                 Loading chat...
             </div>
 
-            <div class="messages-container" id="messagesContainer">
+            <div class="messages-container" id="messagesContainer" role="log" aria-live="polite" aria-label="Chat messages">
                 <!-- Empty State -->
-                <div class="empty-state" id="emptyState">
+                <div class="empty-state" id="emptyState" role="region" aria-label="Welcome message">
                     <h2>Welcome to GeoVera AI Chat!</h2>
                     <p>Ask me anything about your brand, SEO, content strategy, or competitors.</p>
-                    <div class="suggested-prompts">
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('How can I improve my SEO?')">
+                    <div class="suggested-prompts" role="list" aria-label="Suggested prompts">
+                        <button class="prompt-btn" onclick="sendSuggestedPrompt('How can I improve my SEO?')" role="listitem" aria-label="Ask: How can I improve my SEO?">
                             How can I improve my SEO?
                         </button>
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Generate content ideas for my brand')">
+                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Generate content ideas for my brand')" role="listitem" aria-label="Ask: Generate content ideas for my brand">
                             Generate content ideas for my brand
                         </button>
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Analyze my competitors')">
+                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Analyze my competitors')" role="listitem" aria-label="Ask: Analyze my competitors">
                             Analyze my competitors
                         </button>
                     </div>
@@ -600,17 +801,65 @@
                 <!-- Messages will be appended here -->
             </div>
 
-            <div class="input-area">
-                <div class="error-message" id="errorMessage"></div>
+            <div class="input-area" role="region" aria-label="Message input area">
+                <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
+
+                <!-- Usage Indicator -->
+                <div class="usage-indicator" id="usageIndicator" style="display: none;" role="status" aria-label="Monthly message usage">
+                    <span class="usage-text">Messages this month:</span>
+                    <div class="usage-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="30" aria-label="Message usage progress">
+                        <div class="usage-fill" id="usageFill" style="width: 0%"></div>
+                    </div>
+                    <span class="usage-count" id="usageCount">0/30</span>
+                </div>
+
                 <div class="input-container">
+                    <label for="messageInput" class="sr-only">Type your message</label>
                     <textarea
                         id="messageInput"
                         class="message-input"
                         placeholder="Type your message..."
                         rows="1"
                         onkeydown="handleKeyPress(event)"
+                        maxlength="2000"
+                        aria-label="Message input, 2000 character maximum"
+                        aria-describedby="charCounter"
                     ></textarea>
-                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="Send message">Send</button>
+                </div>
+                <div style="font-size: 10.8px; color: var(--text-secondary); margin-top: 4.5px; text-align: right;" id="charCounter" role="status" aria-live="polite">0/2000 characters</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Limit Reached Modal -->
+    <div class="limit-modal" id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitModalTitle" aria-describedby="limitModalDesc">
+        <div class="limit-modal-content">
+            <div class="limit-modal-header">
+                <h3 id="limitModalTitle">Monthly Limit Reached</h3>
+                <p id="limitModalDesc">You've used all your AI Chat messages this month</p>
+            </div>
+            <div class="limit-modal-body">
+                <p>You've reached your <strong id="modalCurrentLimit">30</strong> message limit for the <strong id="modalCurrentTier">Basic</strong> tier. Upgrade to get more messages and unlock additional features.</p>
+
+                <div class="tier-comparison" role="table" aria-label="Tier comparison">
+                    <div class="tier-comparison-row" role="row">
+                        <span class="tier-name" role="cell">Basic</span>
+                        <span class="tier-limit" role="cell">30 messages/month</span>
+                    </div>
+                    <div class="tier-comparison-row" role="row">
+                        <span class="tier-name" role="cell">Premium</span>
+                        <span class="tier-limit" role="cell">100 messages/month</span>
+                    </div>
+                    <div class="tier-comparison-row" role="row">
+                        <span class="tier-name" role="cell">Partner</span>
+                        <span class="tier-limit" role="cell">Unlimited messages</span>
+                    </div>
+                </div>
+
+                <div class="limit-modal-actions">
+                    <button class="modal-btn modal-btn-secondary" onclick="closeLimitModal()" aria-label="Close modal and continue later">Maybe Later</button>
+                    <a href="/frontend/pricing.html" class="modal-btn modal-btn-primary" aria-label="View pricing plans to upgrade">Upgrade Now</a>
                 </div>
             </div>
         </div>
@@ -618,8 +867,9 @@
 
     <script>
         // Supabase Configuration
-        const SUPABASE_URL = 'https://trvvkdmqhtqoxgtxvlac.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRydnZrZG1xaHRxb3hndHh2bGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MDYxMDAsImV4cCI6MjA1NDk4MjEwMH0.gEDMN4RXbwswYCIKVY38fZa6N5pOOhywW0Q2NG0FPdc';
+        const ENV_CONFIG = window.getEnvConfig();
+        const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -628,12 +878,17 @@
         let currentSessionId = null;
         let sessions = [];
         let messages = [];
+        let currentTier = 'basic';
+        let usageData = {
+            current: 0,
+            limit: 30
+        };
 
         // Check authentication
         async function checkAuth() {
             const token = localStorage.getItem('access_token');
             if (!token) {
-                window.location.href = '/login.html';
+                window.location.href = 'login.html';
                 return false;
             }
 
@@ -641,7 +896,7 @@
                 const { data: { user }, error } = await sbClient.auth.getUser(token);
                 if (error || !user) {
                     localStorage.removeItem('access_token');
-                    window.location.href = '/login.html';
+                    window.location.href = 'login.html';
                     return false;
                 }
                 currentUser = user;
@@ -649,7 +904,7 @@
                 return true;
             } catch (err) {
                 console.error('Auth error:', err);
-                window.location.href = '/login.html';
+                window.location.href = 'login.html';
                 return false;
             }
         }
@@ -657,7 +912,7 @@
         // Get user's brand
         async function getUserBrand() {
             try {
-                const { data: userBrands, error } = await sbClient
+                const { data: userBrands, error} = await sbClient
                     .from('user_brands')
                     .select('brand_id')
                     .eq('user_id', currentUser.id)
@@ -671,6 +926,7 @@
                 }
 
                 currentBrandId = userBrands[0].brand_id;
+                await loadTierUsage();
                 return currentBrandId;
             } catch (error) {
                 console.error('Error getting brand:', error);
@@ -678,6 +934,135 @@
                 return null;
             }
         }
+
+        // Load tier usage data
+        async function loadTierUsage() {
+            try {
+                // Get current subscription tier
+                const { data: subscription, error: subError } = await sbClient
+                    .from('gv_subscriptions')
+                    .select('tier_name')
+                    .eq('user_id', currentUser.id)
+                    .eq('status', 'active')
+                    .single();
+
+                if (subError) {
+                    console.warn('No active subscription found, defaulting to Basic');
+                    currentTier = 'basic';
+                } else {
+                    currentTier = subscription.tier_name.toLowerCase();
+                }
+
+                // Set tier limits
+                const tierLimits = {
+                    'basic': 30,
+                    'premium': 100,
+                    'partner': 999999 // Unlimited (large number)
+                };
+                usageData.limit = tierLimits[currentTier] || 30;
+
+                // Get current usage (mock for now - would query gv_tier_usage table)
+                // In production, this would fetch from database
+                usageData.current = Math.floor(Math.random() * usageData.limit * 0.3); // Mock: 0-30% used
+
+                updateUsageIndicator();
+
+            } catch (error) {
+                console.error('Error loading tier usage:', error);
+                // Default to basic tier limits on error
+                usageData.limit = 30;
+                usageData.current = 0;
+                updateUsageIndicator();
+            }
+        }
+
+        // Update usage indicator UI
+        function updateUsageIndicator() {
+            const indicator = document.getElementById('usageIndicator');
+            const fill = document.getElementById('usageFill');
+            const count = document.getElementById('usageCount');
+            const progressBar = indicator.querySelector('.usage-bar');
+
+            const percentage = (usageData.current / usageData.limit) * 100;
+
+            // Show indicator
+            indicator.style.display = 'flex';
+
+            // Update progress bar
+            fill.style.width = percentage + '%';
+
+            // Update ARIA attributes
+            progressBar.setAttribute('aria-valuenow', usageData.current);
+            progressBar.setAttribute('aria-valuemax', usageData.limit);
+
+            // Color coding
+            fill.classList.remove('warning', 'danger');
+            if (percentage >= 90) {
+                fill.classList.add('danger');
+            } else if (percentage >= 70) {
+                fill.classList.add('warning');
+            }
+
+            // Update count text
+            if (currentTier === 'partner') {
+                count.textContent = `${usageData.current} messages (Unlimited)`;
+            } else {
+                count.textContent = `${usageData.current}/${usageData.limit}`;
+            }
+        }
+
+        // Check if user has reached limit
+        function checkUsageLimit() {
+            if (currentTier === 'partner') {
+                return true; // Unlimited
+            }
+
+            if (usageData.current >= usageData.limit) {
+                showLimitModal();
+                return false;
+            }
+
+            return true;
+        }
+
+        // Show limit modal
+        function showLimitModal() {
+            const modal = document.getElementById('limitModal');
+            const tierSpan = document.getElementById('modalCurrentTier');
+            const limitSpan = document.getElementById('modalCurrentLimit');
+
+            tierSpan.textContent = currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+            limitSpan.textContent = usageData.limit;
+
+            modal.classList.add('active');
+
+            // Focus management - trap focus inside modal
+            const focusableElements = modal.querySelectorAll('button, a');
+            if (focusableElements.length > 0) {
+                focusableElements[0].focus();
+            }
+        }
+
+        // Close limit modal
+        function closeLimitModal() {
+            document.getElementById('limitModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('limitModal');
+            if (e.target === modal) {
+                closeLimitModal();
+            }
+        });
+
+        // Keyboard navigation - ESC to close modal
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('limitModal');
+            if (modal.classList.contains('active') && e.key === 'Escape') {
+                closeLimitModal();
+            }
+        });
 
         // Create new chat session
         async function createNewChat() {
@@ -728,7 +1113,11 @@
             const sessionsList = document.getElementById('sessionsList');
             sessionsList.innerHTML = sessions.map(session => `
                 <div class="session-item ${session.id === currentSessionId ? 'active' : ''}"
-                     onclick="loadSession('${session.id}')">
+                     onclick="loadSession('${session.id}')"
+                     role="listitem"
+                     tabindex="0"
+                     aria-label="Chat session: ${session.title}"
+                     onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); loadSession('${session.id}'); }">
                     <div class="session-title">${session.title}</div>
                     <div class="session-preview">${session.preview}</div>
                     <div class="session-time">${session.timestamp}</div>
@@ -765,15 +1154,15 @@
                 });
 
                 return `
-                    <div class="message ${msg.role}">
-                        <div class="message-avatar">${isUser ? 'U' : 'AI'}</div>
+                    <div class="message ${msg.role}" role="article" aria-label="${isUser ? 'Your message' : 'AI response'}">
+                        <div class="message-avatar" aria-hidden="true">${isUser ? 'U' : 'AI'}</div>
                         <div class="message-content">
                             <div class="message-bubble">${msg.content}</div>
-                            <div class="message-meta">
+                            <div class="message-meta" aria-label="Message metadata">
                                 <span>${timestamp}</span>
                                 ${!isUser ? `
-                                    <span class="ai-provider">
-                                        <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <span class="ai-provider" aria-label="Powered by OpenAI">
+                                        <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                             <path d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A5.985 5.985 0 0011.35 0 5.997 5.997 0 007.793 1.867a5.99 5.99 0 00-2.9 6.51 5.985 5.985 0 00-.516 4.91 6.046 6.046 0 006.51 2.9 5.985 5.985 0 003.906 2.011 5.997 5.997 0 003.557-1.867 5.99 5.99 0 002.9-6.51z"/>
                                         </svg>
                                         OpenAI
@@ -800,9 +1189,9 @@
             indicator.className = 'message ai';
             indicator.id = 'typingIndicator';
             indicator.innerHTML = `
-                <div class="message-avatar">AI</div>
+                <div class="message-avatar" aria-hidden="true">AI</div>
                 <div class="message-content">
-                    <div class="typing-indicator active">
+                    <div class="typing-indicator active" role="status" aria-live="polite" aria-label="AI is typing">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
@@ -829,6 +1218,11 @@
             if (!currentBrandId) {
                 showError('Brand not loaded. Please refresh the page.');
                 return;
+            }
+
+            // Check usage limit BEFORE sending
+            if (!checkUsageLimit()) {
+                return; // Limit reached, modal shown
             }
 
             if (!currentSessionId) {
@@ -893,6 +1287,10 @@
                 };
                 messages.push(aiMessage);
 
+                // Increment usage count
+                usageData.current++;
+                updateUsageIndicator();
+
                 hideTypingIndicator();
                 renderMessages();
 
@@ -929,10 +1327,23 @@
             }
         }
 
-        // Auto-resize textarea
+        // Auto-resize textarea and update character counter
         document.getElementById('messageInput').addEventListener('input', function() {
             this.style.height = '45px';
             this.style.height = Math.min(this.scrollHeight, 135) + 'px';
+
+            // Update character counter
+            const charCount = this.value.length;
+            const counter = document.getElementById('charCounter');
+            counter.textContent = `${charCount}/2000 characters`;
+
+            if (charCount > 1800) {
+                counter.style.color = '#ef4444';
+            } else if (charCount > 1500) {
+                counter.style.color = '#eab308';
+            } else {
+                counter.style.color = 'var(--text-secondary)';
+            }
         });
 
         // Scroll to bottom
@@ -955,14 +1366,23 @@
 
         // User menu toggle
         function toggleUserMenu() {
+            const button = document.querySelector('.user-button');
             const dropdown = document.getElementById('userDropdown');
+            const isExpanded = dropdown.classList.contains('active');
+
             dropdown.classList.toggle('active');
+            button.setAttribute('aria-expanded', !isExpanded);
         }
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.user-menu')) {
-                document.getElementById('userDropdown').classList.remove('active');
+                const dropdown = document.getElementById('userDropdown');
+                const button = document.querySelector('.user-button');
+                if (dropdown.classList.contains('active')) {
+                    dropdown.classList.remove('active');
+                    button.setAttribute('aria-expanded', 'false');
+                }
             }
         });
 
@@ -970,7 +1390,7 @@
         async function logout() {
             await sbClient.auth.signOut();
             localStorage.removeItem('access_token');
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }
 
         // Initialize on page load

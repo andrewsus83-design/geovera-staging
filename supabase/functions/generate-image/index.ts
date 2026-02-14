@@ -110,6 +110,74 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Fetch brand visual guidelines
+    const { data: visualGuidelines } = await supabaseClient
+      .from("gv_brand_visual_guidelines")
+      .select("*")
+      .eq("brand_id", brand_id)
+      .single();
+
+    // Build enhanced prompt with brand consistency
+    let enhancedPrompt = `Professional brand image for ${brand.brand_name}: ${prompt}.`;
+
+    if (visualGuidelines && visualGuidelines.training_status === "trained") {
+      // Add style keywords
+      if (visualGuidelines.style_keywords && visualGuidelines.style_keywords.length > 0) {
+        enhancedPrompt += ` Style: ${visualGuidelines.style_keywords.join(", ")}.`;
+      }
+
+      // Add visual style
+      if (visualGuidelines.visual_style) {
+        enhancedPrompt += ` ${visualGuidelines.visual_style} aesthetic.`;
+      }
+
+      // Add color palette guidance
+      const allColors = [
+        ...(visualGuidelines.primary_colors || []),
+        ...(visualGuidelines.secondary_colors || []),
+        ...(visualGuidelines.accent_colors || [])
+      ];
+      if (allColors.length > 0) {
+        enhancedPrompt += ` Color palette: ${allColors.slice(0, 5).join(", ")}.`;
+      }
+
+      // Add composition preferences
+      if (visualGuidelines.composition_preferences && visualGuidelines.composition_preferences.length > 0) {
+        enhancedPrompt += ` Composition: ${visualGuidelines.composition_preferences[0]}.`;
+      }
+
+      // Add lighting preference
+      if (visualGuidelines.lighting_preference) {
+        enhancedPrompt += ` ${visualGuidelines.lighting_preference} lighting.`;
+      }
+
+      // Add background preference
+      if (visualGuidelines.background_preference) {
+        enhancedPrompt += ` ${visualGuidelines.background_preference} background.`;
+      }
+
+      // Use custom prompt template if available
+      if (visualGuidelines.image_prompt_template) {
+        enhancedPrompt = visualGuidelines.image_prompt_template
+          .replace("{brand_name}", brand.brand_name)
+          .replace("{prompt}", prompt)
+          .replace("{style_keywords}", visualGuidelines.style_keywords?.join(", ") || "modern")
+          .replace("{composition_preferences}", visualGuidelines.composition_preferences?.[0] || "balanced")
+          .replace("{lighting_preference}", visualGuidelines.lighting_preference || "natural");
+      }
+    } else {
+      // Default high-quality prompt
+      enhancedPrompt += " High quality, modern, on-brand, professional.";
+    }
+
+    // Add negative prompt handling (DALL-E doesn't support negative prompts, but we can guide the positive prompt)
+    if (visualGuidelines?.negative_keywords && visualGuidelines.negative_keywords.length > 0) {
+      // Don't add negative keywords directly, but ensure positive prompt is specific enough
+      enhancedPrompt += " Clean, professional, high-quality.";
+    }
+
+    console.log("[generate-image] Enhanced prompt:", enhancedPrompt);
+
     // Generate with DALL-E 3
     const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -119,7 +187,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "dall-e-3",
-        prompt: `Professional brand image for ${brand.brand_name}: ${prompt}. High quality, modern, on-brand.`,
+        prompt: enhancedPrompt,
         n: 1,
         size,
         quality: "hd",
@@ -136,7 +204,7 @@ Deno.serve(async (req: Request) => {
     const image_url = dalleData.data[0].url;
     const cost_usd = size === "1024x1024" ? 0.04 : 0.08;
 
-    // Save to content library
+    // Save to content library with brand consistency metadata
     const { data: contentData, error: contentError } = await supabaseClient
       .from("gv_content_library")
       .insert({
@@ -147,15 +215,18 @@ Deno.serve(async (req: Request) => {
         slug: prompt.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         content_variations: {
           original: image_url,
-          platforms: target_platforms
+          platforms: target_platforms,
+          enhanced_prompt: enhancedPrompt
         },
         content_goal: "visibility",
         target_platforms,
         ai_provider_used: "openai",
         model_used: "dall-e-3",
+        generation_prompt: enhancedPrompt,
         generation_cost_usd: cost_usd,
         primary_file_url: image_url,
-        publish_status: "draft"
+        publish_status: "draft",
+        brand_colors_used: visualGuidelines?.primary_colors || null
       })
       .select()
       .single();

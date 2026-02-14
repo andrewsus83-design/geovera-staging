@@ -6,6 +6,7 @@
     <title>Login - GeoVera</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env-loader.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -522,8 +523,9 @@
         console.log('[GeoVera] Script loading...');
 
         // Supabase Configuration
-        const SUPABASE_URL = 'https://vozjwptzutolvkvfpknk.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvemp3cHR6dXRvbHZrdmZwa25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4ODI0NzcsImV4cCI6MjA4NTQ1ODQ3N30.p-RiTR1Iva9Y4KiZu8gnF2CZjvnMWNAHUVCbp57PDF8';
+        const ENV_CONFIG = window.getEnvConfig();
+        const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
         // Initialize Supabase client with error handling
         let supabase;

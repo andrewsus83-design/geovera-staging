@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - GeoVera</title>
+    <title>Dashboard - GeoVera Intelligence</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Accessibility CSS -->
+    <link rel="stylesheet" href="css/accessibility.css">
+
     <style>
         * {
             margin: 0;
@@ -16,90 +21,105 @@
         }
 
         :root {
-            --green: #16A34A;
-            --dark-navy: #0B0F19;
-            --light-bg: #F8F9FA;
-            --border: #E5E7EB;
-            --text-primary: #111827;
-            --text-secondary: #6B7280;
+            /* GeoVera Brand Colors - WIRED Style */
+            --gv-hero: #16A34A;
+            --gv-anchor: #0B0F19;
+            --gv-body: #6B7280;
+            --gv-canvas: #FFFFFF;
+            --gv-divider: #E5E7EB;
+            --gv-bg-light: #F9FAFB;
+            --gv-risk: #DC2626;
+            --gv-secondary: #2563EB;
+
+            /* Typography - WIRED Editorial */
+            --font-display: Georgia, 'Times New Roman', serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--light-bg);
-            color: var(--text-primary);
-            font-size: 13.5px;
+            font-family: var(--font-body);
+            background: var(--gv-bg-light);
+            color: var(--gv-anchor);
+            line-height: 1.6;
+            min-height: 100vh;
         }
 
-        h1, h2, h3 {
-            font-family: 'Georgia', serif;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            border-bottom: 2px solid var(--dark-navy);
-            padding: 13.5px 27px;
+        /* Header - WIRED Dark Style */
+        .site-header {
+            background: var(--gv-anchor);
+            color: white;
+            border-bottom: 4px solid var(--gv-hero);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
         }
 
-        .header-content {
+        .header-container {
             max-width: 1440px;
             margin: 0 auto;
+            padding: 12px 24px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
+            min-height: 72px;
         }
 
-        .logo-section {
+        .header-logo {
             display: flex;
             align-items: center;
-            gap: 10.8px;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
         }
 
-        .logo {
-            width: 32.4px;
-            height: 32.4px;
-            background: var(--green);
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gv-hero);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
+            font-size: 20px;
             color: white;
-            font-size: 16.2px;
         }
 
-        .brand-name {
-            font-family: 'Georgia', serif;
-            font-size: 19.8px;
+        .logo-text {
+            font-family: var(--font-display);
             font-weight: 700;
-            color: var(--dark-navy);
+            font-size: 24px;
+            letter-spacing: -0.02em;
+            color: white;
         }
 
-        .nav-menu {
+        /* Desktop Navigation */
+        .nav-desktop {
             display: flex;
-            gap: 27px;
             align-items: center;
+            gap: 32px;
         }
 
         .nav-link {
-            color: var(--text-secondary);
+            color: white;
             text-decoration: none;
-            font-weight: 500;
-            font-size: 12.6px;
-            padding: 4.5px 9px;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 12px 16px;
             transition: color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
         }
 
         .nav-link:hover {
-            color: var(--green);
+            color: var(--gv-hero);
         }
 
         .nav-link.active {
-            color: var(--green);
-            border-bottom: 2px solid var(--green);
+            color: var(--gv-hero);
         }
 
         .user-menu {
@@ -107,769 +127,679 @@
         }
 
         .user-button {
-            background: var(--dark-navy);
+            background: var(--gv-hero);
             color: white;
             border: none;
-            padding: 7.2px 13.5px;
-            font-size: 12.6px;
-            font-weight: 500;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
             display: flex;
             align-items: center;
-            gap: 4.5px;
+            gap: 8px;
+            border-radius: 0;
         }
 
         .user-button:hover {
-            background: #1a1f2e;
+            background: #15803d;
         }
 
-        .user-dropdown {
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
             display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 4.5px;
-            background: white;
-            border: 1px solid var(--border);
-            min-width: 135px;
-            box-shadow: 0 4.5px 13.5px rgba(0,0,0,0.1);
-        }
-
-        .user-dropdown.active {
-            display: block;
-        }
-
-        .user-dropdown a {
-            display: block;
-            padding: 9px 13.5px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 12.6px;
-            transition: background 0.2s;
-        }
-
-        .user-dropdown a:hover {
-            background: var(--light-bg);
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px;
         }
 
         /* Main Container */
-        .container {
+        .main-container {
             max-width: 1440px;
             margin: 0 auto;
-            padding: 27px;
+            padding: 32px 24px;
         }
 
-        /* Tab Navigation */
-        .tab-nav {
+        /* Welcome Section */
+        .welcome-section {
             background: white;
-            border: 2px solid var(--dark-navy);
-            margin-bottom: 27px;
-            display: flex;
+            border: 2px solid var(--gv-divider);
+            padding: 32px;
+            margin-bottom: 32px;
         }
 
-        .tab-button {
-            flex: 1;
-            background: white;
-            border: none;
-            padding: 13.5px 18px;
-            font-size: 13.5px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-right: 1px solid var(--border);
-            transition: all 0.2s;
-        }
-
-        .tab-button:last-child {
-            border-right: none;
-        }
-
-        .tab-button:hover {
-            background: var(--light-bg);
-        }
-
-        .tab-button.active {
-            background: var(--green);
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Timeline (Chronicle) */
-        .timeline {
-            background: white;
-            border: 2px solid var(--dark-navy);
-            padding: 27px;
-        }
-
-        .timeline-title {
-            font-size: 21.6px;
-            margin-bottom: 27px;
-            color: var(--dark-navy);
-        }
-
-        .timeline-item {
-            display: flex;
-            gap: 27px;
-            margin-bottom: 27px;
-            position: relative;
-        }
-
-        .timeline-item:not(:last-child)::before {
-            content: '';
-            position: absolute;
-            left: 54px;
-            top: 27px;
-            width: 2px;
-            height: calc(100% + 27px);
-            background: var(--border);
-        }
-
-        .timeline-year {
-            min-width: 54px;
+        .welcome-title {
+            font-family: var(--font-display);
+            font-size: 36px;
             font-weight: 700;
-            color: var(--green);
-            font-size: 13.5px;
+            color: var(--gv-anchor);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
         }
 
-        .timeline-dot {
-            width: 10.8px;
-            height: 10.8px;
-            background: var(--green);
-            border-radius: 50%;
-            margin-top: 4.5px;
-            position: relative;
-            z-index: 1;
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--gv-body);
+            margin-bottom: 24px;
         }
 
-        .timeline-card {
-            flex: 1;
-            border: 1px solid var(--border);
-            padding: 13.5px;
-            background: var(--light-bg);
-        }
-
-        .timeline-card h3 {
-            font-size: 14.4px;
-            margin-bottom: 4.5px;
-            color: var(--dark-navy);
-        }
-
-        .timeline-card p {
-            font-size: 12.6px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .timeline-date {
-            font-size: 11.7px;
-            color: var(--text-secondary);
-            margin-bottom: 4.5px;
-        }
-
-        /* Profile */
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 27px;
-        }
-
-        .profile-section {
-            background: white;
-            border: 2px solid var(--dark-navy);
-            padding: 27px;
-        }
-
-        .profile-section h2 {
-            font-size: 16.2px;
-            margin-bottom: 18px;
-            color: var(--dark-navy);
-            border-bottom: 2px solid var(--green);
-            padding-bottom: 9px;
-        }
-
-        .profile-field {
-            margin-bottom: 13.5px;
-        }
-
-        .profile-field label {
-            display: block;
-            font-size: 11.7px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 4.5px;
+        .tier-badge {
+            display: inline-block;
+            background: var(--gv-hero);
+            color: white;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
+            border-radius: 0;
         }
 
-        .profile-field .value {
-            font-size: 13.5px;
-            color: var(--text-primary);
-            padding: 9px;
-            background: var(--light-bg);
-            border: 1px solid var(--border);
-        }
-
-        .social-links {
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 9px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
-        .social-item {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            padding: 9px;
-            background: var(--light-bg);
-            border: 1px solid var(--border);
-        }
-
-        .social-item .platform {
-            font-weight: 600;
-            font-size: 12.6px;
-        }
-
-        .social-item .count {
-            font-size: 11.7px;
-            color: var(--text-secondary);
-            margin-left: auto;
-        }
-
-        .edit-button {
-            background: var(--border);
-            color: var(--text-secondary);
-            border: none;
-            padding: 7.2px 13.5px;
-            font-size: 12.6px;
-            margin-top: 18px;
-            cursor: not-allowed;
-        }
-
-        /* Brand DNA */
-        .dna-container {
-            display: grid;
-            grid-template-columns: 40% 60%;
-            gap: 27px;
-        }
-
-        .dna-section {
+        .stat-card {
             background: white;
-            border: 2px solid var(--dark-navy);
-            padding: 27px;
+            border: 2px solid var(--gv-divider);
+            padding: 24px;
+            transition: transform 0.2s, border-color 0.2s;
         }
 
-        .dna-section h2 {
-            font-size: 16.2px;
-            margin-bottom: 18px;
-            color: var(--dark-navy);
-            border-bottom: 2px solid var(--green);
-            padding-bottom: 9px;
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--gv-hero);
         }
 
-        .dna-section h3 {
-            font-size: 13.5px;
-            margin: 18px 0 9px 0;
-            color: var(--dark-navy);
+        .stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gv-body);
+            margin-bottom: 8px;
         }
 
-        .color-swatches {
-            display: flex;
-            gap: 9px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gv-anchor);
+            letter-spacing: -0.02em;
         }
 
-        .color-swatch {
-            width: 54px;
-            height: 54px;
-            border: 2px solid var(--dark-navy);
-            position: relative;
+        .stat-change {
+            font-size: 14px;
+            margin-top: 8px;
         }
 
-        .color-swatch .hex {
-            position: absolute;
-            bottom: -18px;
-            left: 0;
-            font-size: 10.8px;
-            color: var(--text-secondary);
+        .stat-change.positive {
+            color: var(--gv-hero);
         }
 
-        .logo-placeholder {
-            width: 100%;
-            height: 135px;
-            background: var(--light-bg);
-            border: 2px dashed var(--border);
+        .stat-change.negative {
+            color: var(--gv-risk);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            background: white;
+            border: 2px solid var(--gv-divider);
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gv-anchor);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .action-button {
+            background: var(--gv-hero);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            min-height: 44px;
+            transition: all 0.2s;
+            text-decoration: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-secondary);
-            font-size: 12.6px;
-            margin-bottom: 18px;
         }
 
-        .keyword-tags {
+        .action-button:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        .action-button.secondary {
+            background: transparent;
+            color: var(--gv-anchor);
+            border: 2px solid var(--gv-anchor);
+        }
+
+        .action-button.secondary:hover {
+            background: var(--gv-anchor);
+            color: white;
+        }
+
+        /* Recent Activity */
+        .activity-section {
+            background: white;
+            border: 2px solid var(--gv-divider);
+            padding: 32px;
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gv-divider);
             display: flex;
-            flex-wrap: wrap;
-            gap: 7.2px;
+            align-items: flex-start;
+            gap: 16px;
         }
 
-        .keyword-tag {
-            background: var(--green);
-            color: white;
-            padding: 4.5px 9px;
-            font-size: 11.7px;
-            font-weight: 500;
+        .activity-item:last-child {
+            border-bottom: none;
         }
 
-        .upload-zone {
-            border: 2px dashed var(--border);
-            padding: 27px;
-            text-align: center;
-            background: var(--light-bg);
-            color: var(--text-secondary);
-            margin-bottom: 18px;
+        .activity-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gv-bg-light);
+            border: 2px solid var(--gv-divider);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
         }
 
-        .upload-button {
-            background: var(--dark-navy);
-            color: white;
-            border: none;
-            padding: 9px 18px;
-            font-size: 12.6px;
-            cursor: not-allowed;
-            margin-top: 9px;
+        .activity-content {
+            flex: 1;
         }
 
-        .assets-grid {
+        .activity-title {
+            font-weight: 600;
+            color: var(--gv-anchor);
+            margin-bottom: 4px;
+        }
+
+        .activity-meta {
+            font-size: 14px;
+            color: var(--gv-body);
+        }
+
+        /* Usage Limit Info */
+        .usage-info {
+            background: white;
+            border: 2px solid var(--gv-divider);
+            padding: 24px 32px;
+            margin-bottom: 32px;
+        }
+
+        .usage-info h3 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--gv-anchor);
+        }
+
+        .usage-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 13.5px;
-            min-height: 135px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
         }
 
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 12.6px;
-            padding: 27px;
-            background: var(--light-bg);
-            border: 1px solid var(--border);
+        .usage-item {
+            padding: 12px;
+            background: var(--gv-bg-light);
+            border-left: 4px solid var(--gv-hero);
         }
 
-        .loading {
-            text-align: center;
-            padding: 54px;
-            color: var(--text-secondary);
+        .usage-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gv-body);
+            margin-bottom: 8px;
         }
 
+        .usage-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gv-anchor);
+        }
+
+        .usage-bar {
+            background: var(--gv-divider);
+            height: 6px;
+            border-radius: 0;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .usage-fill {
+            background: var(--gv-hero);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: #f59e0b;
+        }
+
+        .usage-fill.danger {
+            background: var(--gv-risk);
+        }
+
+        .upgrade-note {
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--gv-bg-light);
+            border-left: 4px solid var(--gv-secondary);
+            font-size: 14px;
+            color: var(--gv-body);
+        }
+
+        .upgrade-note a {
+            color: var(--gv-secondary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .upgrade-note a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .profile-grid,
-            .dna-container {
+            .nav-desktop {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
 
-            .header-content {
-                flex-direction: column;
-                gap: 13.5px;
+            .welcome-title {
+                font-size: 28px;
             }
 
-            .tab-nav {
+            .upgrade-banner {
                 flex-direction: column;
-            }
-
-            .tab-button {
-                border-right: none;
-                border-bottom: 1px solid var(--border);
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Skip to Main Content Link - WCAG 2.1 AA -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Live Region for Screen Reader Announcements -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only live-region" id="announcements"></div>
+
     <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo-section">
-                <div class="logo">G</div>
-                <div class="brand-name">GeoVera</div>
-            </div>
-            <nav class="nav-menu">
-                <a href="/dashboard.html" class="nav-link active">Dashboard</a>
-                <a href="#" class="nav-link">Reports</a>
-                <a href="#" class="nav-link">Insights</a>
-                <a href="#" class="nav-link">Settings</a>
+    <header class="site-header" role="banner">
+        <div class="header-container">
+            <a href="/frontend/index.html" class="header-logo" aria-label="GeoVera Intelligence - Return to homepage">
+                <div class="logo-icon" aria-hidden="true">G</div>
+                <span class="logo-text">GeoVera</span>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <nav class="nav-desktop" aria-label="Main navigation">
+                <a href="/frontend/dashboard.html" class="nav-link active" aria-current="page">Dashboard</a>
+                <a href="/frontend/insights.html" class="nav-link">Insights</a>
+                <a href="/frontend/hub.html" class="nav-link">Hub</a>
+                <a href="/frontend/radar.html" class="nav-link">Radar</a>
+                <a href="/frontend/content-studio.html" class="nav-link">Content Studio</a>
+                <a href="/frontend/chat.html" class="nav-link">AI Chat</a>
+                <a href="/frontend/settings.html" class="nav-link">Settings</a>
             </nav>
+
+            <!-- User Menu -->
             <div class="user-menu">
-                <button class="user-button" onclick="toggleUserMenu()">
-                    <span id="userEmail">User</span>
-                    <span>▼</span>
+                <button class="user-button" id="user-btn" aria-label="User menu" aria-haspopup="true" aria-expanded="false">
+                    <span id="user-name">Account</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </button>
-                <div class="user-dropdown" id="userDropdown">
-                    <a href="#">Profile</a>
-                    <a href="#">Settings</a>
-                    <a href="#" onclick="logout()">Logout</a>
-                </div>
             </div>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" id="mobile-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-button active" onclick="switchTab('chronicle')">Chronicle</button>
-            <button class="tab-button" onclick="switchTab('profile')">Profile</button>
-            <button class="tab-button" onclick="switchTab('dna')">Brand DNA</button>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loadingState" class="loading">
-            Loading your brand data...
-        </div>
-
-        <!-- Tab 1: Chronicle -->
-        <div id="chronicle" class="tab-content active" style="display: none;">
-            <div class="timeline">
-                <h1 class="timeline-title">Brand Chronicle</h1>
-                <div id="timelineContent">
-                    <!-- Timeline items will be inserted here -->
-                </div>
+    <!-- Main Content -->
+    <main class="main-container" id="main-content" role="main">
+        <!-- Usage Limits Info -->
+        <div class="usage-info" id="usage-info" role="region" aria-label="Usage limits">
+            <h3>Your Monthly Usage</h3>
+            <div class="usage-grid" id="usage-grid">
+                <!-- Usage items will be populated by JavaScript -->
+            </div>
+            <div class="upgrade-note" id="upgrade-note" style="display: none;">
+                Need more? <a href="/frontend/pricing.html">Upgrade your plan</a> for higher limits.
             </div>
         </div>
 
-        <!-- Tab 2: Profile -->
-        <div id="profile" class="tab-content" style="display: none;">
-            <div class="profile-grid">
-                <div class="profile-section">
-                    <h2>Basic Information</h2>
-                    <div class="profile-field">
-                        <label>Brand Name</label>
-                        <div class="value" id="brandName">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Industry</label>
-                        <div class="value" id="industry">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Website</label>
-                        <div class="value" id="website">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Description</label>
-                        <div class="value" id="description">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Founded Date</label>
-                        <div class="value" id="foundedDate">-</div>
-                    </div>
-                    <button class="edit-button">Edit (Coming Soon)</button>
-                </div>
+        <!-- Welcome Section -->
+        <section class="welcome-section" aria-labelledby="welcome-title">
+            <h1 class="welcome-title" id="welcome-title">Welcome back, <span id="brand-name">Brand</span></h1>
+            <p class="welcome-subtitle">Here's what's happening with your influencer marketing today</p>
+            <span class="tier-badge" id="tier-badge" role="status" aria-label="Current subscription tier">BASIC TIER</span>
+        </section>
 
-                <div class="profile-section">
-                    <h2>Social Media</h2>
-                    <div class="social-links">
-                        <div class="social-item">
-                            <span class="platform">Instagram</span>
-                            <span class="count">12.5K</span>
-                        </div>
-                        <div class="social-item">
-                            <span class="platform">Twitter</span>
-                            <span class="count">8.3K</span>
-                        </div>
-                        <div class="social-item">
-                            <span class="platform">LinkedIn</span>
-                            <span class="count">5.2K</span>
-                        </div>
-                        <div class="social-item">
-                            <span class="platform">TikTok</span>
-                            <span class="count">18.7K</span>
-                        </div>
-                    </div>
-                    <button class="edit-button">Edit (Coming Soon)</button>
-                </div>
-
-                <div class="profile-section">
-                    <h2>Contact Information</h2>
-                    <div class="profile-field">
-                        <label>Email</label>
-                        <div class="value" id="contactEmail">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Phone</label>
-                        <div class="value" id="phone">-</div>
-                    </div>
-                    <div class="profile-field">
-                        <label>Address</label>
-                        <div class="value" id="address">-</div>
-                    </div>
-                    <button class="edit-button">Edit (Coming Soon)</button>
+        <!-- Stats Grid -->
+        <section class="stats-grid" aria-label="Performance metrics">
+            <div class="stat-card">
+                <div class="stat-label">Total Creators</div>
+                <div class="stat-value" id="stat-creators">0</div>
+                <div class="stat-change positive" role="status" aria-live="polite">
+                    <span aria-label="Change from last period">+0 this week</span>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab 3: Brand DNA -->
-        <div id="dna" class="tab-content" style="display: none;">
-            <div class="dna-container">
-                <div class="dna-section">
-                    <h2>Auto-Detected</h2>
-
-                    <h3>Detected Brand Colors</h3>
-                    <div class="color-swatches">
-                        <div class="color-swatch" style="background: #16A34A;">
-                            <div class="hex">#16A34A</div>
-                        </div>
-                        <div class="color-swatch" style="background: #0B0F19;">
-                            <div class="hex">#0B0F19</div>
-                        </div>
-                        <div class="color-swatch" style="background: #F8F9FA;">
-                            <div class="hex">#F8F9FA</div>
-                        </div>
-                        <div class="color-swatch" style="background: #3B82F6;">
-                            <div class="hex">#3B82F6</div>
-                        </div>
-                        <div class="color-swatch" style="background: #EAB308;">
-                            <div class="hex">#EAB308</div>
-                        </div>
-                    </div>
-
-                    <h3>Logo Analysis</h3>
-                    <div class="logo-placeholder">
-                        Upload your logo for analysis
-                    </div>
-
-                    <h3>Brand Keywords</h3>
-                    <div class="keyword-tags">
-                        <span class="keyword-tag">Sustainable</span>
-                        <span class="keyword-tag">Innovation</span>
-                        <span class="keyword-tag">Quality</span>
-                        <span class="keyword-tag">Trust</span>
-                        <span class="keyword-tag">Professional</span>
-                        <span class="keyword-tag">Modern</span>
-                    </div>
-                </div>
-
-                <div class="dna-section">
-                    <h2>Manual Upload</h2>
-
-                    <h3>Upload Brand Assets</h3>
-                    <div class="upload-zone">
-                        <p>Drag & drop your brand assets here</p>
-                        <button class="upload-button">Upload Files (Coming Soon)</button>
-                    </div>
-
-                    <h3>Uploaded Assets</h3>
-                    <div class="assets-grid">
-                        <div class="empty-state">No assets uploaded yet</div>
-                    </div>
-
-                    <h3>Add Color Palette</h3>
-                    <div class="upload-zone">
-                        <p>Color picker tool coming soon</p>
-                    </div>
-
-                    <h3>Brand Guidelines</h3>
-                    <div class="upload-zone">
-                        <p>Upload PDF or DOC files</p>
-                        <button class="upload-button">Upload Guidelines (Coming Soon)</button>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-label">Hub Collections</div>
+                <div class="stat-value" id="stat-collections">0</div>
+                <div class="stat-change positive" role="status" aria-live="polite">
+                    <span aria-label="Change from last period">+0 this month</span>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <script>
-        // Supabase Configuration
-        const SUPABASE_URL = 'https://trvvkdmqhtqoxgtxvlac.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRydnZrZG1xaHRxb3hndHh2bGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MDYxMDAsImV4cCI6MjA1NDk4MjEwMH0.gEDMN4RXbwswYCIKVY38fZa6N5pOOhywW0Q2NG0FPdc';
+            <div class="stat-card">
+                <div class="stat-label">Insights Completed</div>
+                <div class="stat-value" id="stat-insights">0</div>
+                <div class="stat-change positive" role="status" aria-live="polite">
+                    <span aria-label="Change from last period">+0 today</span>
+                </div>
+            </div>
 
-        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            <div class="stat-card">
+                <div class="stat-label">Chat Messages</div>
+                <div class="stat-value" id="stat-messages">0</div>
+                <div class="stat-change" role="status" aria-live="polite">
+                    <span aria-label="Remaining this month">0 remaining</span>
+                </div>
+            </div>
+        </section>
 
-        let currentBrand = null;
-        let currentUser = null;
+        <!-- Quick Actions -->
+        <section class="quick-actions" aria-labelledby="quick-actions-title">
+            <h2 class="section-title" id="quick-actions-title">Quick Actions</h2>
+            <div class="actions-grid" role="list">
+                <a href="/frontend/insights.html" class="action-button" role="listitem" aria-label="View daily insights tasks">
+                    View Insights
+                </a>
+                <a href="/frontend/hub.html" class="action-button" role="listitem" aria-label="Manage hub collections">
+                    Manage Hub
+                </a>
+                <a href="/frontend/chat.html" class="action-button secondary" role="listitem" aria-label="Start AI chat session">
+                    AI Chat
+                </a>
+                <a href="/frontend/content-studio.html" class="action-button secondary" role="listitem" aria-label="Create content in studio" id="content-studio-btn">
+                    Content Studio
+                </a>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="activity-section" aria-labelledby="activity-title">
+            <h2 class="section-title" id="activity-title">Recent Activity</h2>
+            <ul class="activity-list" id="activity-list" role="list">
+                <li class="activity-item" role="listitem">
+                    <div class="activity-icon" aria-hidden="true">📊</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Welcome to GeoVera</div>
+                        <div class="activity-meta">Get started by exploring your dashboard</div>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </main>
+
+    <!-- Supabase & Config -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/frontend/config.js" type="module"></script>
+    <script type="module">
+        // SUPABASE CONFIG - Load from environment variables
+        import config from '/frontend/config.js';
+
+        const supabase = window.supabase.createClient(
+            config.supabase.url,
+            config.supabase.anonKey
+        );
 
         // Check authentication
         async function checkAuth() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return false;
-            }
-
             try {
-                const { data: { user }, error } = await sbClient.auth.getUser(token);
+                const { data: { user }, error } = await supabase.auth.getUser();
+
                 if (error || !user) {
-                    localStorage.removeItem('access_token');
-                    window.location.href = '/login.html';
-                    return false;
+                    window.location.href = 'login.html';
+                    return null;
                 }
-                currentUser = user;
-                document.getElementById('userEmail').textContent = user.email;
-                return true;
+
+                return user;
             } catch (err) {
-                console.error('Auth error:', err);
-                window.location.href = '/login.html';
-                return false;
+                console.error('Auth check failed:', err);
+                window.location.href = 'login.html';
+                return null;
             }
         }
 
-        // Load brand data
-        async function loadBrandData() {
+        // Load dashboard data
+        async function loadDashboard() {
+            const user = await checkAuth();
+            if (!user) return;
+
             try {
-                // Get user's brands
-                const { data: userBrands, error: userBrandsError } = await sbClient
+                // Get user brand
+                const { data: brands } = await supabase
                     .from('user_brands')
-                    .select('brand_id')
-                    .eq('user_id', currentUser.id)
-                    .limit(1);
+                    .select('brand_id, role, brands(brand_name)')
+                    .eq('user_id', user.id)
+                    .eq('role', 'owner')
+                    .single();
 
-                if (userBrandsError) throw userBrandsError;
+                if (brands && brands.brands) {
+                    document.getElementById('brand-name').textContent = brands.brands.brand_name;
+                }
 
-                if (!userBrands || userBrands.length === 0) {
-                    // No brand yet, redirect to onboarding
-                    window.location.href = '/onboarding.html';
+                // Get subscription tier
+                const { data: subscription } = await supabase
+                    .from('gv_subscriptions')
+                    .select('tier_name')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (subscription) {
+                    const tierName = subscription.tier_name.toUpperCase();
+                    document.getElementById('tier-badge').textContent = `${tierName} TIER`;
+                }
+
+                // Load tier limits and usage
+                await loadUsageLimits(user.id, brands?.brand_id);
+
+                // Load stats (placeholder - implement real stats later)
+                document.getElementById('stat-creators').textContent = '0';
+                document.getElementById('stat-collections').textContent = '0';
+                document.getElementById('stat-insights').textContent = '0';
+                document.getElementById('stat-messages').textContent = '0';
+
+                // Announce page loaded to screen readers
+                document.getElementById('announcements').textContent = 'Dashboard loaded successfully';
+
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+            }
+        }
+
+        // Load usage limits and display them
+        async function loadUsageLimits(userId, brandId) {
+            try {
+                // Get tier limits from subscription
+                const { data: subscription } = await supabase
+                    .from('gv_subscriptions')
+                    .select(`
+                        tier_name,
+                        gv_subscription_tiers (
+                            daily_questions,
+                            articles_per_month,
+                            images_per_month,
+                            videos_per_month
+                        )
+                    `)
+                    .eq('user_id', userId)
+                    .single();
+
+                if (!subscription || !subscription.gv_subscription_tiers) {
+                    console.error('No subscription tier found');
                     return;
                 }
 
-                const brandId = userBrands[0].brand_id;
+                const limits = subscription.gv_subscription_tiers;
+                const tierName = subscription.tier_name;
 
-                // Fetch brand details
-                const { data: brand, error: brandError } = await sbClient
-                    .from('brands')
+                // Get current usage
+                const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
+                const { data: usage } = await supabase
+                    .from('gv_tier_usage')
                     .select('*')
-                    .eq('id', brandId)
+                    .eq('brand_id', brandId)
+                    .eq('usage_month', currentMonth)
                     .single();
 
-                if (brandError) throw brandError;
+                // Default to 0 if no usage record exists yet
+                const currentUsage = usage || {
+                    insights_generated: 0,
+                    content_articles: 0,
+                    content_images: 0,
+                    content_videos: 0
+                };
 
-                currentBrand = brand;
-                populateProfile(brand);
-                populateTimeline(brand);
+                // Calculate usage percentages and display
+                const usageItems = [
+                    {
+                        label: 'Daily Insights',
+                        used: currentUsage.insights_generated || 0,
+                        limit: limits.daily_questions * 30, // Monthly estimate
+                        description: `${limits.daily_questions}/day`
+                    },
+                    {
+                        label: 'AI Articles',
+                        used: currentUsage.content_articles || 0,
+                        limit: limits.articles_per_month,
+                        description: 'per month'
+                    },
+                    {
+                        label: 'AI Images',
+                        used: currentUsage.content_images || 0,
+                        limit: limits.images_per_month,
+                        description: 'per month'
+                    },
+                    {
+                        label: 'Video Scripts',
+                        used: currentUsage.content_videos || 0,
+                        limit: limits.videos_per_month,
+                        description: 'per month'
+                    }
+                ];
 
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('chronicle').style.display = 'block';
+                const usageGrid = document.getElementById('usage-grid');
+                usageGrid.innerHTML = usageItems.map(item => {
+                    const percentage = item.limit > 0 ? (item.used / item.limit) * 100 : 0;
+                    let fillClass = '';
+                    if (percentage >= 90) fillClass = 'danger';
+                    else if (percentage >= 70) fillClass = 'warning';
 
-            } catch (error) {
-                console.error('Error loading brand:', error);
-                document.getElementById('loadingState').innerHTML =
-                    '<p style="color: #EF4444;">Error loading brand data. Please try again.</p>';
-            }
-        }
+                    return `
+                        <div class="usage-item">
+                            <div class="usage-label">${item.label}</div>
+                            <div class="usage-value">${item.used}/${item.limit}</div>
+                            <div class="usage-bar">
+                                <div class="usage-fill ${fillClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+                            </div>
+                            <div style="font-size: 12px; color: var(--gv-body); margin-top: 4px;">${item.description}</div>
+                        </div>
+                    `;
+                }).join('');
 
-        // Populate profile tab
-        function populateProfile(brand) {
-            document.getElementById('brandName').textContent = brand.name || '-';
-            document.getElementById('industry').textContent = brand.industry || '-';
-            document.getElementById('website').textContent = brand.website || '-';
-            document.getElementById('description').textContent = brand.description || '-';
-            document.getElementById('foundedDate').textContent = brand.founded_date || '-';
-            document.getElementById('contactEmail').textContent = brand.contact_email || currentUser.email;
-            document.getElementById('phone').textContent = brand.phone || '-';
-            document.getElementById('address').textContent = brand.address || '-';
-        }
+                // Show upgrade note if usage is high on any item
+                const anyHighUsage = usageItems.some(item => {
+                    const pct = item.limit > 0 ? (item.used / item.limit) * 100 : 0;
+                    return pct >= 70;
+                });
 
-        // Populate timeline with mock data
-        function populateTimeline(brand) {
-            const timeline = [
-                {
-                    year: '2024',
-                    date: 'January 2024',
-                    title: 'Brand Monitoring Activated',
-                    description: 'Your brand was successfully added to the GeoVera platform for comprehensive monitoring and analytics.'
-                },
-                {
-                    year: '2023',
-                    date: 'September 2023',
-                    title: 'Major Social Media Campaign',
-                    description: 'Detected a significant social media campaign resulting in 340% engagement increase across all platforms.'
-                },
-                {
-                    year: '2022',
-                    date: 'March 2022',
-                    title: 'Website Redesign Launch',
-                    description: 'Complete website redesign launched with improved user experience and modern design aesthetics.'
-                },
-                {
-                    year: '2021',
-                    date: 'June 2021',
-                    title: 'Google Search Debut',
-                    description: 'First significant appearance in Google Search results, marking digital presence expansion.'
-                },
-                {
-                    year: '2020',
-                    date: brand.founded_date || 'January 2020',
-                    title: 'Brand Founded',
-                    description: `${brand.name} was officially founded, beginning its journey in the ${brand.industry || 'business'} sector.`
+                if (anyHighUsage || tierName === 'basic') {
+                    document.getElementById('upgrade-note').style.display = 'block';
                 }
-            ];
 
-            const timelineContent = document.getElementById('timelineContent');
-            timelineContent.innerHTML = timeline.map(item => `
-                <div class="timeline-item">
-                    <div class="timeline-year">${item.year}</div>
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-card">
-                        <div class="timeline-date">${item.date}</div>
-                        <h3>${item.title}</h3>
-                        <p>${item.description}</p>
-                    </div>
-                </div>
-            `).join('');
+            } catch (err) {
+                console.error('Error loading usage limits:', err);
+            }
         }
 
-        // Tab switching
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-                tab.style.display = 'none';
-            });
+        // User menu functionality
+        document.getElementById('user-btn').addEventListener('click', function() {
+            const expanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !expanded);
 
-            // Remove active from all buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Show selected tab
-            document.getElementById(tabName).classList.add('active');
-            document.getElementById(tabName).style.display = 'block';
-
-            // Set active button
-            event.target.classList.add('active');
-        }
-
-        // User menu toggle
-        function toggleUserMenu() {
-            const dropdown = document.getElementById('userDropdown');
-            dropdown.classList.toggle('active');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-menu')) {
-                document.getElementById('userDropdown').classList.remove('active');
+            // Implement dropdown menu here
+            if (!expanded) {
+                window.location.href = 'settings.html';
             }
         });
 
-        // Logout
-        async function logout() {
-            await sbClient.auth.signOut();
-            localStorage.removeItem('access_token');
-            window.location.href = '/login.html';
-        }
-
-        // Initialize on page load
-        window.addEventListener('DOMContentLoaded', async () => {
-            const isAuthenticated = await checkAuth();
-            if (isAuthenticated) {
-                await loadBrandData();
-            }
-        });
+        // Initialize
+        loadDashboard();
+        console.log('GeoVera Dashboard Ready');
     </script>
 </body>
 </html>

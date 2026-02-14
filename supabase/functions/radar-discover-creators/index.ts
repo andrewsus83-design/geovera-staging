@@ -23,6 +23,7 @@ interface DiscoveredCreator {
   engagement_rate?: number;
   content_focus?: string;
   recent_collaborations?: string[];
+  primary_language?: string;
 }
 
 interface PerplexityMessage {
@@ -143,12 +144,13 @@ Deno.serve(async (req: Request) => {
     // Validate batch size (max 40 to avoid token limits)
     const validBatchSize = Math.min(Math.max(1, batch_size), 40);
 
-    // Build Perplexity query
-    const perplexityQuery = `Find ${validBatchSize} top content creators in the ${category} industry in ${country} with the following criteria:
+    // Build Perplexity query - GLOBAL SUPPORT for 50+ countries
+    const perplexityQuery = `Find ${validBatchSize} top content creators in the ${category} industry in ${country} (GLOBAL SEARCH - not limited to any single country) with the following criteria:
 
 - Follower range: 100K - 2M (mid-tier influencers)
 - Active posting (last 14 days)
 - High engagement rate (>3%)
+- Content language: Any (English, Indonesian, Spanish, French, German, Japanese, Korean, Chinese, etc.)
 
 For each creator, provide:
 - Name (full name or creator name)
@@ -157,6 +159,7 @@ For each creator, provide:
 - Engagement rate (as percentage, e.g., 4.5)
 - Content focus (brief description of their niche)
 - Recent brand collaborations (1-2 examples if available)
+- Primary language of content (e.g., "en", "id", "es", "ja")
 
 Return ONLY valid JSON in this exact format with no additional text:
 {
@@ -170,7 +173,8 @@ Return ONLY valid JSON in this exact format with no additional text:
       "follower_count": 250000,
       "engagement_rate": 4.5,
       "content_focus": "Description of content niche",
-      "recent_collaborations": ["Brand 1", "Brand 2"]
+      "recent_collaborations": ["Brand 1", "Brand 2"],
+      "primary_language": "en"
     }
   ]
 }`;
@@ -189,7 +193,7 @@ Return ONLY valid JSON in this exact format with no additional text:
         messages: [
           {
             role: "system",
-            content: "You are a creator research expert specializing in social media influencers. Always return valid JSON only, no additional text or markdown."
+            content: "You are a GLOBAL creator research expert specializing in social media influencers across 50+ countries worldwide. Always return valid JSON only, no additional text or markdown. Support creators from ALL countries and languages."
           },
           {
             role: "user",
@@ -279,6 +283,8 @@ Return ONLY valid JSON in this exact format with no additional text:
         platform: platform,
         username: username,
         category: category,
+        country: country, // GLOBAL: Store which country this creator was discovered for
+        primary_language: creator.primary_language || "en", // GLOBAL: Store content language
         expected_tier: getFollowerTier(creator.follower_count || 100000),
         discovered_via: "perplexity_radar",
         research_date: new Date().toISOString(),
@@ -289,6 +295,7 @@ Return ONLY valid JSON in this exact format with no additional text:
           content_focus: creator.content_focus,
           engagement_rate: creator.engagement_rate,
           recent_collaborations: creator.recent_collaborations,
+          primary_language: creator.primary_language,
           handles: {
             instagram: creator.instagram_handle,
             tiktok: creator.tiktok_handle,

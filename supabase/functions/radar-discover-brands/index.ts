@@ -22,6 +22,7 @@ interface DiscoveredBrand {
   follower_count_estimate?: number;
   positioning?: string;
   differentiators?: string[];
+  primary_market?: string;
 }
 
 interface PerplexityMessage {
@@ -133,8 +134,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build Perplexity query
-    const perplexityQuery = `Find 2-3 recommended competitor brands in the ${category} industry in ${country} similar to ${brand.brand_name}.
+    // Build Perplexity query - GLOBAL SUPPORT for 50+ countries
+    const perplexityQuery = `Find 2-3 recommended competitor brands in the ${category} industry in ${country} (GLOBAL SEARCH - include international competitors) similar to ${brand.brand_name}.
 
 Please provide detailed information including:
 - Brand name
@@ -142,8 +143,9 @@ Please provide detailed information including:
 - Follower count estimate (approximate number)
 - Brand positioning (what makes them unique)
 - Key differentiators (2-3 main points)
+- Primary market/country (e.g., "US", "UK", "SG", "ID", "global")
 
-Focus on brands with 10K-500K followers that are active on social media.
+Focus on brands with 10K-500K followers that are active on social media. Include both local and international competitors.
 
 Return ONLY valid JSON in this exact format with no additional text:
 {
@@ -156,7 +158,8 @@ Return ONLY valid JSON in this exact format with no additional text:
       "facebook_handle": "pagename",
       "follower_count_estimate": 50000,
       "positioning": "Description of brand positioning",
-      "differentiators": ["Point 1", "Point 2", "Point 3"]
+      "differentiators": ["Point 1", "Point 2", "Point 3"],
+      "primary_market": "US"
     }
   ]
 }`;
@@ -175,7 +178,7 @@ Return ONLY valid JSON in this exact format with no additional text:
         messages: [
           {
             role: "system",
-            content: "You are a brand research expert. Always return valid JSON only, no additional text or markdown."
+            content: "You are a GLOBAL brand research expert covering 50+ countries worldwide. Always return valid JSON only, no additional text or markdown. Include both local and international competitors."
           },
           {
             role: "user",
