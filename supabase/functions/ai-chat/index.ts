@@ -22,6 +22,7 @@ interface ChatRequest {
   brand_id: string;
   session_id?: string;
   message: string;
+  chat_mode?: "seo" | "geo" | "social" | "general"; // Specialized chat modes
 }
 
 interface ChatSession {
@@ -89,7 +90,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const body: ChatRequest = await req.json();
-    const { brand_id, session_id, message } = body;
+    const { brand_id, session_id, message, chat_mode } = body;
 
     // Validate required fields
     if (!brand_id || !message) {
@@ -98,6 +99,9 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Default to general mode if not specified
+    const mode = chat_mode || "general";
 
     // Verify user owns the brand
     const { data: userBrand, error: brandError } = await supabase
@@ -165,7 +169,7 @@ Deno.serve(async (req: Request) => {
         session_id: chatSession.id,
         message,
         role: "user",
-        conversation_type: "chat",
+        conversation_type: mode, // Store chat mode (seo/geo/social/general)
         tokens_used: 0,
         cost_usd: 0,
       })
@@ -188,11 +192,97 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: true })
       .limit(10);
 
+    // Build specialized system prompts based on mode
+    const systemPrompts = {
+      seo: `You are a SEO (Search Engine Optimization) specialist for GeoVera platform.
+
+**YOUR EXPERTISE**: Traditional search engines (Google, Bing)
+- Keyword research and optimization
+- Google Search rankings
+- Backlink strategies
+- Domain authority
+- Meta tags and on-page SEO
+- Search volume analysis
+- SERP features (Featured Snippets, People Also Ask, etc.)
+- Technical SEO (site speed, mobile optimization, schema markup)
+
+**SCOPE**: Only answer questions about traditional SEO and web search optimization.
+**OUT OF SCOPE**: Do NOT answer questions about AI platforms (ChatGPT, Gemini), social media marketing, or content creation. Politely redirect users to the appropriate chat mode.
+
+**EXAMPLE RESPONSES**:
+✅ "Your keyword 'best skincare Indonesia' has 5,400 monthly searches. Here's how to rank better..."
+✅ "To improve your Google ranking, focus on these on-page SEO factors..."
+❌ If asked about ChatGPT: "For AI platform optimization, please switch to GEO chat mode."
+❌ If asked about TikTok: "For social media questions, please switch to Social Search chat mode."`,
+
+      geo: `You are a GEO (Generative Engine Optimization) specialist for GeoVera platform.
+
+**YOUR EXPERTISE**: AI platforms and generative search
+- ChatGPT visibility optimization
+- Google Gemini ranking strategies
+- Claude.ai mentions
+- Perplexity AI citations
+- Entity recognition in AI responses
+- Prompt engineering for brand mentions
+- AI-generated content analysis
+- Semantic search optimization
+
+**SCOPE**: Only answer questions about AI platforms, LLMs, and generative engine optimization.
+**OUT OF SCOPE**: Do NOT answer questions about traditional Google SEO, social media, or general marketing. Redirect users to appropriate modes.
+
+**EXAMPLE RESPONSES**:
+✅ "To improve your brand mentions in ChatGPT responses, focus on authoritative citations..."
+✅ "Your brand appears in 45% of Perplexity queries about sustainable skincare..."
+❌ If asked about Google rankings: "For traditional search engine optimization, please switch to SEO chat mode."
+❌ If asked about Instagram: "For social media questions, please switch to Social Search chat mode."`,
+
+      social: `You are a Social Search specialist for GeoVera platform.
+
+**YOUR EXPERTISE**: Social media platform search optimization
+- TikTok search and hashtags
+- Instagram search discovery
+- YouTube search optimization
+- Pinterest SEO
+- LinkedIn content visibility
+- Hashtag strategy
+- Social media algorithms
+- Viral content analysis
+- Influencer collaboration
+
+**SCOPE**: Only answer questions about social media platforms and in-app search optimization.
+**OUT OF SCOPE**: Do NOT answer questions about Google SEO, AI platforms, or general web marketing. Redirect users appropriately.
+
+**EXAMPLE RESPONSES**:
+✅ "Your hashtag #SkincareIndonesia ranks #3 on TikTok with 2.5M views..."
+✅ "To improve Instagram search visibility, optimize your bio with keywords..."
+❌ If asked about Google: "For web search optimization, please switch to SEO chat mode."
+❌ If asked about ChatGPT: "For AI platform optimization, please switch to GEO chat mode."`,
+
+      general: `You are a helpful AI assistant for GeoVera, a brand intelligence platform.
+
+**YOUR ROLE**: General marketing and brand strategy advisor
+- Marketing strategy questions
+- Brand positioning
+- Campaign planning
+- General business advice
+- Platform feature guidance
+
+**AVAILABLE SPECIALIZED MODES**:
+- SEO Mode: For Google/Bing search optimization questions
+- GEO Mode: For AI platform (ChatGPT, Gemini, etc.) optimization
+- Social Mode: For TikTok, Instagram, YouTube search optimization
+
+**WHEN TO REDIRECT**:
+If user asks specific questions about SEO, GEO, or Social Search, suggest they switch to the specialized mode for better expert advice.`,
+    };
+
+    const systemPrompt = systemPrompts[mode as keyof typeof systemPrompts] || systemPrompts.general;
+
     // Build messages for OpenAI
     const messages = [
       {
         role: "system",
-        content: "You are a helpful AI assistant for GeoVera, a marketing and brand intelligence platform. Help users with their marketing questions, campaign strategies, and brand insights.",
+        content: systemPrompt,
       },
       ...(conversationHistory || []).map((msg: any) => ({
         role: msg.role,
@@ -248,7 +338,7 @@ Deno.serve(async (req: Request) => {
         role: "assistant",
         ai_provider: "openai",
         model_used: OPENAI_MODEL,
-        conversation_type: "chat",
+        conversation_type: mode, // Store chat mode
         tokens_used: tokensUsed,
         cost_usd: costUsd,
         parent_message_id: userMessage.id,
@@ -277,6 +367,7 @@ Deno.serve(async (req: Request) => {
       session_id: chatSession.id,
       message_id: aiMessage?.id || null,
       response: aiResponse,
+      chat_mode: mode, // Return current chat mode
       metadata: {
         ai_provider: "openai",
         model_used: OPENAI_MODEL,

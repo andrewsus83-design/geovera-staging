@@ -253,12 +253,22 @@
    MAIN CONTENT AREA - White Background
    ======================================== */
 
-.geovera-main {
+.geovera-main,
+.main-content {
   margin-left: 260px; /* Space for sidebar */
   width: calc(100% - 260px);
   min-height: 100vh;
   background: #FFFFFF;
-  padding: 32px;
+  padding: 0; /* No padding - let content-wrapper handle it */
+}
+
+/* Page content wrapper with proper padding */
+.page-content,
+.content-wrapper {
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ========================================
