@@ -272,6 +272,195 @@
 }
 
 /* ========================================
+   TWO-COLUMN LAYOUTS - Independent Scroll
+   ======================================== */
+
+/* Chat Two-Column Layout - messages container gets independent scroll */
+.chat-two-column-layout {
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.messages-container {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #E5E7EB transparent;
+}
+
+.chat-sidebar-column {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #E5E7EB transparent;
+}
+
+/* Insights Two-Column Layout */
+.insights-two-column {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.insights-two-column > div:first-child {
+  flex: 0 0 30%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.insights-two-column > div:last-child {
+  flex: 0 0 calc(70% - 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+/* Radar Two-Column Layout */
+.radar-two-column {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.radar-two-column > div:first-child {
+  flex: 0 0 40%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.radar-two-column > div:last-child {
+  flex: 0 0 calc(60% - 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+/* SEO Two-Column Layout */
+.seo-two-column-layout {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.seo-main-column {
+  flex: 0 0 60%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.seo-sidebar-column {
+  flex: 0 0 calc(40% - 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+/* GEO Two-Column Layout */
+.geo-two-column-layout {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.geo-main-column {
+  flex: 0 0 60%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.geo-sidebar-column {
+  flex: 0 0 calc(40% - 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+/* Social Search Two-Column Layout */
+.social-two-column-layout {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.social-main-column {
+  flex: 0 0 60%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.social-sidebar-column {
+  flex: 0 0 calc(40% - 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for all columns */
+.chat-main-column::-webkit-scrollbar,
+.chat-sidebar-column::-webkit-scrollbar,
+.insights-two-column > div::-webkit-scrollbar,
+.radar-two-column > div::-webkit-scrollbar,
+.seo-main-column::-webkit-scrollbar,
+.seo-sidebar-column::-webkit-scrollbar,
+.geo-main-column::-webkit-scrollbar,
+.geo-sidebar-column::-webkit-scrollbar,
+.social-main-column::-webkit-scrollbar,
+.social-sidebar-column::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-main-column::-webkit-scrollbar-track,
+.chat-sidebar-column::-webkit-scrollbar-track,
+.insights-two-column > div::-webkit-scrollbar-track,
+.radar-two-column > div::-webkit-scrollbar-track,
+.seo-main-column::-webkit-scrollbar-track,
+.seo-sidebar-column::-webkit-scrollbar-track,
+.geo-main-column::-webkit-scrollbar-track,
+.geo-sidebar-column::-webkit-scrollbar-track,
+.social-main-column::-webkit-scrollbar-track,
+.social-sidebar-column::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-main-column::-webkit-scrollbar-thumb,
+.chat-sidebar-column::-webkit-scrollbar-thumb,
+.insights-two-column > div::-webkit-scrollbar-thumb,
+.radar-two-column > div::-webkit-scrollbar-thumb,
+.seo-main-column::-webkit-scrollbar-thumb,
+.seo-sidebar-column::-webkit-scrollbar-thumb,
+.geo-main-column::-webkit-scrollbar-thumb,
+.geo-sidebar-column::-webkit-scrollbar-thumb,
+.social-main-column::-webkit-scrollbar-thumb,
+.social-sidebar-column::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 9999px;
+}
+
+.chat-main-column::-webkit-scrollbar-thumb:hover,
+.chat-sidebar-column::-webkit-scrollbar-thumb:hover,
+.insights-two-column > div::-webkit-scrollbar-thumb:hover,
+.radar-two-column > div::-webkit-scrollbar-thumb:hover,
+.seo-main-column::-webkit-scrollbar-thumb:hover,
+.seo-sidebar-column::-webkit-scrollbar-thumb:hover,
+.geo-main-column::-webkit-scrollbar-thumb:hover,
+.geo-sidebar-column::-webkit-scrollbar-thumb:hover,
+.social-main-column::-webkit-scrollbar-thumb:hover,
+.social-sidebar-column::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+/* ========================================
    PAGE HEADER
    ======================================== */
 
