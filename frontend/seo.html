@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO Analyzer - GeoVera</title>
+    <title>SEO Intelligence - GeoVera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Georgia:wght@400;700&display=swap" rel="stylesheet">
@@ -14,20 +14,21 @@
     <link rel="stylesheet" href="css/tailadmin-components.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="env.js"></script>
     <script src="env-loader.js"></script>
 
     <style>
-        /* Two-column layout specific styles */
-        .seo-two-column-layout {
+        /* SEO Chat Two-Column Layout */
+        .seo-chat-layout {
             display: flex;
             gap: 1.5rem;
             height: calc(100vh - 72px);
             overflow: hidden;
         }
 
-        /* Main analysis column (60%) */
-        .seo-main-column {
+        /* Left: Chat Column (60%) */
+        .seo-chat-column {
             flex: 0 0 60%;
             display: flex;
             flex-direction: column;
@@ -37,32 +38,154 @@
             overflow: hidden;
         }
 
-        .seo-content {
+        .seo-messages {
             flex: 1;
             overflow-y: auto;
             padding: 1.5rem;
-        }
-
-        /* Right insights panel (40%) */
-        .seo-insights-panel {
-            flex: 0 0 40%;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
-            overflow-y: auto;
+            gap: 1rem;
         }
 
-        /* Insights card */
-        .insights-card {
+        .seo-message {
+            display: flex;
+            gap: 0.75rem;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .seo-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #16A34A;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.user {
+            background: #6B7280;
+        }
+
+        .message-content {
+            background: #F9FAFB;
+            padding: 0.875rem 1rem;
+            border-radius: 12px;
+            max-width: 75%;
+        }
+
+        .seo-message.user .message-content {
+            background: #F0FDF4;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #9CA3AF;
+            margin-top: 0.5rem;
+        }
+
+        /* Chat Input */
+        .seo-input-area {
+            border-top: 1px solid #E5E7EB;
+            padding: 1rem 1.5rem;
+            background: white;
+        }
+
+        .seo-input-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .seo-textarea {
+            flex: 1;
+            min-height: 44px;
+            max-height: 120px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .seo-textarea:focus {
+            outline: none;
+            border-color: #16A34A;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+
+        .seo-send-btn {
+            padding: 0.75rem 1.5rem;
+            background: #16A34A;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .seo-send-btn:hover:not(:disabled) {
+            background: #15803D;
+            transform: translateY(-1px);
+        }
+
+        .seo-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Right: Analytics Sidebar (40%) */
+        .seo-analytics-sidebar {
+            flex: 0 0 calc(40% - 1.5rem);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-right: 0.5rem;
+        }
+
+        /* Analytics Cards */
+        .analytics-card {
             background: white;
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1.25rem;
             box-shadow: 0px 1px 3px rgba(16, 24, 40, 0.1);
+            border: 1px solid #E5E7EB;
         }
 
-        .insights-card h3 {
+        .analytics-card-title {
             font-family: Georgia, serif;
-            font-size: 18px;
+            font-size: 16px;
+            font-weight: 700;
             color: #111827;
             margin-bottom: 1rem;
             display: flex;
@@ -70,275 +193,259 @@
             gap: 0.5rem;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #16A34A;
-        }
-
-        .btn-analyze {
-            background: #16A34A;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-radius: 8px;
-            width: 100%;
-        }
-
-        .btn-analyze:hover:not(:disabled) {
-            background: #15803D;
-        }
-
-        .btn-analyze:disabled {
-            background: #D1D5DB;
-            cursor: not-allowed;
-        }
-
-        .results-section {
-            margin-top: 2rem;
-        }
-
-        .score-card {
-            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
-            border-radius: 12px;
-            padding: 2rem;
+        /* SEO Score Display */
+        .seo-score-display {
             text-align: center;
-            margin-bottom: 1.5rem;
-            border: 2px solid #16A34A;
+            padding: 1.5rem 0;
         }
 
-        .score-value {
-            font-size: 72px;
+        .score-value-large {
+            font-family: Georgia, serif;
+            font-size: 64px;
             font-weight: 700;
             color: #16A34A;
             line-height: 1;
-            margin-bottom: 0.5rem;
         }
 
         .score-label {
-            font-size: 14px;
+            font-size: 13px;
             color: #6B7280;
+            margin-top: 0.75rem;
+            font-weight: 500;
+        }
+
+        .score-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 13px;
             font-weight: 600;
+            margin-top: 0.5rem;
         }
 
-        .metric-item {
-            padding: 1rem;
-            background: #F9FAFB;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            border-left: 3px solid #16A34A;
+        .score-change.up {
+            color: #16A34A;
         }
 
-        .metric-header {
+        .score-change.down {
+            color: #DC2626;
+        }
+
+        /* Keyword List */
+        .keyword-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #F3F4F6;
         }
 
-        .metric-title {
+        .keyword-item:last-child {
+            border-bottom: none;
+        }
+
+        .keyword-name {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             color: #111827;
-        }
-
-        .metric-badge {
-            padding: 0.125rem 0.5rem;
-            border-radius: 9999px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .metric-badge.good {
-            background: #16A34A;
-            color: white;
-        }
-
-        .metric-badge.warning {
-            background: #EAB308;
-            color: white;
-        }
-
-        .metric-badge.poor {
-            background: #EF4444;
-            color: white;
-        }
-
-        .metric-value {
-            font-size: 13px;
-            color: #6B7280;
-        }
-
-        /* Quick wins */
-        .quick-win-item {
-            padding: 0.875rem;
-            background: #FEF3C7;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            border-left: 3px solid #EAB308;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .quick-win-item:hover {
-            background: #FDE68A;
-            transform: translateX(4px);
-        }
-
-        .quick-win-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 0.25rem;
-        }
-
-        .quick-win-desc {
-            font-size: 12px;
-            color: #6B7280;
-        }
-
-        /* Rankings */
-        .ranking-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.875rem;
-            background: #F9FAFB;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-        }
-
-        .ranking-position {
-            width: 36px;
-            height: 36px;
-            background: #16A34A;
-            color: white;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .ranking-info {
             flex: 1;
         }
 
-        .ranking-keyword {
-            font-size: 14px;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .ranking-url {
-            font-size: 12px;
-            color: #6B7280;
-        }
-
-        /* Competitor watch */
-        .competitor-item {
+        .keyword-rank {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.875rem;
+        }
+
+        .rank-position {
+            font-size: 18px;
+            font-weight: 700;
+            color: #16A34A;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        .rank-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 40px;
+        }
+
+        .rank-change.up {
+            color: #16A34A;
+        }
+
+        .rank-change.down {
+            color: #DC2626;
+        }
+
+        .rank-change.neutral {
+            color: #9CA3AF;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 220px;
+            margin-top: 1rem;
+        }
+
+        /* Competitor Item */
+        .competitor-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
             background: #F9FAFB;
             border-radius: 8px;
             margin-bottom: 0.5rem;
         }
 
-        .competitor-icon {
-            width: 40px;
-            height: 40px;
-            background: #E5E7EB;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: #6B7280;
-            flex-shrink: 0;
+        .competitor-item:last-child {
+            margin-bottom: 0;
         }
 
         .competitor-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             flex: 1;
+        }
+
+        .competitor-rank {
+            font-size: 14px;
+            font-weight: 700;
+            color: #6B7280;
+            min-width: 24px;
         }
 
         .competitor-name {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             color: #111827;
         }
 
         .competitor-score {
-            font-size: 12px;
-            color: #6B7280;
-        }
-
-        .competitor-trend {
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .competitor-trend.up {
+            font-size: 14px;
+            font-weight: 700;
             color: #16A34A;
         }
 
-        .competitor-trend.down {
-            color: #EF4444;
+        /* Backlink Item */
+        .backlink-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #F3F4F6;
         }
 
-        @media (max-width: 1200px) {
-            .seo-two-column-layout {
+        .backlink-item:last-child {
+            border-bottom: none;
+        }
+
+        .backlink-url {
+            font-size: 13px;
+            color: #16A34A;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+        }
+
+        .backlink-url:hover {
+            text-decoration: underline;
+        }
+
+        .backlink-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 11px;
+            color: #9CA3AF;
+        }
+
+        .backlink-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+        }
+
+        .empty-state h2 {
+            font-family: Georgia, serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            color: #6B7280;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .suggested-prompts {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .prompt-btn {
+            padding: 1rem 1.25rem;
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .prompt-btn:hover {
+            background: #F0FDF4;
+            border-color: #16A34A;
+            color: #16A34A;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .seo-chat-layout {
                 flex-direction: column;
+                height: auto;
             }
-
-            .seo-main-column,
-            .seo-insights-panel {
-                flex: 0 0 auto;
-                width: 100%;
+            
+            .seo-chat-column,
+            .seo-analytics-sidebar {
+                flex: 1 1 auto;
             }
-
-            .seo-insights-panel {
-                max-height: 500px;
+            
+            .seo-messages {
+                min-height: 400px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- White Sidebar Navigation -->
     <div class="geovera-sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
                 <div class="logo">G</div>
                 <span class="logo-text">GeoVera</span>
             </div>
-            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+            <button class="sidebar-toggle" id="sidebarToggle">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
                 </svg>
@@ -346,7 +453,7 @@
         </div>
 
         <nav class="sidebar-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a href="dashboard.html" class="nav-item active">
                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                 </svg>
@@ -398,7 +505,7 @@
 
             <div class="nav-divider"></div>
 
-            <a href="seo.html" class="nav-item active">
+            <a href="seo-chat.html" class="nav-item active">
                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
                 </svg>
@@ -440,281 +547,461 @@
         </div>
     </div>
 
+
     <!-- Main Content -->
     <div class="main-content">
         <div class="content-wrapper">
-            <!-- Two-Column Layout -->
-            <div class="seo-two-column-layout">
-                <!-- Main SEO Analysis Column (60%) -->
-                <div class="seo-main-column">
-                    <div class="seo-content">
-                        <!-- Analysis Form -->
-                        <div class="form-group">
-                            <label class="form-label">Website URL</label>
-                            <input type="url" class="form-input" id="websiteUrl" placeholder="https://example.com">
+            <!-- SEO Chat Two-Column Layout -->
+            <div class="seo-chat-layout">
+                
+                <!-- Left Column: Chat Interface (60%) -->
+                <div class="seo-chat-column">
+                    <!-- Messages Container -->
+                    <div class="seo-messages" id="seoMessages">
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <h2>SEO Intelligence Chat</h2>
+                            <p>Ask me anything about your SEO performance, keyword rankings, backlinks, or get optimization recommendations.</p>
+                            
+                            <div class="suggested-prompts">
+                                <button class="prompt-btn" onclick="sendPrompt('What are my top performing keywords?')">
+                                    📊 What are my top performing keywords?
+                                </button>
+                                <button class="prompt-btn" onclick="sendPrompt('How can I improve my rankings?')">
+                                    🚀 How can I improve my rankings?
+                                </button>
+                                <button class="prompt-btn" onclick="sendPrompt('Analyze my competitors SEO strategy')">
+                                    🔍 Analyze my competitors' SEO strategy
+                                </button>
+                                <button class="prompt-btn" onclick="sendPrompt('Show me backlink opportunities')">
+                                    🔗 Show me backlink opportunities
+                                </button>
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Target Keywords (comma-separated)</label>
-                            <input type="text" class="form-input" id="keywords" placeholder="local business, SEO, marketing">
-                        </div>
-
-                        <button class="btn-analyze" onclick="analyzeSEO()">
-                            Analyze SEO
-                        </button>
-
-                        <!-- Results Section -->
-                        <div class="results-section" id="results" style="display: none;">
-                            <div class="score-card">
-                                <div class="score-value" id="seoScore">85</div>
-                                <div class="score-label">Overall SEO Score</div>
-                            </div>
-
-                            <h3 style="font-family: Georgia, serif; font-size: 20px; color: #111827; margin-bottom: 1rem;">
-                                Performance Metrics
-                            </h3>
-
-                            <div class="metric-item">
-                                <div class="metric-header">
-                                    <div class="metric-title">Title Tag</div>
-                                    <div class="metric-badge good">Good</div>
-                                </div>
-                                <div class="metric-value">Length: 58 characters (optimal range: 50-60)</div>
-                            </div>
-
-                            <div class="metric-item">
-                                <div class="metric-header">
-                                    <div class="metric-title">Meta Description</div>
-                                    <div class="metric-badge good">Good</div>
-                                </div>
-                                <div class="metric-value">Length: 152 characters (optimal range: 120-160)</div>
-                            </div>
-
-                            <div class="metric-item">
-                                <div class="metric-header">
-                                    <div class="metric-title">Headings Structure</div>
-                                    <div class="metric-badge warning">Needs Improvement</div>
-                                </div>
-                                <div class="metric-value">Missing H2 tags, multiple H1 tags detected</div>
-                            </div>
-
-                            <div class="metric-item">
-                                <div class="metric-header">
-                                    <div class="metric-title">Mobile Friendly</div>
-                                    <div class="metric-badge good">Good</div>
-                                </div>
-                                <div class="metric-value">Responsive design detected</div>
-                            </div>
-
-                            <div class="metric-item">
-                                <div class="metric-header">
-                                    <div class="metric-title">Page Speed</div>
-                                    <div class="metric-badge warning">Needs Improvement</div>
-                                </div>
-                                <div class="metric-value">Load time: 3.2s (target: under 2.5s)</div>
-                            </div>
+                        
+                        <!-- Sample Messages (hidden initially) -->
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="seo-input-area">
+                        <div class="seo-input-container">
+                            <textarea 
+                                class="seo-textarea" 
+                                id="seoInput" 
+                                placeholder="Ask about SEO, keywords, rankings, backlinks..."
+                                rows="1"
+                                onkeydown="handleKeyPress(event)"
+                            ></textarea>
+                            <button class="seo-send-btn" id="sendBtn" onclick="sendMessage()">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="display: inline-block; vertical-align: middle;">
+                                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                                </svg>
+                                Send
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Insights Panel (40%) -->
-                <div class="seo-insights-panel">
-                    <!-- Rankings Card -->
-                    <div class="insights-card">
-                        <h3>
+                
+                <!-- Right Column: Analytics Sidebar (40%) -->
+                <div class="seo-analytics-sidebar">
+                    
+                    <!-- SEO Score Card -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-title">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #16A34A;">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                             </svg>
-                            Top Rankings
-                        </h3>
-
-                        <div class="ranking-item">
-                            <div class="ranking-position">1</div>
-                            <div class="ranking-info">
-                                <div class="ranking-keyword">local business seo</div>
-                                <div class="ranking-url">/blog/local-seo-guide</div>
-                            </div>
+                            SEO Score
                         </div>
-
-                        <div class="ranking-item">
-                            <div class="ranking-position">3</div>
-                            <div class="ranking-info">
-                                <div class="ranking-keyword">small business marketing</div>
-                                <div class="ranking-url">/services/marketing</div>
-                            </div>
-                        </div>
-
-                        <div class="ranking-item">
-                            <div class="ranking-position">7</div>
-                            <div class="ranking-info">
-                                <div class="ranking-keyword">digital marketing agency</div>
-                                <div class="ranking-url">/about</div>
+                        <div class="seo-score-display">
+                            <div class="score-value-large">87</div>
+                            <div class="score-label">Overall Performance</div>
+                            <div class="score-change up">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                +5 from last week
                             </div>
                         </div>
                     </div>
-
-                    <!-- Quick Wins Card -->
-                    <div class="insights-card">
-                        <h3>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #EAB308;">
-                                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                    
+                    <!-- Top Keywords Tracker -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-title">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #16A34A;">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                             </svg>
-                            Quick Wins
-                        </h3>
-
-                        <div class="quick-win-item">
-                            <div class="quick-win-title">Add Alt Text to Images</div>
-                            <div class="quick-win-desc">12 images missing alt text</div>
+                            Top Keywords
                         </div>
-
-                        <div class="quick-win-item">
-                            <div class="quick-win-title">Fix Broken Links</div>
-                            <div class="quick-win-desc">3 broken internal links found</div>
+                        
+                        <div class="keyword-item">
+                            <div class="keyword-name">influencer marketing platform</div>
+                            <div class="keyword-rank">
+                                <div class="rank-position">#3</div>
+                                <div class="rank-change up">
+                                    ↑ 2
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="quick-win-item">
-                            <div class="quick-win-title">Optimize Image Sizes</div>
-                            <div class="quick-win-desc">5 images over 500KB</div>
+                        
+                        <div class="keyword-item">
+                            <div class="keyword-name">brand analytics tool</div>
+                            <div class="keyword-rank">
+                                <div class="rank-position">#5</div>
+                                <div class="rank-change up">
+                                    ↑ 3
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="quick-win-item">
-                            <div class="quick-win-title">Add Schema Markup</div>
-                            <div class="quick-win-desc">No structured data detected</div>
+                        
+                        <div class="keyword-item">
+                            <div class="keyword-name">social media insights</div>
+                            <div class="keyword-rank">
+                                <div class="rank-position">#7</div>
+                                <div class="rank-change down">
+                                    ↓ 1
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="keyword-item">
+                            <div class="keyword-name">content creator tools</div>
+                            <div class="keyword-rank">
+                                <div class="rank-position">#12</div>
+                                <div class="rank-change neutral">
+                                    —
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="keyword-item">
+                            <div class="keyword-name">SEO automation software</div>
+                            <div class="keyword-rank">
+                                <div class="rank-position">#15</div>
+                                <div class="rank-change up">
+                                    ↑ 5
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Competitor Watch Card -->
-                    <div class="insights-card">
-                        <h3>
+                    
+                    <!-- Keyword Win Rate Chart -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-title">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #16A34A;">
-                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
                             </svg>
-                            Competitor Watch
-                        </h3>
-
+                            Keyword Win Rate
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="keywordWinChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Competitors Tracker -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-title">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #16A34A;">
+                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                            </svg>
+                            Competitors
+                        </div>
+                        
                         <div class="competitor-item">
-                            <div class="competitor-icon">A</div>
                             <div class="competitor-info">
+                                <div class="competitor-rank">1</div>
+                                <div class="competitor-name">Your Brand</div>
+                            </div>
+                            <div class="competitor-score">87%</div>
+                        </div>
+                        
+                        <div class="competitor-item">
+                            <div class="competitor-info">
+                                <div class="competitor-rank">2</div>
                                 <div class="competitor-name">Competitor A</div>
-                                <div class="competitor-score">SEO Score: 78</div>
                             </div>
-                            <div class="competitor-trend up">+5%</div>
+                            <div class="competitor-score">82%</div>
                         </div>
-
+                        
                         <div class="competitor-item">
-                            <div class="competitor-icon">B</div>
                             <div class="competitor-info">
+                                <div class="competitor-rank">3</div>
                                 <div class="competitor-name">Competitor B</div>
-                                <div class="competitor-score">SEO Score: 82</div>
                             </div>
-                            <div class="competitor-trend down">-2%</div>
+                            <div class="competitor-score">78%</div>
                         </div>
-
+                        
                         <div class="competitor-item">
-                            <div class="competitor-icon">C</div>
                             <div class="competitor-info">
-                                <div class="competitor-name">Competitor C</div>
-                                <div class="competitor-score">SEO Score: 71</div>
+                                <div class="competitor-rank">—</div>
+                                <div class="competitor-name">Industry Average</div>
                             </div>
-                            <div class="competitor-trend up">+3%</div>
+                            <div class="competitor-score">65%</div>
                         </div>
                     </div>
+                    
+                    <!-- Backlinks Tracker -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-title">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #16A34A;">
+                                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                            </svg>
+                            Top Backlinks
+                        </div>
+                        
+                        <div class="backlink-item">
+                            <a href="#" class="backlink-url">techcrunch.com/article/influencer-tools</a>
+                            <div class="backlink-meta">
+                                <span>DA: 95</span>
+                                <span>DoFollow</span>
+                                <span>2 days ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="backlink-item">
+                            <a href="#" class="backlink-url">forbes.com/marketing-tech</a>
+                            <div class="backlink-meta">
+                                <span>DA: 93</span>
+                                <span>DoFollow</span>
+                                <span>1 week ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="backlink-item">
+                            <a href="#" class="backlink-url">mashable.com/social-media</a>
+                            <div class="backlink-meta">
+                                <span>DA: 91</span>
+                                <span>DoFollow</span>
+                                <span>2 weeks ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="backlink-item">
+                            <a href="#" class="backlink-url">socialmediatoday.com/insights</a>
+                            <div class="backlink-meta">
+                                <span>DA: 78</span>
+                                <span>NoFollow</span>
+                                <span>3 weeks ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Supabase Configuration
+        // Initialize Supabase
         const ENV_CONFIG = window.getEnvConfig();
-        const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
-        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let currentUser = null;
-
-        // Sidebar toggle
-        document.getElementById('sidebarToggle').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-        });
-
-        // User menu toggle
-        document.getElementById('userMenuButton').addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.getElementById('userDropdown').classList.toggle('active');
-        });
-
-        document.addEventListener('click', () => {
-            document.getElementById('userDropdown').classList.remove('active');
-        });
+        const sbClient = supabase.createClient(ENV_CONFIG.SUPABASE_URL, ENV_CONFIG.SUPABASE_ANON_KEY);
 
         // Check authentication
         async function checkAuth() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = 'login.html';
-                return false;
-            }
-
-            try {
-                const { data: { user }, error } = await sbClient.auth.getUser(token);
-                if (error || !user) {
-                    localStorage.removeItem('access_token');
-                    window.location.href = 'login.html';
-                    return false;
-                }
-                currentUser = user;
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userName').textContent = user.email.split('@')[0];
-
-                const { data: subscription } = await sbClient
-                    .from('gv_subscriptions')
-                    .select('plan, status')
-                    .eq('user_id', user.id)
-                    .eq('status', 'active')
-                    .single();
-
-                if (!subscription) {
-                    alert('Please subscribe to a plan to access this page');
-                    window.location.href = 'pricing.html';
-                    return false;
-                }
-
-                return true;
-            } catch (err) {
-                console.error('Auth error:', err);
-                window.location.href = 'login.html';
-                return false;
-            }
-        }
-
-        // Analyze SEO
-        async function analyzeSEO() {
-            const url = document.getElementById('websiteUrl').value;
-            const keywords = document.getElementById('keywords').value;
-
-            if (!url) {
-                alert('Please enter a website URL');
+            const { data: { user } } = await sbClient.auth.getUser();
+            if (!user) {
+                window.location.href = 'login-auth.html';
                 return;
             }
-
-            document.getElementById('results').style.display = 'block';
-
-            // Scroll to results
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            // Update user info in sidebar
+            const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+            document.getElementById('user-name').textContent = userName;
+            document.getElementById('user-avatar-sidebar').textContent = userName.charAt(0).toUpperCase();
         }
 
-        // Logout
-        async function logout() {
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeChart();
+            autoResizeTextarea();
+        });
+
+        // Chat functionality
+        function sendMessage() {
+            const input = document.getElementById('seoInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Hide empty state
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Disable send button while processing
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            
+            // Simulate AI response (replace with actual API call)
+            setTimeout(() => {
+                const response = generateSEOResponse(message);
+                addMessage(response, 'ai');
+                sendBtn.disabled = false;
+            }, 1000);
+        }
+
+        function sendPrompt(prompt) {
+            document.getElementById('seoInput').value = prompt;
+            sendMessage();
+        }
+
+        function addMessage(text, type) {
+            const messagesContainer = document.getElementById('seoMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `seo-message ${type}`;
+            
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar ${type}">${type === 'user' ? 'U' : 'AI'}</div>
+                <div class="message-content">
+                    <div class="message-text">${text}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function generateSEOResponse(question) {
+            const q = question.toLowerCase();
+            
+            if (q.includes('top') && q.includes('keyword')) {
+                return "Your top performing keywords are:\n\n1. **influencer marketing platform** (Rank #3, +2 positions)\n2. **brand analytics tool** (Rank #5, +3 positions)\n3. **social media insights** (Rank #7, -1 position)\n\nYour 'influencer marketing platform' keyword has shown the strongest growth with a 40% increase in traffic this month.";
+            } else if (q.includes('improve') && q.includes('ranking')) {
+                return "Here are my recommendations to improve your rankings:\n\n1. **Focus on Long-tail Keywords**: Target 'best influencer marketing platform for small business' - low competition, high intent\n2. **Improve Page Speed**: Your loading time is 3.2s, aim for under 2s\n3. **Build Quality Backlinks**: You have 45 backlinks, competitors average 120\n4. **Optimize Meta Descriptions**: 60% of your pages lack compelling meta descriptions\n5. **Create More Content**: Publish 2-3 blog posts weekly focusing on user intent";
+            } else if (q.includes('competitor')) {
+                return "**Competitor Analysis:**\n\nYour brand (87%) is outperforming:\n- Competitor A (82%) - Ahead by 5%\n- Competitor B (78%) - Ahead by 9%\n- Industry Average (65%) - Ahead by 22%\n\n**Their Strengths:**\n- More backlinks from high DA sites\n- Faster page load times\n- Higher content output\n\n**Your Advantages:**\n- Better keyword rankings for commercial terms\n- Higher engagement metrics\n- Stronger brand authority";
+            } else if (q.includes('backlink')) {
+                return "**Backlink Opportunities:**\n\n1. **techcrunch.com** - Write expert roundup articles\n2. **forbes.com** - Contribute to marketing tech section\n3. **entrepreneur.com** - Share case studies\n4. **socialmediaexaminer.com** - Guest post on social analytics\n\nI recommend starting with guest posting on industry blogs. Your competitor has 15 links from SocialMediaExaminer.com - this is a low-hanging fruit.";
+            } else {
+                return "I can help you with:\n\n• Keyword performance analysis\n• Ranking improvement strategies\n• Competitor SEO analysis\n• Backlink opportunities\n• Technical SEO audits\n• Content optimization\n\nWhat would you like to know more about?";
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('seoInput');
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+        }
+
+        // Initialize Keyword Win Rate Chart
+        function initializeChart() {
+            const ctx = document.getElementById('keywordWinChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Your Brand', 'Overall Avg', 'Competitor A', 'Competitor B', 'Industry'],
+                    datasets: [{
+                        label: 'Keyword Win Rate (%)',
+                        data: [87, 70, 82, 78, 65],
+                        backgroundColor: [
+                            '#16A34A',  // Your Brand - Green
+                            '#9CA3AF',  // Overall - Gray
+                            '#FCD34D',  // Competitor A - Yellow
+                            '#FB923C',  // Competitor B - Orange
+                            '#60A5FA'   // Industry - Blue
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            padding: 12,
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            borderColor: '#E5E7EB',
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + '% of keywords won';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                color: '#6B7280',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: '#F3F4F6',
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#6B7280',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Logout functionality
+        async function handleLogout() {
             await sbClient.auth.signOut();
             localStorage.removeItem('access_token');
-            window.location.href = 'login.html';
+            window.location.href = 'login-auth.html';
         }
 
-        // Initialize
-        window.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
+        // User menu toggle
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const sidebarUser = document.querySelector('.sidebar-user');
+            if (userMenu && !sidebarUser?.contains(event.target)) {
+                userMenu.style.display = 'none';
+            }
         });
     </script>
 </body>
