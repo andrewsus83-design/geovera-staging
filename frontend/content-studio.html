@@ -4,1056 +4,548 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Studio - GeoVera</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Georgia:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- TailAdmin CSS -->
+    <link rel="stylesheet" href="css/tailadmin-base.css">
+    <link rel="stylesheet" href="css/geovera-sidebar.css">
+    <link rel="stylesheet" href="css/tailadmin-components.css">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="env.js"></script>
     <script src="env-loader.js"></script>
+
     <style>
-        :root {
-            --gv-hero: #16A34A;
-            --gv-anchor: #0B0F19;
-            --gv-body: #6B7280;
-            --gv-canvas: #FFFFFF;
-            --gv-divider: #E5E7EB;
-            --gv-bg-light: #F9FAFB;
-            --gv-risk: #DC2626;
-            --font-display: Georgia, 'Times New Roman', serif;
-            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-body);
-            background: #0a0a0a;
-            color: #ffffff;
-            line-height: 1.6;
-        }
-
-        /* Skip Link */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: var(--gv-hero);
-            color: white;
-            padding: 8px 16px;
-            text-decoration: none;
-            z-index: 100;
-            font-weight: 600;
-        }
-
-        .skip-link:focus {
-            top: 0;
-        }
-
-        /* Site Header */
-        .site-header {
-            background: #0B0F19;
-            border-bottom: 1px solid var(--gv-divider);
-            padding: 16px 0;
-            margin-bottom: 32px;
-        }
-
-        .header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: white;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--gv-hero);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        .logo-text {
-            font-family: var(--font-display);
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-        }
-
-        .nav-desktop {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-        }
-
-        .nav-desktop a {
-            color: #94a3b8;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-desktop a:hover,
-        .nav-desktop a[aria-current="page"] {
-            color: var(--gv-hero);
-        }
-
-        .user-menu {
-            position: relative;
-        }
-
-        .user-button {
-            background: transparent;
-            border: 1px solid #334155;
-            color: white;
-            padding: 8px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        /* Typography */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-display);
-            font-weight: 700;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-
-        .header {
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-size: 42px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header p {
-            font-size: 18px;
-            color: #94a3b8;
-        }
-
-        /* Limit Reached Modal */
-        .limit-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .limit-modal.show {
-            display: flex;
-        }
-
-        .limit-modal-content {
-            background: #1e293b;
-            border: 2px solid #16A34A;
-            border-radius: 0;
-            padding: 40px;
-            max-width: 500px;
-            text-align: center;
-        }
-
-        .limit-modal h2 {
-            font-size: 28px;
-            margin-bottom: 16px;
-            color: #16A34A;
-        }
-
-        .limit-modal p {
-            font-size: 16px;
-            color: #cbd5e1;
-            margin-bottom: 24px;
-        }
-
-        .limit-modal-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-
-        .btn-upgrade {
-            display: inline-block;
-            background: #16A34A;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 0;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-upgrade:hover {
-            background: #15803d;
-            transform: translateY(-2px);
-        }
-
-        .btn-close {
-            background: transparent;
-            color: #94a3b8;
-            padding: 12px 24px;
-            border: 1px solid #334155;
-            border-radius: 0;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-close:hover {
-            border-color: #16A34A;
-            color: #16A34A;
-        }
-
-        /* Content Studio */
-        .content-studio {
-            display: none;
-        }
-
-        .content-studio.show {
-            display: block;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
-            border-bottom: 2px solid #1e293b;
-        }
-
-        .tab {
-            padding: 16px 24px;
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab.active {
-            color: #16A34A;
-            border-bottom-color: #16A34A;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #cbd5e1;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px 16px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 0;
-            color: #ffffff;
-            font-size: 16px;
-        }
-
-        .form-group textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .checkbox-group {
+        /* Masonry Grid Layout */
+        .masonry-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            grid-auto-rows: 20px;
         }
 
-        .checkbox-label {
+        .masonry-item {
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0px 1px 3px rgba(16, 24, 40, 0.1);
+            transition: all 0.2s;
+        }
+
+        .masonry-item:hover {
+            border-color: #16A34A;
+            transform: translateY(-2px);
+            box-shadow: 0px 4px 12px rgba(22, 163, 74, 0.1);
+        }
+
+        /* Grid items with different heights */
+        .masonry-item.small {
+            grid-row-end: span 10;
+        }
+
+        .masonry-item.medium {
+            grid-row-end: span 15;
+        }
+
+        .masonry-item.large {
+            grid-row-end: span 20;
+        }
+
+        .content-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .content-type-badge.article {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .content-type-badge.image {
+            background: #FCE7F3;
+            color: #9F1239;
+        }
+
+        .content-type-badge.video {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .content-title {
+            font-family: Georgia, serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .content-meta {
+            font-size: 13px;
+            color: #6B7280;
+            margin-bottom: 0.75rem;
+        }
+
+        .content-platforms {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #cbd5e1;
+            gap: 0.375rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
         }
 
-        .checkbox-label input[type="checkbox"] {
-            width: auto;
+        .platform-tag {
+            padding: 0.25rem 0.5rem;
+            background: #F0FDF4;
+            color: #16A34A;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .btn-generate {
             background: #16A34A;
             color: white;
-            padding: 14px 32px;
+            padding: 0.875rem 1.5rem;
             border: none;
-            border-radius: 0;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-generate:hover {
-            background: #15803d;
+            background: #15803D;
         }
 
-        .btn-generate:disabled {
-            background: #334155;
-            cursor: not-allowed;
+        .btn-generate svg {
+            width: 18px;
+            height: 18px;
         }
 
-        .quota-info {
-            background: #1e293b;
-            padding: 16px;
-            border-radius: 0;
-            margin-bottom: 24px;
-            border-left: 4px solid #16A34A;
-        }
-
-        .quota-bar {
-            background: #0f172a;
-            height: 8px;
-            border-radius: 0;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .quota-fill {
-            background: linear-gradient(90deg, #16A34A 0%, #22C55E 100%);
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        .alert {
-            padding: 16px;
-            border-radius: 0;
-            margin-bottom: 24px;
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert.success {
-            background: #166534;
-            border-left: 4px solid #16A34A;
-        }
-
-        .alert.error {
-            background: #7f1d1d;
-            border-left: 4px solid #dc2626;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            border: 3px solid #334155;
-            border-top: 3px solid #16A34A;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .content-library {
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-            margin-top: 32px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
-        .content-card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 0;
-            padding: 24px;
-            transition: all 0.3s ease;
+        .stat-card {
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0px 1px 3px rgba(16, 24, 40, 0.1);
         }
 
-        .content-card:hover {
-            border-color: #16A34A;
-            transform: translateY(-4px);
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6B7280;
+            margin-bottom: 0.5rem;
         }
 
-        .content-card h3 {
-            font-size: 20px;
-            margin-bottom: 12px;
-            color: #16A34A;
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
         }
 
-        .content-card .meta {
-            font-size: 14px;
-            color: #94a3b8;
-            margin-bottom: 8px;
-        }
-
-        .content-card .platforms {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .platform-tag {
-            background: #0f172a;
-            padding: 4px 12px;
-            border-radius: 0;
+        .stat-limit {
             font-size: 12px;
-            color: #16A34A;
+            color: #6B7280;
+            margin-top: 0.25rem;
+        }
+
+        .usage-bar {
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .usage-bar-fill {
+            height: 100%;
+            background: #16A34A;
+            transition: width 0.3s ease;
+            border-radius: 9999px;
+        }
+
+        .usage-bar-fill.warning {
+            background: #F59E0B;
+        }
+
+        .usage-bar-fill.danger {
+            background: #EF4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border: 2px dashed #E5E7EB;
+            border-radius: 12px;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            color: #9CA3AF;
+        }
+
+        .empty-state h3 {
+            font-family: Georgia, serif;
+            font-size: 20px;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 1.5rem;
         }
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-
-    <header class="site-header" role="banner">
-        <div class="header-container">
-            <a href="/frontend/index.html" class="header-logo" aria-label="GeoVera Intelligence - Return to homepage">
-                <div class="logo-icon" aria-hidden="true">G</div>
+    <!-- White Sidebar Navigation -->
+    <div class="geovera-sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <div class="logo">G</div>
                 <span class="logo-text">GeoVera</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span>Dashboard</span>
             </a>
-            <nav class="nav-desktop" aria-label="Main navigation">
-                <a href="/frontend/dashboard.html">Dashboard</a>
-                <a href="/frontend/insights.html">Insights</a>
-                <a href="/frontend/radar.html">Radar</a>
-                <a href="/frontend/content-studio.html" aria-current="page">Content Studio</a>
-                <a href="/frontend/chat.html">AI Chat</a>
-                <a href="/frontend/settings.html">Settings</a>
-            </nav>
+
+            <a href="chat.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                </svg>
+                <span>AI Chat</span>
+            </a>
+
+            <a href="insights.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                </svg>
+                <span>Insights</span>
+            </a>
+
+            <a href="todo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                </svg>
+                <span>To Do</span>
+            </a>
+
+            <a href="radar.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Radar</span>
+            </a>
+
+            <a href="hub.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z"/>
+                </svg>
+                <span>Hub</span>
+            </a>
+
+            <a href="content-studio.html" class="nav-item active">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                </svg>
+                <span>Content Studio</span>
+            </a>
+
+            <div class="nav-divider"></div>
+
+            <a href="seo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                </svg>
+                <span>SEO</span>
+            </a>
+
+            <a href="geo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"/>
+                </svg>
+                <span>GEO</span>
+            </a>
+
+            <a href="social-search.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                </svg>
+                <span>Social Search</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
             <div class="user-menu">
-                <button class="user-button" aria-label="Open user menu">
-                    <span id="userEmail">User</span>
-                    <span aria-hidden="true">▼</span>
+                <button class="user-button" id="userMenuButton">
+                    <div class="user-avatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-email" id="userEmail">user@email.com</div>
+                    </div>
+                    <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
                 </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="container" id="main-content">
-        <div class="header">
-            <h1>Content Studio</h1>
-            <p>AI-powered content generation for your brand</p>
-        </div>
-
-        <div id="alert" class="alert" role="alert" aria-live="polite"></div>
-
-        <!-- Limit Reached Modal -->
-        <div id="limitModal" class="limit-modal" role="dialog" aria-modal="true" aria-labelledby="limitTitle" aria-describedby="limitMessage">
-            <div class="limit-modal-content">
-                <h2 id="limitTitle">Monthly Limit Reached</h2>
-                <p id="limitMessage">You've reached your monthly limit for this content type.</p>
-                <div class="limit-modal-buttons">
-                    <a href="/frontend/pricing.html" class="btn-upgrade" aria-label="Upgrade your plan to increase limits">Upgrade Plan</a>
-                    <button class="btn-close" onclick="closeLimitModal()" aria-label="Close this dialog">Close</button>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="settings.html">Settings</a>
+                    <a href="#" onclick="logout()">Logout</a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Content Studio (Paid Tiers) -->
-        <div id="contentStudio" class="content-studio">
-            <div id="quotaInfo" class="quota-info" role="status" aria-label="Monthly content generation usage">
-                <strong>Monthly Quota</strong>
-                <div id="quotaText" aria-live="polite"></div>
-                <div class="quota-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Total usage percentage">
-                    <div id="quotaFill" class="quota-fill"></div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-wrapper" style="padding: 1.5rem;">
+            <div style="margin-bottom: 2rem;">
+                <h1 style="font-family: Georgia, serif; font-size: 32px; font-weight: 700; color: #111827; margin-bottom: 0.5rem;">
+                    Content Studio
+                </h1>
+                <p style="font-size: 15px; color: #6B7280;">
+                    AI-powered content generation for articles, images, and videos
+                </p>
+            </div>
+
+            <!-- Usage Stats -->
+            <div class="stats-grid" id="usageStats">
+                <div class="stat-card">
+                    <div class="stat-label">Articles Generated</div>
+                    <div class="stat-value" id="articlesCount">0</div>
+                    <div class="stat-limit">/ <span id="articlesLimit">10</span> this month</div>
+                    <div class="usage-bar">
+                        <div class="usage-bar-fill" id="articlesBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Images Generated</div>
+                    <div class="stat-value" id="imagesCount">0</div>
+                    <div class="stat-limit">/ <span id="imagesLimit">20</span> this month</div>
+                    <div class="usage-bar">
+                        <div class="usage-bar-fill" id="imagesBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Videos Generated</div>
+                    <div class="stat-value" id="videosCount">0</div>
+                    <div class="stat-limit">/ <span id="videosLimit">15</span> this month</div>
+                    <div class="usage-bar">
+                        <div class="usage-bar-fill" id="videosBar" style="width: 0%"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="tabs" role="tablist" aria-label="Content generation types">
-                <button class="tab active" role="tab" aria-selected="true" aria-controls="articleTab" id="articlesTabBtn" onclick="switchTab('article')" aria-label="Generate articles">
-                    <span aria-hidden="true">📝</span> Articles
+            <!-- Generate Buttons -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <button class="btn-generate" onclick="generateContent('article')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Generate Article
                 </button>
-                <button class="tab" role="tab" aria-selected="false" aria-controls="imageTab" id="imagesTabBtn" onclick="switchTab('image')" aria-label="Generate images">
-                    <span aria-hidden="true">🖼️</span> Images
+
+                <button class="btn-generate" onclick="generateContent('image')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Generate Image
                 </button>
-                <button class="tab" role="tab" aria-selected="false" aria-controls="videoTab" id="videosTabBtn" onclick="switchTab('video')" aria-label="Generate video scripts">
-                    <span aria-hidden="true">🎬</span> Videos
+
+                <button class="btn-generate" onclick="generateContent('video')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Generate Video Script
                 </button>
-                <button class="tab" role="tab" aria-selected="false" aria-controls="libraryTab" id="libraryTabBtn" onclick="switchTab('library')" aria-label="View content library">
-                    <span aria-hidden="true">📚</span> Library
-                </button>
-            </div>
-
-            <!-- Article Generation -->
-            <div id="articleTab" class="tab-content active" role="tabpanel" aria-labelledby="articlesTabBtn">
-                <h2 style="margin-bottom:24px">Generate AI Article</h2>
-                <form id="articleForm" onsubmit="generateArticle(event)" aria-label="Article generation form">
-                    <div class="form-group">
-                        <label for="articleTopic">Article Topic <span aria-label="required">*</span></label>
-                        <input type="text" id="articleTopic" required aria-required="true" aria-describedby="topicHelp" placeholder="e.g., How to improve local SEO in 2026">
-                        <small id="topicHelp" style="color:#94a3b8;display:block;margin-top:4px">What should this article be about?</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="articleKeywords">Keywords (comma-separated)</label>
-                        <input type="text" id="articleKeywords" aria-describedby="keywordsHelp" placeholder="SEO, local business, Google Maps">
-                        <small id="keywordsHelp" style="color:#94a3b8;display:block;margin-top:4px">Keywords for SEO optimization</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="articleAudience">Target Audience</label>
-                        <input type="text" id="articleAudience" aria-describedby="audienceHelp" placeholder="Small business owners">
-                        <small id="audienceHelp" style="color:#94a3b8;display:block;margin-top:4px">Who is this article for?</small>
-                    </div>
-
-                    <div class="form-group">
-                        <fieldset>
-                            <legend>Target Platforms</legend>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="platform" value="linkedin" checked aria-label="Publish to LinkedIn"> LinkedIn
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="platform" value="medium" aria-label="Publish to Medium"> Medium
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="platform" value="blog" aria-label="Publish to Blog"> Blog
-                                </label>
-                            </div>
-                        </fieldset>
-                    </div>
-
-                    <button type="submit" class="btn-generate" id="generateArticleBtn" aria-label="Generate article based on provided topic and settings">Generate Article</button>
-                </form>
-            </div>
-
-            <!-- Image Generation -->
-            <div id="imageTab" class="tab-content" role="tabpanel" aria-labelledby="imagesTabBtn" hidden>
-                <h2 style="margin-bottom:24px">Generate AI Image</h2>
-                <form id="imageForm" onsubmit="generateImage(event)" aria-label="Image generation form">
-                    <div class="form-group">
-                        <label for="imagePrompt">Image Description <span aria-label="required">*</span></label>
-                        <textarea id="imagePrompt" required aria-required="true" aria-describedby="imagePromptHelp" placeholder="e.g., Modern office space with people collaborating on laptops, bright natural lighting, professional atmosphere"></textarea>
-                        <small id="imagePromptHelp" style="color:#94a3b8;display:block;margin-top:4px">Describe the image you want to generate</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="imageSize">Image Size</label>
-                        <select id="imageSize" aria-label="Select image dimensions and aspect ratio">
-                            <option value="1024x1024">Square (1024x1024) - Instagram, LinkedIn</option>
-                            <option value="1792x1024">Landscape (1792x1024) - Blog headers</option>
-                            <option value="1024x1792">Portrait (1024x1792) - Stories</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <fieldset>
-                            <legend>Target Platforms</legend>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="imageplatform" value="instagram" checked aria-label="Publish to Instagram"> Instagram
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="imageplatform" value="linkedin" aria-label="Publish to LinkedIn"> LinkedIn
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="imageplatform" value="blog" aria-label="Publish to Blog"> Blog
-                                </label>
-                            </div>
-                        </fieldset>
-                    </div>
-
-                    <button type="submit" class="btn-generate" id="generateImageBtn" aria-label="Generate image based on provided description">Generate Image</button>
-                </form>
-            </div>
-
-            <!-- Video Script Generation -->
-            <div id="videoTab" class="tab-content" role="tabpanel" aria-labelledby="videosTabBtn" hidden>
-                <h2 style="margin-bottom:24px">Generate Video Script</h2>
-                <p style="color:#94a3b8;margin-bottom:24px">Generate short-form video scripts for social media</p>
-                <form id="videoForm" onsubmit="generateVideo(event)" aria-label="Video script generation form">
-                    <div class="form-group">
-                        <label for="videoTopic">Video Topic <span aria-label="required">*</span></label>
-                        <input type="text" id="videoTopic" required aria-required="true" aria-describedby="videoTopicHelp" placeholder="e.g., 3 Tips for Growing Your Local Business">
-                        <small id="videoTopicHelp" style="color:#94a3b8;display:block;margin-top:4px">What should this video script be about?</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="videoDuration">Video Duration</label>
-                        <select id="videoDuration" aria-label="Select video duration in seconds">
-                            <option value="15">15 seconds (TikTok, Reels)</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60" selected>60 seconds</option>
-                            <option value="90">90 seconds</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="videoPlatform">Target Platform</label>
-                        <select id="videoPlatform" aria-label="Select target social media platform">
-                            <option value="tiktok">TikTok</option>
-                            <option value="instagram">Instagram Reels</option>
-                            <option value="youtube">YouTube Shorts</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn-generate" id="generateVideoBtn" aria-label="Generate video script based on provided topic">Generate Script</button>
-                </form>
             </div>
 
             <!-- Content Library -->
-            <div id="libraryTab" class="tab-content" role="tabpanel" aria-labelledby="libraryTabBtn" hidden>
-                <h2 style="margin-bottom:24px">Content Library</h2>
-                <div id="contentLibrary" class="content-library" role="region" aria-label="Previously generated content" aria-live="polite">
-                    <div class="loading">
-                        <div class="spinner" role="status" aria-label="Loading content"></div>
-                        <p>Loading your content...</p>
-                    </div>
+            <h2 style="font-family: Georgia, serif; font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 1.5rem;">
+                Content Library
+            </h2>
+
+            <div class="masonry-grid" id="contentLibrary">
+                <!-- Empty state -->
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    <h3>No Content Yet</h3>
+                    <p>Generate your first piece of content to get started</p>
+                    <button class="btn-generate" onclick="generateContent('article')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Create Content
+                    </button>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
         const ENV_CONFIG = window.getEnvConfig();
         const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
-        const SUPABASE_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
+        const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
+        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        let currentUser = null;
         let currentBrandId = null;
-        let currentTier = null;
-        let tierLimits = null;
-        let currentUsage = null;
 
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
+
+        // User menu toggle
+        document.getElementById('userMenuButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('userDropdown').classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            document.getElementById('userDropdown').classList.remove('active');
+        });
+
+        // Check authentication
         async function checkAuth() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-
-            if (!user) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
                 window.location.href = 'login.html';
                 return false;
             }
 
-            // GUARD: Check subscription tier (NO FREE TIER!)
-            const { data: subscription } = await supabaseClient
-                .from('gv_subscriptions')
-                .select('plan, status')
-                .eq('user_id', user.id)
-                .eq('status', 'active')
-                .single();
-
-            if (!subscription) {
-                alert('Please subscribe to a plan to access Content Studio');
-                window.location.href = 'pricing.html';
-                return false;
-            }
-
-            return user;
-        }
-
-        async function checkSubscriptionAccess() {
-            const user = await checkAuth();
-            if (!user) return;
-
-            // Get user's brand and subscription
-            const { data: userBrands } = await supabaseClient
-                .from('user_brands')
-                .select('brand_id, gv_brands(id, brand_name)')
-                .eq('user_id', user.id);
-
-            if (!userBrands || userBrands.length === 0) {
-                showAlert('No brand found. Please complete onboarding first.', 'error');
-                setTimeout(() => window.location.href = 'onboarding.html', 2000);
-                return;
-            }
-
-            const brand = userBrands[0].gv_brands;
-            currentBrandId = brand.id;
-
-            // Get subscription tier and limits
-            const { data: subscription } = await supabaseClient
-                .from('gv_subscriptions')
-                .select(`
-                    tier_name,
-                    gv_subscription_tiers (
-                        articles_per_month,
-                        images_per_month,
-                        videos_per_month
-                    )
-                `)
-                .eq('user_id', user.id)
-                .single();
-
-            if (!subscription || !subscription.gv_subscription_tiers) {
-                showAlert('No subscription found. Please contact support.', 'error');
-                return false;
-            }
-
-            currentTier = subscription.tier_name;
-            tierLimits = subscription.gv_subscription_tiers;
-
-            // Always show content studio - ALL tiers have access
-            document.getElementById('contentStudio').classList.add('show');
-
-            // Load quota and library
-            await loadQuota();
-            await loadContentLibrary();
-
-            return true;
-        }
-
-        function closeLimitModal() {
-            document.getElementById('limitModal').classList.remove('show');
-        }
-
-        function showLimitModal(contentType, used, limit) {
-            const messages = {
-                'article': `You've used ${used} of ${limit} AI articles this month. Upgrade for more!`,
-                'image': `You've used ${used} of ${limit} AI images this month. Upgrade for more!`,
-                'video': `You've used ${used} of ${limit} video scripts this month. Upgrade for more!`
-            };
-            document.getElementById('limitMessage').textContent = messages[contentType] || 'You\'ve reached your monthly limit.';
-            document.getElementById('limitModal').classList.add('show');
-        }
-
-        async function loadQuota() {
             try {
-                // Get current usage from gv_tier_usage
-                const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
-                const { data: usage } = await supabaseClient
-                    .from('gv_tier_usage')
-                    .select('*')
-                    .eq('brand_id', currentBrandId)
-                    .eq('usage_month', currentMonth)
+                const { data: { user }, error } = await sbClient.auth.getUser(token);
+                if (error || !user) {
+                    localStorage.removeItem('access_token');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                currentUser = user;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userName').textContent = user.email.split('@')[0];
+
+                const { data: subscription } = await sbClient
+                    .from('gv_subscriptions')
+                    .select('plan, status')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
                     .single();
 
-                // Default to 0 if no usage record exists yet
-                currentUsage = usage || {
-                    content_articles: 0,
-                    content_images: 0,
-                    content_videos: 0
-                };
+                if (!subscription) {
+                    alert('Please subscribe to a plan to access this page');
+                    window.location.href = 'pricing.html';
+                    return false;
+                }
 
-                const articlesUsed = currentUsage.content_articles || 0;
-                const imagesUsed = currentUsage.content_images || 0;
-                const videosUsed = currentUsage.content_videos || 0;
-
-                document.getElementById('quotaText').innerHTML = `
-                    Articles: ${articlesUsed}/${tierLimits.articles_per_month} |
-                    Images: ${imagesUsed}/${tierLimits.images_per_month} |
-                    Videos: ${videosUsed}/${tierLimits.videos_per_month}
-                `;
-
-                const totalUsed = articlesUsed + imagesUsed + videosUsed;
-                const totalLimit = tierLimits.articles_per_month + tierLimits.images_per_month + tierLimits.videos_per_month;
-                const percentage = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
-                const percentageRounded = Math.min(Math.round(percentage), 100);
-                const quotaBar = document.querySelector('.quota-bar');
-                const quotaFill = document.getElementById('quotaFill');
-                quotaFill.style.width = `${percentageRounded}%`;
-                quotaBar.setAttribute('aria-valuenow', percentageRounded);
-            } catch (error) {
-                console.error('Failed to load quota:', error);
-                showAlert('Could not load quota information', 'error');
+                return true;
+            } catch (err) {
+                console.error('Auth error:', err);
+                window.location.href = 'login.html';
+                return false;
             }
         }
 
+        // Load content library
         async function loadContentLibrary() {
-            const { data, error } = await supabaseClient
-                .from('gv_content_library')
-                .select('*')
-                .eq('brand_id', currentBrandId)
-                .order('created_at', { ascending: false });
-
+            // TODO: Load from database
             const library = document.getElementById('contentLibrary');
 
-            if (error) {
-                library.innerHTML = '<p style="color:#dc2626;text-align:center">Failed to load content library</p>';
-                console.error('Library load error:', error);
-                return;
-            }
+            // Sample content for demonstration
+            const sampleContent = [
+                {
+                    type: 'article',
+                    title: 'The Future of Local SEO',
+                    meta: 'Article • 3 days ago',
+                    platforms: ['LinkedIn', 'Medium', 'Blog'],
+                    size: 'medium'
+                },
+                {
+                    type: 'image',
+                    title: 'Social Media Graphics Pack',
+                    meta: 'Image • 1 week ago',
+                    platforms: ['Instagram', 'Twitter'],
+                    size: 'small'
+                },
+                {
+                    type: 'video',
+                    title: '60-Second Explainer Script',
+                    meta: 'Video • 2 weeks ago',
+                    platforms: ['TikTok', 'YouTube'],
+                    size: 'large'
+                }
+            ];
 
-            if (!data || data.length === 0) {
-                library.innerHTML = '<p style="text-align:center;color:#94a3b8">No content generated yet. Create your first piece above!</p>';
-                return;
-            }
-
-            library.innerHTML = data.map(content => `
-                <div class="content-card">
-                    <h3>${content.title}</h3>
-                    <div class="meta">
-                        <span>${content.content_type.toUpperCase()}</span> •
-                        <span>${new Date(content.created_at).toLocaleDateString()}</span> •
-                        <span>$${content.generation_cost_usd}</span>
+            if (sampleContent.length > 0) {
+                library.innerHTML = sampleContent.map(content => `
+                    <div class="masonry-item ${content.size}">
+                        <div class="content-type-badge ${content.type}">${content.type.toUpperCase()}</div>
+                        <div class="content-title">${content.title}</div>
+                        <div class="content-meta">${content.meta}</div>
+                        <div class="content-platforms">
+                            ${content.platforms.map(p => `<span class="platform-tag">${p}</span>`).join('')}
+                        </div>
                     </div>
-                    <div class="platforms">
-                        ${content.target_platforms.map(p => `<span class="platform-tag">${p}</span>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function generateArticle(e) {
-            e.preventDefault();
-
-            // Check if limit reached
-            const articlesUsed = currentUsage?.content_articles || 0;
-            if (articlesUsed >= tierLimits.articles_per_month) {
-                showLimitModal('article', articlesUsed, tierLimits.articles_per_month);
-                return;
-            }
-
-            const btn = document.getElementById('generateArticleBtn');
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                const topic = document.getElementById('articleTopic').value;
-                const keywords = document.getElementById('articleKeywords').value.split(',').map(k => k.trim()).filter(k => k);
-                const audience = document.getElementById('articleAudience').value;
-                const platforms = Array.from(document.querySelectorAll('input[name="platform"]:checked')).map(cb => cb.value);
-
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-article`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        brand_id: currentBrandId,
-                        topic,
-                        keywords,
-                        target_audience: audience,
-                        target_platforms: platforms
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert('Article generated successfully!', 'success');
-                    await loadQuota();
-                    await loadContentLibrary();
-                    e.target.reset();
-                } else {
-                    showAlert(result.error || 'Failed to generate article', 'error');
-                }
-            } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Generate Article';
+                `).join('');
             }
         }
 
-        async function generateImage(e) {
-            e.preventDefault();
-
-            // Check if limit reached
-            const imagesUsed = currentUsage?.content_images || 0;
-            if (imagesUsed >= tierLimits.images_per_month) {
-                showLimitModal('image', imagesUsed, tierLimits.images_per_month);
-                return;
-            }
-
-            const btn = document.getElementById('generateImageBtn');
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                const prompt = document.getElementById('imagePrompt').value;
-                const size = document.getElementById('imageSize').value;
-                const platforms = Array.from(document.querySelectorAll('input[name="imageplatform"]:checked')).map(cb => cb.value);
-
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-image`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        brand_id: currentBrandId,
-                        prompt,
-                        size,
-                        target_platforms: platforms
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert('Image generated successfully!', 'success');
-                    await loadQuota();
-                    await loadContentLibrary();
-                    e.target.reset();
-                } else {
-                    showAlert(result.error || 'Failed to generate image', 'error');
-                }
-            } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Generate Image';
-            }
+        // Generate content
+        function generateContent(type) {
+            alert(`${type.charAt(0).toUpperCase() + type.slice(1)} generation coming soon!`);
         }
 
-        async function generateVideo(e) {
-            e.preventDefault();
-
-            // Check if limit reached
-            const videosUsed = currentUsage?.content_videos || 0;
-            if (videosUsed >= tierLimits.videos_per_month) {
-                showLimitModal('video', videosUsed, tierLimits.videos_per_month);
-                return;
-            }
-
-            const btn = document.getElementById('generateVideoBtn');
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                const topic = document.getElementById('videoTopic').value;
-                const duration = parseInt(document.getElementById('videoDuration').value);
-                const platform = document.getElementById('videoPlatform').value;
-
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-video`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        brand_id: currentBrandId,
-                        topic,
-                        duration_seconds: duration,
-                        target_platform: platform
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert('Video script generated successfully!', 'success');
-                    await loadQuota();
-                    await loadContentLibrary();
-                    e.target.reset();
-                } else {
-                    showAlert(result.error || 'Failed to generate video script', 'error');
-                }
-            } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Generate Script';
-            }
+        // Logout
+        async function logout() {
+            await sbClient.auth.signOut();
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
         }
 
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-                tab.setAttribute('aria-selected', 'false');
-            });
-            event.target.classList.add('active');
-            event.target.setAttribute('aria-selected', 'true');
-
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-                content.hidden = true;
-            });
-            const activePanel = document.getElementById(tabName + 'Tab');
-            activePanel.classList.add('active');
-            activePanel.hidden = false;
-
-            if (tabName === 'library') {
-                loadContentLibrary();
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+                await loadContentLibrary();
             }
-        }
-
-        // Keyboard navigation for tabs
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabs = document.querySelectorAll('[role="tab"]');
-            tabs.forEach((tab, index) => {
-                tab.addEventListener('keydown', (e) => {
-                    let targetTab = null;
-                    if (e.key === 'ArrowRight') {
-                        targetTab = tabs[(index + 1) % tabs.length];
-                    } else if (e.key === 'ArrowLeft') {
-                        targetTab = tabs[(index - 1 + tabs.length) % tabs.length];
-                    }
-                    if (targetTab) {
-                        e.preventDefault();
-                        targetTab.click();
-                        targetTab.focus();
-                    }
-                });
-            });
-
-            // Modal escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.getElementById('limitModal').classList.contains('show')) {
-                    closeLimitModal();
-                }
-            });
         });
-
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert ${type} show`;
-            setTimeout(() => alert.classList.remove('show'), 5000);
-        }
-
-        // Initialize on page load
-        window.addEventListener('DOMContentLoaded', checkSubscriptionAccess);
     </script>
 </body>
 </html>
