@@ -112,28 +112,29 @@
 }
 
 .nav-item:hover {
-  background: #F9FAFB;
-  color: #111827;
+  background: #F9FAFB !important;
+  color: #111827 !important;
 }
 
 .nav-item.active {
-  background: #F0FDF4; /* Light green background */
-  color: #16A34A;      /* GeoVera green text */
+  background: #F0FDF4 !important; /* Light green background */
+  color: #16A34A !important;      /* GeoVera green text */
+  font-weight: 600;
 }
 
 .nav-item-icon {
   width: 20px;
   height: 20px;
-  color: #9CA3AF;
+  color: #9CA3AF !important;
   flex-shrink: 0;
 }
 
 .nav-item.active .nav-item-icon {
-  color: #16A34A; /* Green icon when active */
+  color: #16A34A !important; /* Green icon when active */
 }
 
 .nav-item:hover .nav-item-icon {
-  color: #6B7280;
+  color: #6B7280 !important;
 }
 
 /* Badge on nav items (e.g., "PRO", "NEW") */
