@@ -4,206 +4,593 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Insights - GeoVera Intelligence</title>
+
+    <!-- TailAdmin Design System -->
+    <link rel="stylesheet" href="/frontend/css/tailadmin-base.css">
+    <link rel="stylesheet" href="/frontend/css/geovera-sidebar.css">
+    <link rel="stylesheet" href="/frontend/css/tailadmin-components.css">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Accessibility CSS -->
     <link rel="stylesheet" href="css/accessibility.css">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --gv-hero: #16A34A; --gv-anchor: #0B0F19; --gv-body: #6B7280;
-            --gv-canvas: #FFFFFF; --gv-divider: #E5E7EB; --gv-bg-light: #F9FAFB;
-            --font-display: Georgia, 'Times New Roman', serif;
-            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        /* Two-column newsletter layout (30% sidebar + 70% news) */
+        .insights-two-column {
+            display: grid;
+            grid-template-columns: 30% 70%;
+            gap: 24px;
+            margin-top: 24px;
         }
-        body { font-family: var(--font-body); background: var(--gv-bg-light); color: var(--gv-anchor); line-height: 1.6; }
-        .site-header { background: var(--gv-anchor); color: white; border-bottom: 4px solid var(--gv-hero); position: sticky; top: 0; z-index: 1000; }
-        .header-container { max-width: 1440px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
-        .header-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
-        .logo-icon { width: 44px; height: 44px; background: var(--gv-hero); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; }
-        .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
-        .nav-desktop { display: flex; align-items: center; gap: 32px; }
-        .nav-link { color: white; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 16px; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; display: flex; align-items: center; }
-        .nav-link:hover { color: var(--gv-hero); }
-        .nav-link.active { color: var(--gv-hero); }
-        .user-button { background: var(--gv-hero); color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; border-radius: 0; }
-        .mobile-menu-toggle { display: none; }
-        .main-container { max-width: 1440px; margin: 0 auto; padding: 32px 24px; }
-        .page-header { background: white; border: 4px solid var(--gv-anchor); padding: 32px; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center; }
-        .page-title { font-family: var(--font-display); font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
-        .page-subtitle { font-size: 16px; color: var(--gv-body); margin-top: 8px; }
-        .usage-badge { background: var(--gv-hero); color: white; padding: 8px 16px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .filter-bar { background: white; border: 2px solid var(--gv-divider); padding: 24px; margin-bottom: 32px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-        .filter-button { background: transparent; border: 2px solid var(--gv-divider); padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; border-radius: 0; transition: all 0.2s; }
-        .filter-button.active { background: var(--gv-hero); color: white; border-color: var(--gv-hero); }
-        .task-list { display: flex; flex-direction: column; gap: 16px; }
-        .task-card { background: white; border: 2px solid var(--gv-divider); padding: 24px; transition: all 0.3s; display: flex; gap: 20px; }
-        .task-card:hover { border-color: var(--gv-hero); transform: translateX(4px); }
-        .task-icon { width: 48px; height: 48px; background: var(--gv-bg-light); border: 2px solid var(--gv-divider); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-        .task-content { flex: 1; }
-        .task-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
-        .task-title { font-weight: 700; font-size: 18px; }
-        .task-priority { padding: 4px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .priority-high { background: #FEE2E2; color: #DC2626; }
-        .priority-medium { background: #FEF3C7; color: #D97706; }
-        .priority-low { background: #DBEAFE; color: #2563EB; }
-        .task-description { color: var(--gv-body); margin-bottom: 12px; }
-        .task-actions { display: flex; gap: 12px; }
-        .action-btn { padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 0; min-height: 44px; transition: all 0.2s; border: none; }
-        .action-primary { background: var(--gv-hero); color: white; }
-        .action-secondary { background: transparent; color: var(--gv-anchor); border: 2px solid var(--gv-anchor); }
-        .action-btn:hover { transform: translateY(-2px); }
-        @media (max-width: 768px) {
-            .nav-desktop { display: none; }
-            .mobile-menu-toggle { display: block; }
-            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+
+        @media (max-width: 1024px) {
+            .insights-two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* News article styling */
+        .news-article {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #E5E7EB;
+            margin-bottom: 24px;
+            transition: all 0.3s;
+        }
+
+        .news-article:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .article-image {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .article-headline .article-image {
+            height: 400px;
+        }
+
+        .article-content {
+            padding: 20px;
+        }
+
+        .article-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #F0FDF4;
+            color: #16A34A;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .article-title {
+            font-family: Georgia, serif;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 12px;
+            color: #0B0F19;
+        }
+
+        .article-headline .article-title {
+            font-size: 36px;
+        }
+
+        .article-description {
+            font-size: 16px;
+            color: #6B7280;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .article-body {
+            font-size: 15px;
+            color: #374151;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 16px;
+            border-top: 1px solid #E5E7EB;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .article-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #6B7280;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .action-btn:hover {
+            color: #16A34A;
+        }
+
+        .action-btn.active {
+            color: #16A34A;
+            font-weight: 600;
+        }
+
+        .article-timestamp {
+            font-size: 13px;
+            color: #9CA3AF;
+        }
+
+        /* Calendar styling */
+        .calendar {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #0B0F19;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .calendar-day {
+            padding: 8px 4px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .calendar-day:hover {
+            background: #F9FAFB;
+        }
+
+        .calendar-day.today {
+            background: #16A34A;
+            color: white;
+            font-weight: 700;
+        }
+
+        .calendar-day.has-event {
+            position: relative;
+        }
+
+        .calendar-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: #16A34A;
+            border-radius: 50%;
+        }
+
+        /* Score widget */
+        .score-widget {
+            text-align: center;
+            padding: 12px;
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .score-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #16A34A;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #6B7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <!-- Skip to Main Content -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcements"></div>
 
-    <header class="site-header" role="banner">
-        <div class="header-container">
-            <a href="index.html" class="header-logo" aria-label="GeoVera Intelligence">
-                <div class="logo-icon">G</div>
-                <span class="logo-text">GeoVera</span>
-            </a>
-            <nav class="nav-desktop" aria-label="Main navigation">
-                <a href="dashboard.html" class="nav-link">Dashboard</a>
-                <a href="insights.html" class="nav-link active" aria-current="page">Insights</a>
-                <a href="hub.html" class="nav-link">Hub</a>
-                <a href="radar.html" class="nav-link">Radar</a>
-                <a href="content-studio.html" class="nav-link">Content Studio</a>
-                <a href="chat.html" class="nav-link">AI Chat</a>
-                <a href="settings.html" class="nav-link">Settings</a>
-            </nav>
-            <button class="user-button" id="user-btn">Account</button>
-        </div>
-    </header>
+    <!-- GeoVera Layout with White Sidebar -->
+    <div class="geovera-layout">
 
-    <main class="main-container" id="main-content" role="main">
-        <section class="page-header">
-            <div>
-                <h1 class="page-title">Daily Insights</h1>
-                <p class="page-subtitle">AI-powered recommendations for your influencer strategy</p>
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" aria-label="Toggle menu" onclick="toggleMobileSidebar()">
+            <svg class="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+
+        <!-- Left Sidebar Navigation (White) -->
+        <aside class="geovera-sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon" aria-hidden="true" style="width: 32px; height: 32px; background: #16A34A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white;">G</div>
+                <span class="sidebar-logo-text">GeoVera</span>
             </div>
-            <div class="usage-badge" role="status" id="usage-badge">5/8 Tasks Today</div>
-        </section>
 
-        <div class="filter-bar" role="group" aria-label="Filter tasks">
-            <button class="filter-button active" data-filter="all">All Tasks</button>
-            <button class="filter-button" data-filter="crisis">Crisis</button>
-            <button class="filter-button" data-filter="radar">Radar</button>
-            <button class="filter-button" data-filter="search">Search</button>
-            <button class="filter-button" data-filter="hub">Hub</button>
-            <button class="filter-button" data-filter="chat">Chat</button>
-        </div>
+            <nav class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="/frontend/dashboard.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Dashboard
+                </a>
+                <a href="/frontend/chat.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    AI Chat
+                </a>
+                <a href="/frontend/insights.html" class="nav-item active">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    Insights
+                </a>
+                <a href="/frontend/todo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    To Do
+                </a>
+            </nav>
 
-        <div class="task-list" id="task-list" role="list">
-            <!-- Tasks loaded dynamically -->
-        </div>
-    </main>
+            <nav class="nav-section">
+                <div class="nav-section-title">Search & Discovery</div>
+                <a href="/frontend/seo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    SEO
+                </a>
+                <a href="/frontend/geo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    GEO
+                </a>
+                <a href="/frontend/social-search.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Social Search
+                </a>
+                <a href="/frontend/radar.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    Radar
+                    <span class="nav-item-badge">PRO</span>
+                </a>
+            </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/frontend/config.js" type="module"></script>
-    <script type="module">
-        import config from '/frontend/config.js';
-        const supabase = window.supabase.createClient(config.supabase.url, config.supabase.anonKey);
+            <nav class="nav-section">
+                <div class="nav-section-title">Content</div>
+                <a href="/frontend/content-studio.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Content Studio
+                </a>
+                <a href="/frontend/hub.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Hub
+                </a>
+            </nav>
 
-        const tierLimits = {
-            basic: 8,
-            premium: 10,
-            partner: 12
-        };
+            <div class="sidebar-user" onclick="toggleUserMenu()">
+                <div class="user-avatar" id="user-avatar-sidebar">A</div>
+                <div class="user-info">
+                    <div class="user-name" id="user-name">Account</div>
+                    <div class="user-tier" id="user-tier-sidebar">Basic</div>
+                </div>
+            </div>
 
-        const mockTasks = [
-            { id: 1, type: 'radar', priority: 'high', title: 'New Trending Creator Alert', description: 'Beauty influencer @MayaGlam gained 50K followers this week in Indonesia', icon: '🔍' },
-            { id: 2, type: 'crisis', priority: 'high', title: 'Brand Mention Spike', description: 'Your brand was mentioned 3x more than usual in the last 24 hours', icon: '⚠️' },
-            { id: 3, type: 'hub', priority: 'medium', title: 'Collection Engagement Drop', description: 'Beauty Hub collection engagement decreased 15% this week', icon: '📊' },
-            { id: 4, type: 'search', priority: 'medium', title: 'Keyword Opportunity', description: '"sustainable beauty" searches increased 40% in your target market', icon: '🔎' },
-            { id: 5, type: 'chat', priority: 'low', title: 'Content Ideas Available', description: 'Ask AI Chat for trending content ideas based on recent data', icon: '💡' }
-        ];
+            <div class="user-menu-dropdown" id="userMenu">
+                <a href="/frontend/settings.html" class="user-menu-item">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Settings
+                </a>
+                <div class="user-menu-divider"></div>
+                <a href="#" class="user-menu-item" onclick="handleLogout(); return false;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
+            </div>
+        </aside>
 
-        let currentTier = 'basic';
-        let tasksViewed = 5;
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 
-        async function loadTasks() {
-            const user = await checkAuth();
-            if (!user) return;
+        <!-- Main Content Area -->
+        <main class="geovera-main" id="main-content" role="main">
 
-            // Get tier
-            const { data: sub } = await supabase.from('gv_subscriptions').select('tier_name').eq('user_id', user.id).single();
-            if (sub) currentTier = sub.tier_name;
+            <!-- Page Header -->
+            <header class="page-header">
+                <h1 class="page-title">Daily Insights</h1>
+                <p class="page-subtitle">AI-powered brand intelligence news & analysis</p>
+            </header>
 
-            updateUsageBadge();
-            displayTasks(mockTasks);
-        }
+            <!-- Page Content -->
+            <div class="page-content">
 
-        function updateUsageBadge() {
-            const limit = tierLimits[currentTier];
-            document.getElementById('usage-badge').textContent = `${tasksViewed}/${limit} Tasks Today (${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)})`;
-        }
+                <!-- Two-Column Layout: 30% Sidebar + 70% News -->
+                <div class="insights-two-column">
 
-        function displayTasks(tasks) {
-            const html = tasks.map(task => `
-                <article class="task-card" role="listitem">
-                    <div class="task-icon" aria-hidden="true">${task.icon}</div>
-                    <div class="task-content">
-                        <div class="task-header">
-                            <h3 class="task-title">${task.title}</h3>
-                            <span class="task-priority priority-${task.priority}">${task.priority}</span>
+                    <!-- LEFT COLUMN (30%): Dashboard Sidebar -->
+                    <div>
+                        <!-- Calendar -->
+                        <div class="card-tailadmin" style="margin-bottom: 16px;">
+                            <h3 class="card-title-tailadmin" style="font-size: 16px; margin-bottom: 12px;">📅 February 2026</h3>
+                            <div class="calendar">
+                                <div class="calendar-grid">
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">S</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">M</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">T</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">W</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">T</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">F</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: #6B7280;">S</div>
+                                </div>
+                                <div class="calendar-grid" id="calendar-days">
+                                    <!-- Generated by JS -->
+                                </div>
+                            </div>
                         </div>
-                        <p class="task-description">${task.description}</p>
-                        <div class="task-actions">
-                            <button class="action-btn action-primary" onclick="viewTask(${task.id})">View Details</button>
-                            <button class="action-btn action-secondary" onclick="dismissTask(${task.id})">Dismiss</button>
+
+                        <!-- Upcoming Events -->
+                        <div class="card-tailadmin" style="margin-bottom: 16px;">
+                            <h3 class="card-title-tailadmin" style="font-size: 16px; margin-bottom: 12px;">📌 Upcoming Events</h3>
+                            <div id="upcoming-events">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Average Scores -->
+                        <div class="card-tailadmin" style="margin-bottom: 16px;">
+                            <h3 class="card-title-tailadmin" style="font-size: 16px; margin-bottom: 12px;">📊 Average Scores</h3>
+                            <div class="score-widget">
+                                <div class="score-value">78</div>
+                                <div class="score-label">SEO Score</div>
+                            </div>
+                            <div class="score-widget">
+                                <div class="score-value">82</div>
+                                <div class="score-label">GEO Score</div>
+                            </div>
+                            <div class="score-widget">
+                                <div class="score-value">85</div>
+                                <div class="score-label">Social Reach</div>
+                            </div>
+                        </div>
+
+                        <!-- Crisis Alerts -->
+                        <div class="card-tailadmin" style="margin-bottom: 16px; background: #FEF2F2; border-left: 4px solid #DC2626;">
+                            <h3 class="card-title-tailadmin" style="font-size: 16px; margin-bottom: 8px; color: #DC2626;">🚨 Crisis Alerts</h3>
+                            <p style="font-size: 13px; color: #991B1B;">No active alerts</p>
+                        </div>
+
+                        <!-- Opportunities -->
+                        <div class="card-tailadmin" style="background: #F0FDF4; border-left: 4px solid #16A34A;">
+                            <h3 class="card-title-tailadmin" style="font-size: 16px; margin-bottom: 8px; color: #16A34A;">💡 Opportunities</h3>
+                            <div id="opportunities">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN (70%): News Feed -->
+                    <div id="news-feed">
+                        <!-- Generated by JS -->
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        function toggleUserMenu() {
+            document.getElementById('userMenu').classList.toggle('active');
+        }
+
+        async function handleLogout() {
+            if (typeof supabase !== 'undefined') {
+                await supabase.auth.signOut();
+            }
+            window.location.href = '/frontend/login.html';
+        }
+
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const sidebarUser = document.querySelector('.sidebar-user');
+            if (userMenu && sidebarUser && !sidebarUser.contains(event.target) && !userMenu.contains(event.target)) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        // Generate calendar
+        function renderCalendar() {
+            const days = [];
+            const today = 15;
+            const eventDays = [10, 15, 20, 25];
+
+            for (let i = 1; i <= 29; i++) {
+                const isToday = i === today;
+                const hasEvent = eventDays.includes(i);
+                const classes = `calendar-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}`;
+                days.push(`<div class="${classes}">${i}</div>`);
+            }
+
+            document.getElementById('calendar-days').innerHTML = days.join('');
+        }
+
+        // Render upcoming events
+        function renderEvents() {
+            const events = [
+                { date: 'Feb 20', title: 'Campaign Launch', type: 'launch' },
+                { date: 'Feb 25', title: 'Quarterly Review', type: 'review' }
+            ];
+
+            const html = events.map(event => `
+                <div style="padding: 12px; margin-bottom: 8px; background: #F9FAFB; border-radius: 6px; border-left: 3px solid #16A34A;">
+                    <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">${event.date}</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #0B0F19;">${event.title}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('upcoming-events').innerHTML = html;
+        }
+
+        // Render opportunities
+        function renderOpportunities() {
+            const opps = [
+                'Trending hashtag #BeautyTips',
+                'Rising creator @MayaGlam',
+                'Content gap: Skincare tutorials'
+            ];
+
+            const html = opps.map(opp => `
+                <div style="padding: 8px 0; font-size: 13px; color: #15803D; border-bottom: 1px solid #DCFCE7;">
+                    • ${opp}
+                </div>
+            `).join('');
+
+            document.getElementById('opportunities').innerHTML = html;
+        }
+
+        // Render news feed
+        function renderNewsFeed() {
+            const articles = [
+                {
+                    type: 'headline',
+                    category: 'Brand Strength',
+                    title: 'Your Brand Shows 42% Growth in Market Mindshare',
+                    description: 'AI analysis reveals significant improvements in brand perception across all key demographics.',
+                    body: 'Over the past 30 days, your brand has demonstrated exceptional growth across multiple channels. Social media engagement has increased by 42%, with particularly strong performance in the 25-34 age demographic. Creator partnerships have driven 2.5M impressions, while organic reach has grown 28% month-over-month.',
+                    image: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    likes: 156,
+                    dislikes: 3,
+                    comments: 24,
+                    timestamp: '2 hours ago'
+                },
+                {
+                    type: 'normal',
+                    category: 'Competitor Watch',
+                    title: 'Rival Brand X Launches Sustainability Campaign',
+                    description: 'Competitor shifts focus to eco-friendly messaging with celebrity partnership.',
+                    body: 'Brand X has announced a major sustainability initiative featuring partnerships with 5 top eco-influencers. Initial engagement shows 450K impressions in first 48 hours. Recommend monitoring impact and considering response strategy.',
+                    image: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    likes: 89,
+                    dislikes: 12,
+                    comments: 15,
+                    timestamp: '5 hours ago'
+                },
+                {
+                    type: 'normal',
+                    category: 'Progress Update',
+                    title: 'Q1 Campaign Performance Exceeds Targets',
+                    description: 'Current campaign tracking 15% above projected KPIs with strong ROI.',
+                    body: 'Your Q1 influencer campaign has delivered exceptional results. Engagement rate of 6.8% surpasses industry average of 4.2%. Creator content has generated $2.50 ROI per dollar spent, with highest performance from beauty tutorials and product reviews.',
+                    image: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    likes: 203,
+                    dislikes: 5,
+                    comments: 31,
+                    timestamp: '1 day ago'
+                }
+            ];
+
+            const html = articles.map(article => `
+                <article class="news-article ${article.type === 'headline' ? 'article-headline' : ''}">
+                    <div class="article-image" style="background: ${article.image};"></div>
+                    <div class="article-content">
+                        <span class="article-category">${article.category}</span>
+                        <h2 class="article-title">${article.title}</h2>
+                        <p class="article-description">${article.description}</p>
+                        <p class="article-body">${article.body}</p>
+                        <div class="article-meta">
+                            <div class="article-actions">
+                                <div class="action-btn" onclick="handleLike(this)">
+                                    <span>👍</span>
+                                    <span class="count">${article.likes}</span>
+                                </div>
+                                <div class="action-btn" onclick="handleDislike(this)">
+                                    <span>👎</span>
+                                    <span class="count">${article.dislikes}</span>
+                                </div>
+                                <div class="action-btn">
+                                    <span>💬</span>
+                                    <span class="count">${article.comments}</span>
+                                </div>
+                                <div class="action-btn">
+                                    <span>🔗</span>
+                                    <span>Share</span>
+                                </div>
+                            </div>
+                            <div class="article-timestamp">${article.timestamp}</div>
                         </div>
                     </div>
                 </article>
             `).join('');
-            document.getElementById('task-list').innerHTML = html;
+
+            document.getElementById('news-feed').innerHTML = html;
         }
 
-        document.querySelectorAll('.filter-button').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                const filter = this.dataset.filter;
-                const filtered = filter === 'all' ? mockTasks : mockTasks.filter(t => t.type === filter);
-                displayTasks(filtered);
-            });
-        });
-
-        window.viewTask = (id) => alert(`Viewing task ${id} details...`);
-        window.dismissTask = (id) => alert(`Task ${id} dismissed!`);
-
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = 'login.html';
-                return null;
-            }
-
-            // GUARD: Check subscription tier (NO FREE TIER!)
-            const { data: subscription } = await supabase
-                .from('gv_subscriptions')
-                .select('plan, status')
-                .eq('user_id', user.id)
-                .eq('status', 'active')
-                .single();
-
-            if (!subscription) {
-                alert('Please subscribe to a plan to access this page');
-                window.location.href = 'pricing.html';
-                return null;
-            }
-
-            return user;
+        function handleLike(btn) {
+            btn.classList.toggle('active');
+            const count = btn.querySelector('.count');
+            const current = parseInt(count.textContent);
+            count.textContent = btn.classList.contains('active') ? current + 1 : current - 1;
         }
 
-        document.getElementById('user-btn').onclick = () => window.location.href = 'settings.html';
-        loadTasks();
+        function handleDislike(btn) {
+            btn.classList.toggle('active');
+            const count = btn.querySelector('.count');
+            const current = parseInt(count.textContent);
+            count.textContent = btn.classList.contains('active') ? current + 1 : current - 1;
+        }
+
+        // Initialize
+        renderCalendar();
+        renderEvents();
+        renderOpportunities();
+        renderNewsFeed();
+        console.log('GeoVera Insights Ready - Newsletter Style');
     </script>
+
+    <!-- Supabase & Config -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/frontend/config.js" type="module"></script>
 </body>
 </html>

@@ -4,370 +4,548 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creator Radar - GeoVera Intelligence</title>
+
+    <!-- TailAdmin Design System -->
+    <link rel="stylesheet" href="/frontend/css/tailadmin-base.css">
+    <link rel="stylesheet" href="/frontend/css/geovera-sidebar.css">
+    <link rel="stylesheet" href="/frontend/css/tailadmin-components.css">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Accessibility CSS -->
     <link rel="stylesheet" href="/css/accessibility.css">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --gv-hero: #16A34A; --gv-anchor: #0B0F19; --gv-body: #6B7280;
-            --gv-canvas: #FFFFFF; --gv-divider: #E5E7EB; --gv-bg-light: #F9FAFB;
-            --font-display: Georgia, 'Times New Roman', serif;
-            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        /* Two-column layout for Radar (40% News + 60% Analytics) */
+        .radar-two-column {
+            display: grid;
+            grid-template-columns: 40% 60%;
+            gap: 24px;
+            margin-top: 24px;
         }
-        body { font-family: var(--font-body); background: var(--gv-bg-light); color: var(--gv-anchor); line-height: 1.6; min-height: 100vh; }
-        .site-header { background: var(--gv-anchor); color: white; border-bottom: 4px solid var(--gv-hero); position: sticky; top: 0; z-index: 1000; }
-        .header-container { max-width: 1440px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
-        .header-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
-        .logo-icon { width: 44px; height: 44px; background: var(--gv-hero); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: white; }
-        .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
-        .nav-desktop { display: flex; align-items: center; gap: 32px; }
-        .nav-link { color: white; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 16px; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; display: flex; align-items: center; }
-        .nav-link:hover { color: var(--gv-hero); }
-        .nav-link.active { color: var(--gv-hero); }
-        .user-button { background: var(--gv-hero); color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; border-radius: 0; }
-        .mobile-menu-toggle { display: none; background: none; border: none; color: white; cursor: pointer; min-width: 44px; min-height: 44px; padding: 8px; }
-        .main-container { max-width: 1440px; margin: 0 auto; padding: 32px 24px; }
-        .page-header { background: white; border: 4px solid var(--gv-anchor); padding: 32px; margin-bottom: 32px; }
-        .page-title { font-family: var(--font-display); font-size: 36px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
-        .page-subtitle { font-size: 16px; color: var(--gv-body); }
-        .usage-indicator { display: inline-block; background: var(--gv-bg-light); border: 2px solid var(--gv-divider); padding: 8px 16px; font-size: 14px; margin-top: 16px; }
-        .usage-limit { font-weight: 700; color: var(--gv-hero); }
-        .search-section { background: white; border: 2px solid var(--gv-divider); padding: 32px; margin-bottom: 32px; }
-        .section-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.02em; }
-        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 24px; }
-        .filter-group { display: flex; flex-direction: column; gap: 8px; }
-        .filter-label { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .filter-select, .filter-input { width: 100%; padding: 12px; border: 2px solid var(--gv-divider); background: white; font-family: var(--font-body); font-size: 14px; min-height: 44px; border-radius: 0; }
-        .filter-select:focus, .filter-input:focus { outline: 2px solid var(--gv-hero); outline-offset: 2px; border-color: var(--gv-hero); }
-        .search-button { background: var(--gv-hero); color: white; border: none; padding: 14px 32px; font-size: 16px; font-weight: 700; cursor: pointer; border-radius: 0; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; transition: all 0.2s; width: 100%; }
-        .search-button:hover { background: #15803d; }
-        .search-button:disabled { background: var(--gv-body); cursor: not-allowed; }
-        .results-section { background: white; border: 2px solid var(--gv-divider); padding: 32px; }
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-        .creator-card { border: 2px solid var(--gv-divider); padding: 24px; transition: all 0.3s; }
-        .creator-card:hover { border-color: var(--gv-hero); transform: translateY(-2px); }
-        .creator-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--gv-bg-light); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-        .creator-name { font-weight: 700; font-size: 18px; text-align: center; margin-bottom: 8px; }
-        .creator-stats { text-align: center; font-size: 14px; color: var(--gv-body); margin-bottom: 16px; }
-        .platform-icons { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
-        .platform-icon { width: 24px; height: 24px; }
-        .save-button { width: 100%; background: transparent; color: var(--gv-anchor); border: 2px solid var(--gv-anchor); padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 0; text-transform: uppercase; letter-spacing: 0.05em; min-height: 44px; transition: all 0.2s; }
-        .save-button:hover { background: var(--gv-anchor); color: white; }
-        .empty-state { text-align: center; padding: 64px 32px; color: var(--gv-body); }
-        .loading-spinner { text-align: center; padding: 64px; font-size: 18px; color: var(--gv-body); }
-        @media (max-width: 768px) {
-            .nav-desktop { display: none; }
-            .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; }
-            .page-title { font-size: 28px; }
-            .filters-grid { grid-template-columns: 1fr; }
+
+        @media (max-width: 1024px) {
+            .radar-two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* News feed styling */
+        .news-item {
+            padding: 16px;
+            border-bottom: 1px solid #E5E7EB;
+            transition: background 0.2s;
+        }
+
+        .news-item:hover {
+            background: #F9FAFB;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Leaderboard styling */
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #E5E7EB;
+            transition: all 0.2s;
+        }
+
+        .leaderboard-item:hover {
+            background: #F0FDF4;
+            border-left: 4px solid #16A34A;
+            padding-left: 8px;
+        }
+
+        .rank-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .rank-1 { background: #FEF3C7; color: #92400E; }
+        .rank-2 { background: #E5E7EB; color: #374151; }
+        .rank-3 { background: #FECACA; color: #991B1B; }
+        .rank-default { background: #F9FAFB; color: #6B7280; }
+
+        /* Heatmap grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .heatmap-cell {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+        }
+
+        /* Metric bars */
+        .metric-bar {
+            height: 6px;
+            background: #E5E7EB;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: #16A34A;
+            transition: width 0.5s ease;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <!-- Skip to Main Content -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only live-region" id="announcements"></div>
 
-    <header class="site-header" role="banner">
-        <div class="header-container">
-            <a href="/frontend/index.html" class="header-logo" aria-label="GeoVera Intelligence - Return to homepage">
-                <div class="logo-icon" aria-hidden="true">G</div>
-                <span class="logo-text">GeoVera</span>
-            </a>
-            <nav class="nav-desktop" aria-label="Main navigation">
-                <a href="/frontend/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="/frontend/insights.html" class="nav-link">Insights</a>
-                <a href="/frontend/hub.html" class="nav-link">Hub</a>
-                <a href="/frontend/radar.html" class="nav-link active" aria-current="page">Radar</a>
-                <a href="/frontend/content-studio.html" class="nav-link">Content Studio</a>
-                <a href="/frontend/chat.html" class="nav-link">AI Chat</a>
-                <a href="/frontend/settings.html" class="nav-link">Settings</a>
+    <!-- GeoVera Layout with White Sidebar -->
+    <div class="geovera-layout">
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" aria-label="Toggle menu" onclick="toggleMobileSidebar()">
+            <svg class="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+
+        <!-- Left Sidebar Navigation (White) -->
+        <aside class="geovera-sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon" aria-hidden="true" style="width: 32px; height: 32px; background: #16A34A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white;">G</div>
+                <span class="sidebar-logo-text">GeoVera</span>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="/frontend/dashboard.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Dashboard
+                </a>
+                <a href="/frontend/chat.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    AI Chat
+                </a>
+                <a href="/frontend/insights.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    Insights
+                </a>
+                <a href="/frontend/todo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    To Do
+                </a>
             </nav>
-            <div class="user-menu">
-                <button class="user-button" id="user-btn" aria-label="User menu"><span>Account</span></button>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Search & Discovery</div>
+                <a href="/frontend/seo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    SEO
+                </a>
+                <a href="/frontend/geo.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    GEO
+                </a>
+                <a href="/frontend/social-search.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Social Search
+                </a>
+                <a href="/frontend/radar.html" class="nav-item active">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    Radar
+                    <span class="nav-item-badge">PRO</span>
+                </a>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Content</div>
+                <a href="/frontend/content-studio.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Content Studio
+                </a>
+                <a href="/frontend/hub.html" class="nav-item">
+                    <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Hub
+                </a>
+            </nav>
+
+            <div class="sidebar-user" onclick="toggleUserMenu()">
+                <div class="user-avatar" id="user-avatar-sidebar">A</div>
+                <div class="user-info">
+                    <div class="user-name" id="user-name">Account</div>
+                    <div class="user-tier" id="user-tier-sidebar">Partner</div>
+                </div>
             </div>
-            <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">☰</button>
-        </div>
-    </header>
 
-    <main class="main-container" id="main-content" role="main">
-        <section class="page-header" aria-labelledby="page-title">
-            <h1 class="page-title" id="page-title">Creator Radar</h1>
-            <p class="page-subtitle">Discover creators from 50+ countries across Instagram, TikTok, and YouTube</p>
-            <div class="usage-indicator" role="status" aria-live="polite">
-                <span id="usage-text">Searches used: <span class="usage-limit">0/10</span> this month (Basic)</span>
+            <div class="user-menu-dropdown" id="userMenu">
+                <a href="/frontend/settings.html" class="user-menu-item">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Settings
+                </a>
+                <div class="user-menu-divider"></div>
+                <a href="#" class="user-menu-item" onclick="handleLogout(); return false;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
             </div>
-        </section>
+        </aside>
 
-        <section class="search-section" aria-labelledby="search-title">
-            <h2 class="section-title" id="search-title">Search Filters</h2>
-            <form id="search-form" aria-label="Creator search filters">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label for="country-select" class="filter-label">Country</label>
-                        <select id="country-select" class="filter-select" aria-label="Select country">
-                            <option value="global">Global</option>
-                            <option value="US">United States</option>
-                            <option value="GB">United Kingdom</option>
-                            <option value="CA">Canada</option>
-                            <option value="AU">Australia</option>
-                            <option value="DE">Germany</option>
-                            <option value="FR">France</option>
-                            <option value="ES">Spain</option>
-                            <option value="IT">Italy</option>
-                            <option value="BR">Brazil</option>
-                            <option value="MX">Mexico</option>
-                            <option value="JP">Japan</option>
-                            <option value="KR">South Korea</option>
-                            <option value="CN">China</option>
-                            <option value="IN">India</option>
-                            <option value="ID">Indonesia</option>
-                            <option value="TH">Thailand</option>
-                            <option value="VN">Vietnam</option>
-                            <option value="PH">Philippines</option>
-                            <option value="SG">Singapore</option>
-                            <option value="MY">Malaysia</option>
-                            <option value="NL">Netherlands</option>
-                            <option value="SE">Sweden</option>
-                            <option value="NO">Norway</option>
-                            <option value="DK">Denmark</option>
-                            <option value="FI">Finland</option>
-                        </select>
-                    </div>
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 
-                    <div class="filter-group">
-                        <label for="category-select" class="filter-label">Category</label>
-                        <select id="category-select" class="filter-select" aria-label="Select category">
-                            <option value="">All Categories</option>
-                            <option value="beauty">Beauty</option>
-                            <option value="fashion">Fashion</option>
-                            <option value="travel">Travel</option>
-                            <option value="food">Food & Dining</option>
-                            <option value="tech">Technology</option>
-                            <option value="fitness">Fitness & Health</option>
-                            <option value="lifestyle">Lifestyle</option>
-                            <option value="gaming">Gaming</option>
-                            <option value="entertainment">Entertainment</option>
-                        </select>
-                    </div>
+        <!-- Main Content Area -->
+        <main class="geovera-main" id="main-content" role="main">
 
-                    <div class="filter-group">
-                        <label for="followers-select" class="filter-label">Follower Range</label>
-                        <select id="followers-select" class="filter-select" aria-label="Select follower range">
-                            <option value="">Any Size</option>
-                            <option value="1k-10k">1K - 10K (Nano)</option>
-                            <option value="10k-100k">10K - 100K (Micro)</option>
-                            <option value="100k-1m">100K - 1M (Mid-tier)</option>
-                            <option value="1m+">1M+ (Macro)</option>
-                        </select>
-                    </div>
+            <!-- Page Header -->
+            <header class="page-header">
+                <h1 class="page-title">Creator Radar</h1>
+                <p class="page-subtitle">Real-time creator intelligence & market insights</p>
+            </header>
 
-                    <div class="filter-group">
-                        <label for="engagement-select" class="filter-label">Engagement Rate</label>
-                        <select id="engagement-select" class="filter-select" aria-label="Select engagement rate">
-                            <option value="">Any Rate</option>
-                            <option value="2">Above 2%</option>
-                            <option value="5">Above 5%</option>
-                            <option value="10">Above 10%</option>
-                        </select>
-                    </div>
+            <!-- Page Content -->
+            <div class="page-content">
 
-                    <div class="filter-group">
-                        <label for="platform-select" class="filter-label">Platform</label>
-                        <select id="platform-select" class="filter-select" aria-label="Select platform">
-                            <option value="">All Platforms</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="youtube">YouTube</option>
-                        </select>
+                <!-- Partner-tier restriction notice -->
+                <div class="card-tailadmin" style="margin-bottom: 24px; background: #FEF3C7; border-left: 4px solid #F59E0B;">
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <span style="font-size: 24px;">⚠️</span>
+                        <div>
+                            <h3 style="font-weight: 700; color: #92400E; margin-bottom: 4px;">Partner-Tier Exclusive</h3>
+                            <p style="color: #78350F; font-size: 14px;" id="radar-restriction-text">Radar is available only for Partner-tier subscribers and limited to your brand's country and category.</p>
+                        </div>
                     </div>
                 </div>
 
-                <button type="submit" class="search-button" id="search-btn" aria-label="Search for creators">
-                    Search Creators
-                </button>
-            </form>
-        </section>
+                <!-- Two-Column Layout: 40% News + 60% Analytics -->
+                <div class="radar-two-column">
 
-        <section class="results-section" aria-labelledby="results-title">
-            <h2 class="section-title" id="results-title">Search Results</h2>
-            <div id="results-container">
-                <div class="empty-state" role="status">
-                    <p>Use the filters above to discover creators. Start with a country and category.</p>
+                    <!-- LEFT COLUMN (40%): News Radar Feed -->
+                    <div>
+                        <div class="card-tailadmin" style="margin-bottom: 16px;">
+                            <h2 class="card-title-tailadmin" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 20px;">📡</span> News Radar
+                            </h2>
+                            <p class="card-subtitle-tailadmin">Real-time market intelligence updates</p>
+                        </div>
+
+                        <!-- News Feed -->
+                        <div class="card-tailadmin" id="news-feed">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN (60%): Analytics Dashboard -->
+                    <div>
+                        <!-- Top 100 Creators Leaderboard -->
+                        <div class="card-tailadmin" style="margin-bottom: 24px;">
+                            <h2 class="card-title-tailadmin" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 20px;">🏆</span> Top 100 Creators
+                            </h2>
+                            <p class="card-subtitle-tailadmin" style="margin-bottom: 16px;">Ranked by mindshare (Quality Content × Quality Reach × Quality Engagement × Impact Rate)</p>
+
+                            <!-- Tabs -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">
+                                <button class="btn-primary-tailadmin btn-sm-tailadmin" onclick="switchTab('creators')">Creators</button>
+                                <button class="btn-outline-tailadmin btn-sm-tailadmin" onclick="switchTab('content')">Content</button>
+                            </div>
+
+                            <div id="leaderboard-creators" style="max-height: 600px; overflow-y: auto;">
+                                <!-- Populated by JavaScript -->
+                            </div>
+
+                            <div id="leaderboard-content" style="max-height: 600px; overflow-y: auto; display: none;">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Brand vs Competitor Heatmap -->
+                        <div class="card-tailadmin">
+                            <h2 class="card-title-tailadmin" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 20px;">🔥</span> Brand vs Competitors
+                            </h2>
+                            <p class="card-subtitle-tailadmin" style="margin-bottom: 16px;">Performance heatmap (Top 500 indexed creators)</p>
+
+                            <div id="heatmap-container">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
-        </section>
-    </main>
 
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Sidebar Navigation JavaScript -->
+    <script>
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        function toggleUserMenu() {
+            document.getElementById('userMenu').classList.toggle('active');
+        }
+
+        async function handleLogout() {
+            if (typeof supabase !== 'undefined') {
+                await supabase.auth.signOut();
+            }
+            window.location.href = '/frontend/login.html';
+        }
+
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const sidebarUser = document.querySelector('.sidebar-user');
+            if (userMenu && sidebarUser && !sidebarUser.contains(event.target) && !userMenu.contains(event.target)) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        function switchTab(tab) {
+            const creatorsTab = document.getElementById('leaderboard-creators');
+            const contentTab = document.getElementById('leaderboard-content');
+            const buttons = event.currentTarget.parentElement.querySelectorAll('button');
+
+            if (tab === 'creators') {
+                creatorsTab.style.display = 'block';
+                contentTab.style.display = 'none';
+                buttons[0].className = 'btn-primary-tailadmin btn-sm-tailadmin';
+                buttons[1].className = 'btn-outline-tailadmin btn-sm-tailadmin';
+            } else {
+                creatorsTab.style.display = 'none';
+                contentTab.style.display = 'block';
+                buttons[0].className = 'btn-outline-tailadmin btn-sm-tailadmin';
+                buttons[1].className = 'btn-primary-tailadmin btn-sm-tailadmin';
+            }
+        }
+    </script>
+
+    <!-- Supabase & Config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/frontend/config.js" type="module"></script>
     <script type="module">
         import config from '/frontend/config.js';
         const supabase = window.supabase.createClient(config.supabase.url, config.supabase.anonKey);
 
-        const tierLimits = {
-            basic: { searches: 10 },
-            premium: { searches: 50 },
-            partner: { searches: -1 } // unlimited
+        // Mock data for demonstration
+        const mockNews = [
+            { type: 'mention', icon: '📢', title: 'Total Mentions Spike', description: 'Your brand mentioned 247 times today (+42% vs yesterday)', trend: 'up', value: '+42%' },
+            { type: 'share', icon: '📊', title: 'Market Share Update', description: 'You own 18.5% of beauty category mindshare', trend: 'up', rank: '#3', change: '↑ 2' },
+            { type: 'star', icon: '⭐', title: 'Rising Star Creator', description: '@BeautyByMaya gained 15K followers (24h)', followers: '125K', engagement: '4.2%' },
+            { type: 'competitor', icon: '⚠️', title: 'Competitor Alert', description: 'Rival Brand X launched campaign with @TopInfluencer', impact: 'High' },
+            { type: 'trend', icon: '📈', title: 'Trending Hashtag', description: '#SustainableBeauty trending in your market (+120%)', posts: '1.2K' }
+        ];
+
+        const mockCreators = [
+            { rank: 1, name: '@BeautyGuru', category: 'Beauty', mindshare: 95, qContent: 92, qReach: 98, qEngagement: 90, impact: 96 },
+            { rank: 2, name: '@MakeupQueen', category: 'Beauty', mindshare: 88, qContent: 85, qReach: 90, qEngagement: 88, impact: 90 },
+            { rank: 3, name: '@SkinCarePro', category: 'Skincare', mindshare: 82, qContent: 88, qReach: 80, qEngagement: 85, impact: 78 },
+            { rank: 4, name: '@GlowUpDaily', category: 'Beauty', mindshare: 78, qContent: 75, qReach: 82, qEngagement: 80, impact: 75 },
+            { rank: 5, name: '@NaturalVibes', category: 'Wellness', mindshare: 72, qContent: 70, qReach: 75, qEngagement: 72, impact: 71 }
+        ];
+
+        const mockContent = [
+            { rank: 1, title: 'Summer Glow Tutorial', creator: '@BeautyGuru', velocity: 98, reach: '2.5M', engagement: '8.2%' },
+            { rank: 2, title: '10-Minute Morning Routine', creator: '@MakeupQueen', velocity: 92, reach: '1.8M', engagement: '7.5%' },
+            { rank: 3, title: 'Sustainable Beauty Haul', creator: '@NaturalVibes', velocity: 85, reach: '950K', engagement: '9.1%' },
+            { rank: 4, title: 'Skincare Myths Debunked', creator: '@SkinCarePro', velocity: 80, reach: '1.2M', engagement: '6.8%' },
+            { rank: 5, title: 'Budget vs Luxury Makeup', creator: '@GlowUpDaily', velocity: 75, reach: '880K', engagement: '7.2%' }
+        ];
+
+        const mockHeatmap = {
+            yourBrand: { qContent: 75, qReach: 68, qEngagement: 72 },
+            competitor1: { name: 'Brand X', qContent: 82, qReach: 78, qEngagement: 80 },
+            competitor2: { name: 'Brand Y', qContent: 65, qReach: 70, qEngagement: 68 }
         };
 
-        let currentTier = 'basic';
-        let searchesUsed = 0;
-
         async function checkAuth() {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) {
-                window.location.href = '/frontend/login.html';
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                if (error || !user) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                // Check Partner tier
+                const { data: subscription } = await supabase
+                    .from('gv_subscriptions')
+                    .select('tier_name, status')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .single();
+
+                if (!subscription || subscription.tier_name !== 'partner') {
+                    document.getElementById('radar-restriction-text').innerHTML =
+                        '⛔ Radar requires Partner-tier subscription. <a href="/frontend/pricing.html" style="color: #16A34A; font-weight: 600; text-decoration: underline;">Upgrade now</a>';
+                    return null;
+                }
+
+                return user;
+            } catch (err) {
+                console.error('Auth check failed:', err);
+                window.location.href = 'login.html';
                 return null;
             }
-
-            // GUARD: Check subscription tier (NO FREE TIER!)
-            const { data: subscription } = await supabase
-                .from('gv_subscriptions')
-                .select('plan, status')
-                .eq('user_id', user.id)
-                .eq('status', 'active')
-                .single();
-
-            if (!subscription) {
-                alert('Please subscribe to a plan to access this page');
-                window.location.href = '/frontend/pricing.html';
-                return null;
-            }
-
-            // RADAR EXCLUSIVE: Only PARTNER tier can access
-            if (subscription.plan !== 'PARTNER') {
-                alert('Radar is exclusively available for Partner tier subscribers. Upgrade to Partner to unlock creator discovery!');
-                window.location.href = '/frontend/pricing.html';
-                return null;
-            }
-
-            return user;
         }
 
-        async function loadUsage() {
+        function renderNewsFeed() {
+            const html = mockNews.map(news => `
+                <div class="news-item">
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <span style="font-size: 24px; flex-shrink: 0;">${news.icon}</span>
+                        <div style="flex: 1;">
+                            <h4 style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${news.title}</h4>
+                            <p style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">${news.description}</p>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                ${news.trend ? `<span class="badge-${news.trend === 'up' ? 'success' : 'error'}-tailadmin">${news.value || news.rank}</span>` : ''}
+                                ${news.change ? `<span class="badge-primary-tailadmin">${news.change}</span>` : ''}
+                                ${news.impact ? `<span class="badge-warning-tailadmin">${news.impact} Impact</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('news-feed').innerHTML = html;
+        }
+
+        function renderCreatorLeaderboard() {
+            const html = mockCreators.map(creator => {
+                const rankClass = creator.rank <= 3 ? `rank-${creator.rank}` : 'rank-default';
+                return `
+                    <div class="leaderboard-item">
+                        <div class="rank-badge ${rankClass}">${creator.rank}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${creator.name}</div>
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 8px;">${creator.category}</div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                                <div>
+                                    <div style="font-size: 11px; color: #6B7280;">Quality Content</div>
+                                    <div class="metric-bar"><div class="metric-fill" style="width: ${creator.qContent}%;"></div></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: #6B7280;">Quality Reach</div>
+                                    <div class="metric-bar"><div class="metric-fill" style="width: ${creator.qReach}%;"></div></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: #6B7280;">Quality Engagement</div>
+                                    <div class="metric-bar"><div class="metric-fill" style="width: ${creator.qEngagement}%;"></div></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: #6B7280;">Impact Rate</div>
+                                    <div class="metric-bar"><div class="metric-fill" style="width: ${creator.impact}%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size: 24px; font-weight: 700; color: #16A34A;">${creator.mindshare}</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('leaderboard-creators').innerHTML = html;
+        }
+
+        function renderContentLeaderboard() {
+            const html = mockContent.map(content => {
+                const rankClass = content.rank <= 3 ? `rank-${content.rank}` : 'rank-default';
+                return `
+                    <div class="leaderboard-item">
+                        <div class="rank-badge ${rankClass}">${content.rank}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${content.title}</div>
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 8px;">${content.creator}</div>
+                            <div style="display: flex; gap: 12px; font-size: 12px;">
+                                <span style="color: #6B7280;">Reach: <strong>${content.reach}</strong></span>
+                                <span style="color: #6B7280;">Engagement: <strong>${content.engagement}</strong></span>
+                            </div>
+                        </div>
+                        <div style="font-size: 24px; font-weight: 700; color: #16A34A;">${content.velocity}</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('leaderboard-content').innerHTML = html;
+        }
+
+        function renderHeatmap() {
+            const getHeatColor = (value) => {
+                if (value >= 80) return '#16A34A';
+                if (value >= 70) return '#84CC16';
+                if (value >= 60) return '#FACC15';
+                if (value >= 50) return '#FB923C';
+                return '#F87171';
+            };
+
+            const brands = [
+                { name: 'Your Brand', ...mockHeatmap.yourBrand },
+                mockHeatmap.competitor1,
+                mockHeatmap.competitor2
+            ];
+
+            const html = `
+                <div style="margin-bottom: 24px;">
+                    ${brands.map((brand, idx) => `
+                        <div style="margin-bottom: 16px;">
+                            <h4 style="font-weight: 700; font-size: 14px; margin-bottom: 8px; ${idx === 0 ? 'color: #16A34A;' : ''}">${brand.name}</h4>
+                            <div class="heatmap-grid">
+                                <div class="heatmap-cell" style="background: ${getHeatColor(brand.qContent)};">
+                                    <div style="font-size: 24px; font-weight: 700; color: white;">${brand.qContent}%</div>
+                                    <div style="font-size: 12px; color: white; opacity: 0.9;">Quality Content</div>
+                                </div>
+                                <div class="heatmap-cell" style="background: ${getHeatColor(brand.qReach)};">
+                                    <div style="font-size: 24px; font-weight: 700; color: white;">${brand.qReach}%</div>
+                                    <div style="font-size: 12px; color: white; opacity: 0.9;">Quality Reach</div>
+                                </div>
+                                <div class="heatmap-cell" style="background: ${getHeatColor(brand.qEngagement)};">
+                                    <div style="font-size: 24px; font-weight: 700; color: white;">${brand.qEngagement}%</div>
+                                    <div style="font-size: 12px; color: white; opacity: 0.9;">Quality Engagement</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('heatmap-container').innerHTML = html;
+        }
+
+        async function initRadar() {
             const user = await checkAuth();
             if (!user) return;
 
-            // Get subscription tier
-            const { data: subscription } = await supabase
-                .from('gv_subscriptions')
-                .select('tier_name')
-                .eq('user_id', user.id)
-                .single();
-
-            if (subscription) {
-                currentTier = subscription.tier_name;
-            }
-
-            // Get searches this month (mock for now)
-            searchesUsed = 0;
-
-            updateUsageDisplay();
+            renderNewsFeed();
+            renderCreatorLeaderboard();
+            renderContentLeaderboard();
+            renderHeatmap();
         }
 
-        function updateUsageDisplay() {
-            const limit = tierLimits[currentTier].searches;
-            const limitText = limit === -1 ? 'Unlimited' : limit;
-            const usageText = limit === -1 
-                ? `Searches used: ${searchesUsed} this month (${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)})`
-                : `Searches used: ${searchesUsed}/${limitText} this month (${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)})`;
-            
-            document.getElementById('usage-text').innerHTML = usageText;
-
-            // Disable search if limit reached
-            const limit_reached = limit !== -1 && searchesUsed >= limit;
-            document.getElementById('search-btn').disabled = limit_reached;
-            
-            if (limit_reached) {
-                document.getElementById('search-btn').textContent = 'Monthly Limit Reached';
-            }
-        }
-
-        document.getElementById('search-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const limit = tierLimits[currentTier].searches;
-            if (limit !== -1 && searchesUsed >= limit) {
-                alert('Monthly search limit reached. Upgrade to Premium for more searches!');
-                return;
-            }
-
-            const country = document.getElementById('country-select').value;
-            const category = document.getElementById('category-select').value;
-            const followers = document.getElementById('followers-select').value;
-            const engagement = document.getElementById('engagement-select').value;
-            const platform = document.getElementById('platform-select').value;
-
-            document.getElementById('results-container').innerHTML = '<div class="loading-spinner">Searching creators...</div>';
-            document.getElementById('announcements').textContent = 'Searching for creators';
-
-            // Simulate API call
-            setTimeout(() => {
-                searchesUsed++;
-                updateUsageDisplay();
-
-                const mockResults = generateMockResults(country, category);
-                displayResults(mockResults);
-                
-                document.getElementById('announcements').textContent = `Found ${mockResults.length} creators`;
-            }, 1500);
-        });
-
-        function generateMockResults(country, category) {
-            const names = ['Emma Chen', 'Sofia Rodriguez', 'Aria Kim', 'Luna Martinez', 'Maya Patel', 'Zara Johnson'];
-            const results = [];
-            
-            for (let i = 0; i < 6; i++) {
-                results.push({
-                    id: i,
-                    name: names[i],
-                    followers: Math.floor(Math.random() * 500000) + 10000,
-                    engagement: (Math.random() * 8 + 2).toFixed(1),
-                    category: category || 'beauty',
-                    platforms: ['instagram', 'tiktok']
-                });
-            }
-            
-            return results;
-        }
-
-        function displayResults(results) {
-            if (results.length === 0) {
-                document.getElementById('results-container').innerHTML = '<div class="empty-state"><p>No creators found. Try adjusting your filters.</p></div>';
-                return;
-            }
-
-            const html = '<div class="results-grid">' + results.map(creator => `
-                <article class="creator-card" role="article" aria-label="Creator: ${creator.name}">
-                    <div class="creator-avatar" aria-hidden="true">${creator.name.charAt(0)}</div>
-                    <h3 class="creator-name">${creator.name}</h3>
-                    <div class="creator-stats">
-                        <div>${creator.followers.toLocaleString()} followers</div>
-                        <div>${creator.engagement}% engagement</div>
-                    </div>
-                    <div class="platform-icons" aria-label="Platforms: ${creator.platforms.join(', ')}">
-                        ${creator.platforms.map(p => `<span class="platform-icon">${p === 'instagram' ? '📷' : p === 'tiktok' ? '🎵' : '▶️'}</span>`).join('')}
-                    </div>
-                    <button class="save-button" onclick="saveCreator(${creator.id})" aria-label="Save ${creator.name} to collection">
-                        Save to Collection
-                    </button>
-                </article>
-            `).join('') + '</div>';
-
-            document.getElementById('results-container').innerHTML = html;
-        }
-
-        window.saveCreator = function(id) {
-            alert('Creator saved! Go to Hub to view your collections.');
-        };
-
-        document.getElementById('user-btn').addEventListener('click', () => {
-            window.location.href = '/frontend/settings.html';
-        });
-
-        loadUsage();
+        initRadar();
+        console.log('GeoVera Radar Ready - KaitoAI Style');
     </script>
 </body>
 </html>

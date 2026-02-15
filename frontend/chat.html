@@ -6,268 +6,52 @@
     <title>AI Chat - GeoVera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Georgia:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- TailAdmin CSS -->
+    <link rel="stylesheet" href="css/tailadmin-base.css">
+    <link rel="stylesheet" href="css/geovera-sidebar.css">
+    <link rel="stylesheet" href="css/tailadmin-components.css">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="env.js"></script>
     <script src="env-loader.js"></script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --green: #16A34A;
-            --dark-navy: #0B0F19;
-            --light-bg: #F8F9FA;
-            --border: #E5E7EB;
-            --text-primary: #111827;
-            --text-secondary: #6B7280;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--light-bg);
-            color: var(--text-primary);
-            font-size: 13.5px;
-            height: 100vh;
+        /* Two-column layout specific styles */
+        .chat-two-column-layout {
             display: flex;
-            flex-direction: column;
+            gap: 1.5rem;
+            height: calc(100vh - 72px);
             overflow: hidden;
         }
 
-        h1, h2, h3 {
-            font-family: 'Georgia', serif;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            border-bottom: 2px solid var(--dark-navy);
-            padding: 13.5px 27px;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1800px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 10.8px;
-        }
-
-        .logo {
-            width: 32.4px;
-            height: 32.4px;
-            background: var(--green);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 16.2px;
-        }
-
-        .brand-name {
-            font-family: 'Georgia', serif;
-            font-size: 19.8px;
-            font-weight: 700;
-            color: var(--dark-navy);
-        }
-
-        .nav-menu {
-            display: flex;
-            gap: 27px;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12.6px;
-            padding: 4.5px 9px;
-            transition: color 0.2s;
-        }
-
-        .nav-link:hover {
-            color: var(--green);
-        }
-
-        .nav-link.active {
-            color: var(--green);
-            border-bottom: 2px solid var(--green);
-        }
-
-        .user-menu {
-            position: relative;
-        }
-
-        .user-button {
-            background: var(--dark-navy);
-            color: white;
-            border: none;
-            padding: 7.2px 13.5px;
-            font-size: 12.6px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4.5px;
-        }
-
-        .user-button:hover {
-            background: #1a1f2e;
-        }
-
-        .user-dropdown {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 4.5px;
-            background: white;
-            border: 1px solid var(--border);
-            min-width: 135px;
-            box-shadow: 0 4.5px 13.5px rgba(0,0,0,0.1);
-        }
-
-        .user-dropdown.active {
-            display: block;
-        }
-
-        .user-dropdown a {
-            display: block;
-            padding: 9px 13.5px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 12.6px;
-            transition: background 0.2s;
-        }
-
-        .user-dropdown a:hover {
-            background: var(--light-bg);
-        }
-
-        /* Main Chat Container */
-        .chat-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            max-width: 1800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 25%;
-            background: white;
-            border-right: 2px solid var(--dark-navy);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .new-chat-btn {
-            background: var(--green);
-            color: white;
-            border: none;
-            padding: 13.5px 18px;
-            font-size: 13.5px;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 18px;
-            transition: background 0.2s;
-        }
-
-        .new-chat-btn:hover {
-            background: #15803d;
-        }
-
-        .sessions-header {
-            padding: 9px 18px;
-            font-size: 11.7px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .sessions-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .session-item {
-            padding: 13.5px 18px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .session-item:hover {
-            background: var(--light-bg);
-        }
-
-        .session-item.active {
-            background: #dcfce7;
-            border-left: 3px solid var(--green);
-        }
-
-        .session-title {
-            font-size: 13.5px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4.5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .session-preview {
-            font-size: 11.7px;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            margin-bottom: 4.5px;
-        }
-
-        .session-time {
-            font-size: 10.8px;
-            color: var(--text-secondary);
-        }
-
-        /* Chat Area */
-        .chat-area {
-            width: 75%;
+        /* Main chat column (60%) */
+        .chat-main-column {
+            flex: 0 0 60%;
             display: flex;
             flex-direction: column;
             background: white;
+            border-radius: 12px;
+            box-shadow: 0px 1px 3px rgba(16, 24, 40, 0.1);
+            overflow: hidden;
         }
 
+        /* Messages container */
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 27px;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 1rem;
         }
 
+        /* Message styles */
         .message {
             display: flex;
-            gap: 13.5px;
-            max-width: 80%;
+            gap: 0.75rem;
+            max-width: 85%;
             animation: fadeIn 0.3s ease-in;
         }
 
@@ -286,25 +70,26 @@
         }
 
         .message-avatar {
-            width: 32.4px;
-            height: 32.4px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 13.5px;
+            font-size: 14px;
             flex-shrink: 0;
         }
 
         .message.user .message-avatar {
-            background: var(--green);
+            background: #16A34A;
             color: white;
         }
 
         .message.ai .message-avatar {
-            background: var(--dark-navy);
-            color: white;
+            background: #F9FAFB;
+            color: #374151;
+            border: 1px solid #E5E7EB;
         }
 
         .message-content {
@@ -312,52 +97,264 @@
         }
 
         .message-bubble {
-            padding: 11.7px 13.5px;
-            border-radius: 0;
-            margin-bottom: 4.5px;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.25rem;
             line-height: 1.6;
+            font-size: 14px;
         }
 
         .message.user .message-bubble {
-            background: var(--green);
+            background: #16A34A;
             color: white;
         }
 
         .message.ai .message-bubble {
-            background: var(--light-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
+            background: #F9FAFB;
+            color: #111827;
+            border: 1px solid #E5E7EB;
         }
 
         .message-meta {
             display: flex;
             align-items: center;
-            gap: 9px;
-            font-size: 10.8px;
-            color: var(--text-secondary);
-            padding: 0 4.5px;
+            gap: 0.5rem;
+            font-size: 12px;
+            color: #6B7280;
+            padding: 0 0.25rem;
         }
 
-        .ai-provider {
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .empty-state h2 {
+            font-family: Georgia, serif;
+            font-size: 24px;
+            color: #111827;
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-state p {
+            color: #6B7280;
+            margin-bottom: 1.5rem;
+            font-size: 14px;
+        }
+
+        .suggested-prompts {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .prompt-btn {
+            background: white;
+            border: 1px solid #E5E7EB;
+            padding: 0.875rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            color: #111827;
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+
+        .prompt-btn:hover {
+            border-color: #16A34A;
+            background: #F0FDF4;
+        }
+
+        /* Input area */
+        .input-area {
+            border-top: 1px solid #E5E7EB;
+            padding: 1rem 1.5rem;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            resize: none;
+            min-height: 48px;
+            max-height: 120px;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #16A34A;
+        }
+
+        .send-btn {
+            background: #16A34A;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            border-radius: 8px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #15803D;
+        }
+
+        .send-btn:disabled {
+            background: #D1D5DB;
+            cursor: not-allowed;
+        }
+
+        /* Right insights panel (40%) */
+        .chat-insights-panel {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* Insights card */
+        .insights-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0px 1px 3px rgba(16, 24, 40, 0.1);
+        }
+
+        .insights-card h3 {
+            font-family: Georgia, serif;
+            font-size: 18px;
+            color: #111827;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 4.5px;
+            gap: 0.5rem;
         }
 
-        .ai-provider img {
-            width: 13.5px;
-            height: 13.5px;
+        .insights-card-icon {
+            width: 20px;
+            height: 20px;
+            color: #16A34A;
         }
 
-        /* Typing Indicator */
+        /* Suggestion items */
+        .suggestion-item {
+            padding: 0.875rem;
+            background: #F9FAFB;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .suggestion-item:hover {
+            background: #F0FDF4;
+            border-color: #16A34A;
+        }
+
+        .suggestion-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .suggestion-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion-desc {
+            font-size: 12px;
+            color: #6B7280;
+        }
+
+        /* Progress items */
+        .progress-item {
+            padding: 1rem;
+            background: #F9FAFB;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid #16A34A;
+        }
+
+        .progress-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .progress-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .progress-badge {
+            background: #16A34A;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .progress-item-desc {
+            font-size: 13px;
+            color: #6B7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #E5E7EB;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #16A34A;
+            transition: width 0.3s ease;
+        }
+
+        /* Typing indicator */
         .typing-indicator {
             display: none;
             align-items: center;
-            gap: 4.5px;
-            padding: 11.7px 13.5px;
-            background: var(--light-bg);
-            border: 1px solid var(--border);
-            border-radius: 0;
+            gap: 0.25rem;
+            padding: 0.75rem 1rem;
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
             width: fit-content;
         }
 
@@ -366,9 +363,9 @@
         }
 
         .typing-dot {
-            width: 7.2px;
-            height: 7.2px;
-            background: var(--text-secondary);
+            width: 8px;
+            height: 8px;
+            background: #6B7280;
             border-radius: 50%;
             animation: typing 1.4s infinite;
         }
@@ -383,484 +380,342 @@
 
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
-            30% { transform: translateY(-9px); opacity: 1; }
+            30% { transform: translateY(-8px); opacity: 1; }
         }
 
-        /* Empty State */
-        .empty-state {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 54px;
-            text-align: center;
-        }
-
-        .empty-state h2 {
-            font-size: 21.6px;
-            color: var(--dark-navy);
-            margin-bottom: 13.5px;
-        }
-
-        .empty-state p {
-            color: var(--text-secondary);
-            margin-bottom: 27px;
-            font-size: 13.5px;
-        }
-
-        .suggested-prompts {
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-            width: 100%;
-            max-width: 540px;
-        }
-
-        .prompt-btn {
-            background: white;
-            border: 2px solid var(--border);
-            padding: 13.5px 18px;
-            text-align: left;
-            cursor: pointer;
-            font-size: 13.5px;
-            color: var(--text-primary);
-            transition: all 0.2s;
-        }
-
-        .prompt-btn:hover {
-            border-color: var(--green);
-            background: #dcfce7;
-        }
-
-        /* Input Area */
-        .input-area {
-            border-top: 2px solid var(--dark-navy);
-            padding: 18px;
-            background: white;
-            flex-shrink: 0;
-        }
-
-        .input-container {
-            display: flex;
-            gap: 9px;
-            max-width: 100%;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 11.7px 13.5px;
-            border: 2px solid var(--border);
-            font-family: 'Inter', sans-serif;
-            font-size: 13.5px;
-            resize: none;
-            min-height: 45px;
-            max-height: 135px;
-            line-height: 1.5;
-        }
-
-        .message-input:focus {
-            outline: none;
-            border-color: var(--green);
-        }
-
-        .send-btn {
-            background: var(--green);
-            color: white;
-            border: none;
-            padding: 11.7px 27px;
-            font-size: 13.5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            background: #15803d;
-        }
-
-        .send-btn:disabled {
-            background: var(--border);
-            cursor: not-allowed;
-        }
-
-        /* Error Message */
-        .error-message {
-            background: #fee2e2;
-            border: 1px solid #ef4444;
-            color: #991b1b;
-            padding: 11.7px 13.5px;
-            border-radius: 0;
-            font-size: 12.6px;
-            margin-bottom: 18px;
-            display: none;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        /* Usage Indicator */
+        /* Usage indicator */
         .usage-indicator {
-            background: #f0fdf4;
-            border-left: 4px solid var(--green);
-            padding: 9px 13.5px;
-            margin-bottom: 13.5px;
-            font-size: 11.7px;
+            background: #F0FDF4;
+            border-left: 3px solid #16A34A;
+            padding: 0.5rem 0.875rem;
+            margin-bottom: 0.75rem;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 9px;
+            gap: 0.5rem;
+            border-radius: 8px;
         }
 
         .usage-text {
-            color: var(--text-secondary);
+            color: #6B7280;
             font-weight: 500;
         }
 
         .usage-bar {
             flex: 1;
             height: 6px;
-            background: #e5e7eb;
-            border-radius: 0;
+            background: #E5E7EB;
+            border-radius: 9999px;
             overflow: hidden;
-            max-width: 180px;
+            max-width: 150px;
         }
 
         .usage-fill {
             height: 100%;
-            background: var(--green);
+            background: #16A34A;
             transition: width 0.3s ease, background 0.3s ease;
         }
 
         .usage-fill.warning {
-            background: #eab308;
+            background: #EAB308;
         }
 
         .usage-fill.danger {
-            background: #ef4444;
+            background: #EF4444;
         }
 
         .usage-count {
             font-weight: 600;
-            color: var(--text-primary);
-            font-size: 12.6px;
-        }
-
-        /* Limit Modal */
-        .limit-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 27px;
-        }
-
-        .limit-modal.active {
-            display: flex;
-        }
-
-        .limit-modal-content {
-            background: white;
-            max-width: 450px;
-            width: 100%;
-            border: 4px solid var(--dark-navy);
-        }
-
-        .limit-modal-header {
-            padding: 18px 27px;
-            background: #fef3c7;
-            border-bottom: 2px solid #f59e0b;
-        }
-
-        .limit-modal-header h3 {
-            font-family: 'Georgia', serif;
-            font-size: 19.8px;
-            color: var(--dark-navy);
-            margin-bottom: 4.5px;
-        }
-
-        .limit-modal-header p {
-            font-size: 12.6px;
-            color: var(--text-secondary);
-        }
-
-        .limit-modal-body {
-            padding: 27px;
-        }
-
-        .limit-modal-body p {
-            font-size: 13.5px;
-            line-height: 1.6;
-            color: var(--text-primary);
-            margin-bottom: 18px;
-        }
-
-        .tier-comparison {
-            background: var(--light-bg);
-            padding: 13.5px;
-            margin-bottom: 18px;
-        }
-
-        .tier-comparison-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 9px 0;
-            font-size: 12.6px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .tier-comparison-row:last-child {
-            border-bottom: none;
-        }
-
-        .tier-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .tier-limit {
-            color: var(--text-secondary);
-        }
-
-        .limit-modal-actions {
-            display: flex;
-            gap: 9px;
-        }
-
-        .modal-btn {
-            flex: 1;
-            padding: 11.7px 18px;
-            border: none;
-            border-radius: 0;
-            font-size: 13.5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .modal-btn-primary {
-            background: var(--green);
-            color: white;
-        }
-
-        .modal-btn-primary:hover {
-            background: #15803d;
-        }
-
-        .modal-btn-secondary {
-            background: white;
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-        }
-
-        .modal-btn-secondary:hover {
-            background: var(--light-bg);
-        }
-
-        /* Screen Reader Only */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0,0,0,0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        /* Skip Link */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: var(--green);
-            color: white;
-            padding: 8px 16px;
-            text-decoration: none;
-            z-index: 100;
-            font-weight: 600;
-        }
-
-        .skip-link:focus {
-            top: 0;
+            color: #111827;
+            font-size: 12px;
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-            .chat-container {
+        @media (max-width: 1200px) {
+            .chat-two-column-layout {
                 flex-direction: column;
             }
 
-            .sidebar {
-                width: 100%;
-                max-height: 200px;
-                border-right: none;
-                border-bottom: 2px solid var(--dark-navy);
-            }
-
-            .chat-area {
+            .chat-main-column,
+            .chat-insights-panel {
+                flex: 0 0 auto;
                 width: 100%;
             }
 
-            .message {
-                max-width: 90%;
+            .chat-insights-panel {
+                max-height: 400px;
             }
-
-            .nav-menu {
-                display: none;
-            }
-        }
-
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 54px;
-            color: var(--text-secondary);
-            font-size: 13.5px;
         }
     </style>
 </head>
 <body>
-    <!-- Skip to Main Content Link -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-
-    <!-- Header -->
-    <header class="header" role="banner">
-        <div class="header-content">
-            <div class="logo-section">
-                <div class="logo" role="img" aria-label="GeoVera logo">G</div>
-                <div class="brand-name">GeoVera</div>
+    <!-- White Sidebar Navigation -->
+    <div class="geovera-sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <div class="logo">G</div>
+                <span class="logo-text">GeoVera</span>
             </div>
-            <nav class="nav-menu" aria-label="Main navigation">
-                <a href="/dashboard" class="nav-link" aria-label="Go to Dashboard">Dashboard</a>
-                <a href="/chat" class="nav-link active" aria-label="AI Chat (current page)" aria-current="page">AI Chat</a>
-                <a href="#" class="nav-link" aria-label="Go to Reports">Reports</a>
-                <a href="#" class="nav-link" aria-label="Go to Settings">Settings</a>
-            </nav>
-            <div class="user-menu">
-                <button class="user-button" onclick="toggleUserMenu()" aria-label="Open user menu" aria-expanded="false" aria-haspopup="true">
-                    <span id="userEmail">User</span>
-                    <span aria-hidden="true">▼</span>
-                </button>
-                <div class="user-dropdown" id="userDropdown" role="menu" aria-label="User menu">
-                    <a href="#" role="menuitem" aria-label="Go to Profile">Profile</a>
-                    <a href="#" role="menuitem" aria-label="Go to Settings">Settings</a>
-                    <a href="#" onclick="logout()" role="menuitem" aria-label="Logout of account">Logout</a>
-                </div>
-            </div>
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </button>
         </div>
-    </header>
 
-    <!-- Main Chat Container -->
-    <div class="chat-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" role="complementary" aria-label="Chat sessions">
-            <button class="new-chat-btn" onclick="createNewChat()" aria-label="Create new chat session">+ New Chat</button>
-            <h2 class="sessions-header" class="sr-only">Recent Chats</h2>
-            <div class="sessions-list" id="sessionsList" role="list" aria-label="Recent chat sessions">
-                <!-- Sessions will be loaded here -->
-            </div>
-        </aside>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
 
-        <!-- Chat Area -->
-        <main class="chat-area" id="main-content">
-            <div id="loadingState" class="loading" style="display: none;" role="status" aria-live="polite">
-                Loading chat...
-            </div>
+            <a href="chat.html" class="nav-item active">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                </svg>
+                <span>AI Chat</span>
+            </a>
 
-            <div class="messages-container" id="messagesContainer" role="log" aria-live="polite" aria-label="Chat messages">
-                <!-- Empty State -->
-                <div class="empty-state" id="emptyState" role="region" aria-label="Welcome message">
-                    <h2>Welcome to GeoVera AI Chat!</h2>
-                    <p>Ask me anything about your brand, SEO, content strategy, or competitors.</p>
-                    <div class="suggested-prompts" role="list" aria-label="Suggested prompts">
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('How can I improve my SEO?')" role="listitem" aria-label="Ask: How can I improve my SEO?">
-                            How can I improve my SEO?
-                        </button>
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Generate content ideas for my brand')" role="listitem" aria-label="Ask: Generate content ideas for my brand">
-                            Generate content ideas for my brand
-                        </button>
-                        <button class="prompt-btn" onclick="sendSuggestedPrompt('Analyze my competitors')" role="listitem" aria-label="Ask: Analyze my competitors">
-                            Analyze my competitors
-                        </button>
+            <a href="insights.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                </svg>
+                <span>Insights</span>
+            </a>
+
+            <a href="todo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                </svg>
+                <span>To Do</span>
+            </a>
+
+            <a href="radar.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Radar</span>
+            </a>
+
+            <a href="hub.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z"/>
+                </svg>
+                <span>Hub</span>
+            </a>
+
+            <a href="content-studio.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                </svg>
+                <span>Content Studio</span>
+            </a>
+
+            <div class="nav-divider"></div>
+
+            <a href="seo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                </svg>
+                <span>SEO</span>
+            </a>
+
+            <a href="geo.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"/>
+                </svg>
+                <span>GEO</span>
+            </a>
+
+            <a href="social-search.html" class="nav-item">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                </svg>
+                <span>Social Search</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <button class="user-button" id="userMenuButton">
+                    <div class="user-avatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-email" id="userEmail">user@email.com</div>
                     </div>
+                    <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="settings.html">Settings</a>
+                    <a href="#" onclick="logout()">Logout</a>
                 </div>
-
-                <!-- Messages will be appended here -->
-            </div>
-
-            <div class="input-area" role="region" aria-label="Message input area">
-                <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
-
-                <!-- Usage Indicator -->
-                <div class="usage-indicator" id="usageIndicator" style="display: none;" role="status" aria-label="Monthly message usage">
-                    <span class="usage-text">Messages this month:</span>
-                    <div class="usage-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="30" aria-label="Message usage progress">
-                        <div class="usage-fill" id="usageFill" style="width: 0%"></div>
-                    </div>
-                    <span class="usage-count" id="usageCount">0/30</span>
-                </div>
-
-                <div class="input-container">
-                    <label for="messageInput" class="sr-only">Type your message</label>
-                    <textarea
-                        id="messageInput"
-                        class="message-input"
-                        placeholder="Type your message..."
-                        rows="1"
-                        onkeydown="handleKeyPress(event)"
-                        maxlength="2000"
-                        aria-label="Message input, 2000 character maximum"
-                        aria-describedby="charCounter"
-                    ></textarea>
-                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="Send message">Send</button>
-                </div>
-                <div style="font-size: 10.8px; color: var(--text-secondary); margin-top: 4.5px; text-align: right;" id="charCounter" role="status" aria-live="polite">0/2000 characters</div>
             </div>
         </div>
     </div>
 
-    <!-- Limit Reached Modal -->
-    <div class="limit-modal" id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitModalTitle" aria-describedby="limitModalDesc">
-        <div class="limit-modal-content">
-            <div class="limit-modal-header">
-                <h3 id="limitModalTitle">Monthly Limit Reached</h3>
-                <p id="limitModalDesc">You've used all your AI Chat messages this month</p>
-            </div>
-            <div class="limit-modal-body">
-                <p>You've reached your <strong id="modalCurrentLimit">30</strong> message limit for the <strong id="modalCurrentTier">Basic</strong> tier. Upgrade to get more messages and unlock additional features.</p>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-wrapper" style="padding: 1.5rem;">
+            <!-- Two-Column Layout -->
+            <div class="chat-two-column-layout">
+                <!-- Main Chat Column (60%) -->
+                <div class="chat-main-column">
+                    <div class="messages-container" id="messagesContainer">
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <h2>Welcome to GeoVera AI Chat!</h2>
+                            <p>Ask me anything about your brand, SEO, content strategy, or competitors.</p>
+                            <div class="suggested-prompts">
+                                <button class="prompt-btn" onclick="sendSuggestedPrompt('How can I improve my SEO?')">
+                                    How can I improve my SEO?
+                                </button>
+                                <button class="prompt-btn" onclick="sendSuggestedPrompt('Generate content ideas for my brand')">
+                                    Generate content ideas for my brand
+                                </button>
+                                <button class="prompt-btn" onclick="sendSuggestedPrompt('Analyze my competitors')">
+                                    Analyze my competitors
+                                </button>
+                            </div>
+                        </div>
 
-                <div class="tier-comparison" role="table" aria-label="Tier comparison">
-                    <div class="tier-comparison-row" role="row">
-                        <span class="tier-name" role="cell">Basic</span>
-                        <span class="tier-limit" role="cell">30 messages/month</span>
+                        <!-- Messages will be appended here -->
                     </div>
-                    <div class="tier-comparison-row" role="row">
-                        <span class="tier-name" role="cell">Premium</span>
-                        <span class="tier-limit" role="cell">100 messages/month</span>
-                    </div>
-                    <div class="tier-comparison-row" role="row">
-                        <span class="tier-name" role="cell">Partner</span>
-                        <span class="tier-limit" role="cell">Unlimited messages</span>
+
+                    <div class="input-area">
+                        <!-- Usage Indicator -->
+                        <div class="usage-indicator" id="usageIndicator" style="display: none;">
+                            <span class="usage-text">Messages today:</span>
+                            <div class="usage-bar">
+                                <div class="usage-fill" id="usageFill" style="width: 0%"></div>
+                            </div>
+                            <span class="usage-count" id="usageCount">0/5</span>
+                        </div>
+
+                        <div class="input-container">
+                            <textarea
+                                id="messageInput"
+                                class="message-input"
+                                placeholder="Type your message..."
+                                rows="1"
+                                onkeydown="handleKeyPress(event)"
+                                maxlength="2000"
+                            ></textarea>
+                            <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+                        </div>
+                        <div style="font-size: 12px; color: #6B7280; margin-top: 0.25rem; text-align: right;" id="charCounter">0/2000 characters</div>
                     </div>
                 </div>
 
-                <div class="limit-modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="closeLimitModal()" aria-label="Close modal and continue later">Maybe Later</button>
-                    <a href="/frontend/pricing.html" class="modal-btn modal-btn-primary" aria-label="View pricing plans to upgrade">Upgrade Now</a>
+                <!-- Insights Panel (40%) -->
+                <div class="chat-insights-panel">
+                    <!-- Suggestions Card -->
+                    <div class="insights-card">
+                        <h3>
+                            <svg class="insights-card-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                            </svg>
+                            Suggestions
+                        </h3>
+                        <div class="suggestion-item" onclick="sendSuggestedPrompt('Show my brand performance this week')">
+                            <div class="suggestion-title">Brand Performance</div>
+                            <div class="suggestion-desc">Review this week's metrics</div>
+                        </div>
+                        <div class="suggestion-item" onclick="sendSuggestedPrompt('What are trending topics in my industry?')">
+                            <div class="suggestion-title">Trending Topics</div>
+                            <div class="suggestion-desc">Discover what's hot now</div>
+                        </div>
+                        <div class="suggestion-item" onclick="sendSuggestedPrompt('Suggest content ideas for next week')">
+                            <div class="suggestion-title">Content Ideas</div>
+                            <div class="suggestion-desc">AI-powered suggestions</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Card -->
+                    <div class="insights-card">
+                        <h3>
+                            <svg class="insights-card-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            In Progress
+                        </h3>
+                        <div class="progress-item">
+                            <div class="progress-item-header">
+                                <div class="progress-item-title">SEO Optimization</div>
+                                <div class="progress-badge">78%</div>
+                            </div>
+                            <div class="progress-item-desc">Improving meta descriptions and keywords</div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-item-header">
+                                <div class="progress-item-title">Content Calendar</div>
+                                <div class="progress-badge">45%</div>
+                            </div>
+                            <div class="progress-item-desc">Planning next month's content</div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Opportunities Card -->
+                    <div class="insights-card">
+                        <h3>
+                            <svg class="insights-card-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            Opportunities
+                        </h3>
+                        <div class="suggestion-item">
+                            <div class="suggestion-title">Untapped Keywords</div>
+                            <div class="suggestion-desc">12 new keywords with low competition</div>
+                        </div>
+                        <div class="suggestion-item">
+                            <div class="suggestion-title">Content Gaps</div>
+                            <div class="suggestion-desc">Topics your competitors are missing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Limit Modal -->
+    <div class="modal-backdrop" id="limitModal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header" style="background: #FEF3C7; border-bottom: 1px solid #F59E0B;">
+                <h3 style="font-family: Georgia, serif; font-size: 20px; color: #111827; margin-bottom: 0.25rem;">Daily Limit Reached</h3>
+                <p style="font-size: 14px; color: #6B7280;">You've used all your AI Chat questions for today</p>
+            </div>
+            <div class="modal-body">
+                <p>You've reached your <strong id="modalCurrentLimit">5</strong> daily question limit for the <strong id="modalCurrentTier">Basic</strong> tier. Your limit resets at midnight. Upgrade to get more daily questions!</p>
+
+                <div style="background: #F9FAFB; padding: 1rem; margin: 1rem 0; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; font-size: 14px; border-bottom: 1px solid #E5E7EB;">
+                        <span style="font-weight: 600;">Basic</span>
+                        <span style="color: #6B7280;">5 questions/day</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; font-size: 14px; border-bottom: 1px solid #E5E7EB;">
+                        <span style="font-weight: 600;">Premium</span>
+                        <span style="color: #6B7280;">10 questions/day</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; font-size: 14px;">
+                        <span style="font-weight: 600;">Partner</span>
+                        <span style="color: #6B7280;">20 questions/day</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-secondary" onclick="closeLimitModal()" style="flex: 1;">Maybe Later</button>
+                    <a href="pricing.html" class="btn-primary" style="flex: 1; text-align: center; text-decoration: none;">Upgrade Now</a>
                 </div>
             </div>
         </div>
@@ -871,19 +726,32 @@
         const ENV_CONFIG = window.getEnvConfig();
         const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
         const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
-
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
         let currentBrandId = null;
         let currentSessionId = null;
-        let sessions = [];
         let messages = [];
         let currentTier = 'basic';
         let usageData = {
-            current: 0,
-            limit: 30
+            dailyCurrent: 0,
+            dailyLimit: 5
         };
+
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
+
+        // User menu toggle
+        document.getElementById('userMenuButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('userDropdown').classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            document.getElementById('userDropdown').classList.remove('active');
+        });
 
         // Check authentication
         async function checkAuth() {
@@ -902,8 +770,9 @@
                 }
                 currentUser = user;
                 document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userName').textContent = user.email.split('@')[0];
 
-                // GUARD: Check subscription tier (NO FREE TIER!)
+                // Check subscription tier
                 const { data: subscription } = await sbClient
                     .from('gv_subscriptions')
                     .select('plan, status')
@@ -937,7 +806,7 @@
                 if (error) throw error;
 
                 if (!userBrands || userBrands.length === 0) {
-                    showError('No brand found. Please complete onboarding first.');
+                    alert('No brand found. Please complete onboarding first.');
                     return null;
                 }
 
@@ -946,7 +815,6 @@
                 return currentBrandId;
             } catch (error) {
                 console.error('Error getting brand:', error);
-                showError('Failed to load brand information.');
                 return null;
             }
         }
@@ -954,7 +822,6 @@
         // Load tier usage data
         async function loadTierUsage() {
             try {
-                // Get current subscription tier
                 const { data: subscription, error: subError } = await sbClient
                     .from('gv_subscriptions')
                     .select('tier_name')
@@ -963,55 +830,49 @@
                     .single();
 
                 if (subError) {
-                    console.warn('No active subscription found, defaulting to Basic');
                     currentTier = 'basic';
                 } else {
                     currentTier = subscription.tier_name.toLowerCase();
                 }
 
-                // Set tier limits
                 const tierLimits = {
-                    'basic': 30,
-                    'premium': 100,
-                    'partner': 999999 // Unlimited (large number)
+                    'basic': 5,
+                    'premium': 10,
+                    'partner': 20
                 };
-                usageData.limit = tierLimits[currentTier] || 30;
+                usageData.dailyLimit = tierLimits[currentTier] || 5;
 
-                // Get current usage (mock for now - would query gv_tier_usage table)
-                // In production, this would fetch from database
-                usageData.current = Math.floor(Math.random() * usageData.limit * 0.3); // Mock: 0-30% used
+                const today = new Date().toDateString();
+                const lastReset = localStorage.getItem('chat_daily_reset');
+
+                if (lastReset !== today) {
+                    usageData.dailyCurrent = 0;
+                    localStorage.setItem('chat_daily_reset', today);
+                    localStorage.setItem('chat_daily_count', '0');
+                } else {
+                    usageData.dailyCurrent = parseInt(localStorage.getItem('chat_daily_count') || '0');
+                }
 
                 updateUsageIndicator();
-
             } catch (error) {
                 console.error('Error loading tier usage:', error);
-                // Default to basic tier limits on error
-                usageData.limit = 30;
-                usageData.current = 0;
+                usageData.dailyLimit = 5;
+                usageData.dailyCurrent = 0;
                 updateUsageIndicator();
             }
         }
 
-        // Update usage indicator UI
+        // Update usage indicator
         function updateUsageIndicator() {
             const indicator = document.getElementById('usageIndicator');
             const fill = document.getElementById('usageFill');
             const count = document.getElementById('usageCount');
-            const progressBar = indicator.querySelector('.usage-bar');
 
-            const percentage = (usageData.current / usageData.limit) * 100;
+            const percentage = (usageData.dailyCurrent / usageData.dailyLimit) * 100;
 
-            // Show indicator
             indicator.style.display = 'flex';
-
-            // Update progress bar
             fill.style.width = percentage + '%';
 
-            // Update ARIA attributes
-            progressBar.setAttribute('aria-valuenow', usageData.current);
-            progressBar.setAttribute('aria-valuemax', usageData.limit);
-
-            // Color coding
             fill.classList.remove('warning', 'danger');
             if (percentage >= 90) {
                 fill.classList.add('danger');
@@ -1019,25 +880,15 @@
                 fill.classList.add('warning');
             }
 
-            // Update count text
-            if (currentTier === 'partner') {
-                count.textContent = `${usageData.current} messages (Unlimited)`;
-            } else {
-                count.textContent = `${usageData.current}/${usageData.limit}`;
-            }
+            count.textContent = `${usageData.dailyCurrent}/${usageData.dailyLimit}`;
         }
 
-        // Check if user has reached limit
+        // Check usage limit
         function checkUsageLimit() {
-            if (currentTier === 'partner') {
-                return true; // Unlimited
-            }
-
-            if (usageData.current >= usageData.limit) {
+            if (usageData.dailyCurrent >= usageData.dailyLimit) {
                 showLimitModal();
                 return false;
             }
-
             return true;
         }
 
@@ -1048,106 +899,23 @@
             const limitSpan = document.getElementById('modalCurrentLimit');
 
             tierSpan.textContent = currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
-            limitSpan.textContent = usageData.limit;
+            limitSpan.textContent = usageData.dailyLimit;
 
-            modal.classList.add('active');
-
-            // Focus management - trap focus inside modal
-            const focusableElements = modal.querySelectorAll('button, a');
-            if (focusableElements.length > 0) {
-                focusableElements[0].focus();
-            }
+            modal.style.display = 'flex';
         }
 
         // Close limit modal
         function closeLimitModal() {
-            document.getElementById('limitModal').classList.remove('active');
+            document.getElementById('limitModal').style.display = 'none';
         }
 
-        // Close modal when clicking outside
-        document.addEventListener('click', (e) => {
-            const modal = document.getElementById('limitModal');
-            if (e.target === modal) {
-                closeLimitModal();
-            }
-        });
-
-        // Keyboard navigation - ESC to close modal
-        document.addEventListener('keydown', (e) => {
-            const modal = document.getElementById('limitModal');
-            if (modal.classList.contains('active') && e.key === 'Escape') {
-                closeLimitModal();
-            }
-        });
-
-        // Create new chat session
-        async function createNewChat() {
+        // Create new chat
+        function createNewChat() {
             currentSessionId = 'session_' + Date.now();
             messages = [];
             renderMessages();
             document.getElementById('emptyState').style.display = 'flex';
             document.getElementById('messageInput').focus();
-
-            // Add to sessions list
-            const newSession = {
-                id: currentSessionId,
-                title: 'New Chat',
-                preview: 'No messages yet',
-                timestamp: new Date().toLocaleString()
-            };
-            sessions.unshift(newSession);
-            renderSessions();
-        }
-
-        // Load sessions (mock data for now)
-        function loadSessions() {
-            sessions = [
-                {
-                    id: 'session_1',
-                    title: 'SEO Strategy Discussion',
-                    preview: 'How can I improve my SEO rankings...',
-                    timestamp: '2 hours ago'
-                },
-                {
-                    id: 'session_2',
-                    title: 'Content Ideas',
-                    preview: 'Generate content ideas for my brand...',
-                    timestamp: 'Yesterday'
-                },
-                {
-                    id: 'session_3',
-                    title: 'Competitor Analysis',
-                    preview: 'Analyze my competitors in the market...',
-                    timestamp: '3 days ago'
-                }
-            ];
-            renderSessions();
-        }
-
-        // Render sessions list
-        function renderSessions() {
-            const sessionsList = document.getElementById('sessionsList');
-            sessionsList.innerHTML = sessions.map(session => `
-                <div class="session-item ${session.id === currentSessionId ? 'active' : ''}"
-                     onclick="loadSession('${session.id}')"
-                     role="listitem"
-                     tabindex="0"
-                     aria-label="Chat session: ${session.title}"
-                     onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); loadSession('${session.id}'); }">
-                    <div class="session-title">${session.title}</div>
-                    <div class="session-preview">${session.preview}</div>
-                    <div class="session-time">${session.timestamp}</div>
-                </div>
-            `).join('');
-        }
-
-        // Load a specific session
-        function loadSession(sessionId) {
-            currentSessionId = sessionId;
-            // In a real app, load messages from database
-            messages = [];
-            renderSessions();
-            renderMessages();
         }
 
         // Render messages
@@ -1170,27 +938,18 @@
                 });
 
                 return `
-                    <div class="message ${msg.role}" role="article" aria-label="${isUser ? 'Your message' : 'AI response'}">
-                        <div class="message-avatar" aria-hidden="true">${isUser ? 'U' : 'AI'}</div>
+                    <div class="message ${msg.role}">
+                        <div class="message-avatar">${isUser ? 'U' : 'AI'}</div>
                         <div class="message-content">
                             <div class="message-bubble">${msg.content}</div>
-                            <div class="message-meta" aria-label="Message metadata">
+                            <div class="message-meta">
                                 <span>${timestamp}</span>
-                                ${!isUser ? `
-                                    <span class="ai-provider" aria-label="Powered by OpenAI">
-                                        <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                            <path d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A5.985 5.985 0 0011.35 0 5.997 5.997 0 007.793 1.867a5.99 5.99 0 00-2.9 6.51 5.985 5.985 0 00-.516 4.91 6.046 6.046 0 006.51 2.9 5.985 5.985 0 003.906 2.011 5.997 5.997 0 003.557-1.867 5.99 5.99 0 002.9-6.51z"/>
-                                        </svg>
-                                        OpenAI
-                                    </span>
-                                ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // Keep empty state in DOM but hidden, append messages after it
             const existingMessages = container.querySelectorAll('.message');
             existingMessages.forEach(msg => msg.remove());
 
@@ -1205,9 +964,9 @@
             indicator.className = 'message ai';
             indicator.id = 'typingIndicator';
             indicator.innerHTML = `
-                <div class="message-avatar" aria-hidden="true">AI</div>
+                <div class="message-avatar">AI</div>
                 <div class="message-content">
-                    <div class="typing-indicator active" role="status" aria-live="polite" aria-label="AI is typing">
+                    <div class="typing-indicator active">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
@@ -1232,20 +991,18 @@
             if (!message) return;
 
             if (!currentBrandId) {
-                showError('Brand not loaded. Please refresh the page.');
+                alert('Brand not loaded. Please refresh the page.');
                 return;
             }
 
-            // Check usage limit BEFORE sending
             if (!checkUsageLimit()) {
-                return; // Limit reached, modal shown
+                return;
             }
 
             if (!currentSessionId) {
                 createNewChat();
             }
 
-            // Add user message
             const userMessage = {
                 role: 'user',
                 content: message,
@@ -1253,28 +1010,15 @@
             };
             messages.push(userMessage);
 
-            // Update session preview
-            const currentSession = sessions.find(s => s.id === currentSessionId);
-            if (currentSession) {
-                if (currentSession.title === 'New Chat') {
-                    currentSession.title = message.substring(0, 40) + (message.length > 40 ? '...' : '');
-                }
-                currentSession.preview = message.substring(0, 50) + (message.length > 50 ? '...' : '');
-                currentSession.timestamp = 'Just now';
-                renderSessions();
-            }
-
             input.value = '';
-            input.style.height = '45px';
+            input.style.height = '48px';
             renderMessages();
             showTypingIndicator();
 
-            // Disable send button
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
 
             try {
-                // Call AI API
                 const token = localStorage.getItem('access_token');
                 const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat`, {
                     method: 'POST',
@@ -1289,13 +1033,10 @@
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error('API request failed');
-                }
+                if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
 
-                // Add AI response
                 const aiMessage = {
                     role: 'assistant',
                     content: data.response || 'Sorry, I encountered an error processing your request.',
@@ -1303,8 +1044,8 @@
                 };
                 messages.push(aiMessage);
 
-                // Increment usage count
-                usageData.current++;
+                usageData.dailyCurrent++;
+                localStorage.setItem('chat_daily_count', usageData.dailyCurrent.toString());
                 updateUsageIndicator();
 
                 hideTypingIndicator();
@@ -1314,7 +1055,6 @@
                 console.error('Error sending message:', error);
                 hideTypingIndicator();
 
-                // Add error message as AI response
                 const errorMsg = {
                     role: 'assistant',
                     content: 'Sorry, I encountered an error. Please try again later.',
@@ -1322,8 +1062,6 @@
                 };
                 messages.push(errorMsg);
                 renderMessages();
-
-                showError('Failed to send message. Please try again.');
             } finally {
                 sendBtn.disabled = false;
             }
@@ -1343,23 +1081,14 @@
             }
         }
 
-        // Auto-resize textarea and update character counter
+        // Auto-resize textarea
         document.getElementById('messageInput').addEventListener('input', function() {
-            this.style.height = '45px';
-            this.style.height = Math.min(this.scrollHeight, 135) + 'px';
+            this.style.height = '48px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 
-            // Update character counter
             const charCount = this.value.length;
             const counter = document.getElementById('charCounter');
             counter.textContent = `${charCount}/2000 characters`;
-
-            if (charCount > 1800) {
-                counter.style.color = '#ef4444';
-            } else if (charCount > 1500) {
-                counter.style.color = '#eab308';
-            } else {
-                counter.style.color = 'var(--text-secondary)';
-            }
         });
 
         // Scroll to bottom
@@ -1370,38 +1099,6 @@
             }, 100);
         }
 
-        // Show error
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('active');
-            setTimeout(() => {
-                errorDiv.classList.remove('active');
-            }, 5000);
-        }
-
-        // User menu toggle
-        function toggleUserMenu() {
-            const button = document.querySelector('.user-button');
-            const dropdown = document.getElementById('userDropdown');
-            const isExpanded = dropdown.classList.contains('active');
-
-            dropdown.classList.toggle('active');
-            button.setAttribute('aria-expanded', !isExpanded);
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-menu')) {
-                const dropdown = document.getElementById('userDropdown');
-                const button = document.querySelector('.user-button');
-                if (dropdown.classList.contains('active')) {
-                    dropdown.classList.remove('active');
-                    button.setAttribute('aria-expanded', 'false');
-                }
-            }
-        });
-
         // Logout
         async function logout() {
             await sbClient.auth.signOut();
@@ -1409,12 +1106,11 @@
             window.location.href = 'login.html';
         }
 
-        // Initialize on page load
+        // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
             const isAuthenticated = await checkAuth();
             if (isAuthenticated) {
                 await getUserBrand();
-                loadSessions();
                 createNewChat();
             }
         });
