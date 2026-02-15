@@ -23,7 +23,6 @@
   width: 260px;
   height: 100vh;
   background: #FFFFFF;
-  border-right: 1px solid #E5E7EB; /* Subtle gray border */
   padding: 24px 16px;
   overflow-y: auto;
   z-index: 999;
