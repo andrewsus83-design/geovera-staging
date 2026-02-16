@@ -95,6 +95,8 @@
    NAVIGATION ITEMS - TailAdmin Style with GeoVera Green
    ======================================== */
 
+.geovera-sidebar .nav-item,
+.sidebar-nav .nav-item,
 .nav-item {
   display: flex;
   align-items: center;
@@ -103,25 +105,31 @@
   margin-bottom: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: #6B7280 !important;
   border-radius: 8px;
   transition: all 0.2s ease;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: none !important;
   position: relative;
 }
 
+.geovera-sidebar .nav-item:hover,
+.sidebar-nav .nav-item:hover,
 .nav-item:hover {
   background: #F9FAFB !important;
   color: #111827 !important;
 }
 
+.geovera-sidebar .nav-item.active,
+.sidebar-nav .nav-item.active,
 .nav-item.active {
   background: #F0FDF4 !important; /* Light green background */
   color: #16A34A !important;      /* GeoVera green text */
-  font-weight: 600;
+  font-weight: 600 !important;
 }
 
+.geovera-sidebar .nav-item-icon,
+.sidebar-nav .nav-item-icon,
 .nav-item-icon {
   width: 20px;
   height: 20px;
@@ -129,10 +137,14 @@
   flex-shrink: 0;
 }
 
+.geovera-sidebar .nav-item.active .nav-item-icon,
+.sidebar-nav .nav-item.active .nav-item-icon,
 .nav-item.active .nav-item-icon {
   color: #16A34A !important; /* Green icon when active */
 }
 
+.geovera-sidebar .nav-item:hover .nav-item-icon,
+.sidebar-nav .nav-item:hover .nav-item-icon,
 .nav-item:hover .nav-item-icon {
   color: #6B7280 !important;
 }
