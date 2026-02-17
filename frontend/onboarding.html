@@ -610,6 +610,47 @@
                 </div>
 
                 <div class="field">
+                    <label for="country">Country/Market <span class="required" aria-label="required">*</span></label>
+                    <select
+                        id="country"
+                        name="country"
+                        required
+                        aria-required="true"
+                        aria-invalid="false"
+                        aria-describedby="country-error"
+                    >
+                        <option value="">Where is your brand based?</option>
+                        <option value="Indonesia">Indonesia</option>
+                        <option value="Singapore">Singapore</option>
+                        <option value="Malaysia">Malaysia</option>
+                        <option value="Thailand">Thailand</option>
+                        <option value="Philippines">Philippines</option>
+                        <option value="Vietnam">Vietnam</option>
+                        <option value="United States">United States</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="Australia">Australia</option>
+                        <option value="India">India</option>
+                        <option value="Japan">Japan</option>
+                        <option value="South Korea">South Korea</option>
+                        <option value="China">China</option>
+                        <option value="Hong Kong">Hong Kong</option>
+                        <option value="Taiwan">Taiwan</option>
+                        <option value="UAE">United Arab Emirates</option>
+                        <option value="Saudi Arabia">Saudi Arabia</option>
+                        <option value="Brazil">Brazil</option>
+                        <option value="Mexico">Mexico</option>
+                        <option value="Canada">Canada</option>
+                        <option value="Germany">Germany</option>
+                        <option value="France">France</option>
+                        <option value="Netherlands">Netherlands</option>
+                        <option value="Spain">Spain</option>
+                        <option value="Italy">Italy</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="error-message" id="country-error" role="alert" aria-live="assertive"></div>
+                </div>
+
+                <div class="field">
                     <label for="industry">Industry <span class="required" aria-label="required">*</span></label>
                     <select
                         id="industry"
@@ -755,74 +796,6 @@
             <div class="step" id="step4" role="region" aria-labelledby="step4-title">
                 <h2 id="step4-title">Where are you based?</h2>
                 <p class="step-description">This helps us show relevant creators and optimize content timing</p>
-
-                <div class="field">
-                    <label for="country">Country <span class="required" aria-label="required">*</span></label>
-                    <select
-                        id="country"
-                        name="country"
-                        required
-                        aria-required="true"
-                        aria-invalid="false"
-                        aria-describedby="country-error"
-                    >
-                        <option value="">Select your country</option>
-                        <option value="US">United States</option>
-                        <option value="GB">United Kingdom</option>
-                        <option value="AU">Australia</option>
-                        <option value="SG">Singapore</option>
-                        <option value="ID">Indonesia</option>
-                        <option value="MY">Malaysia</option>
-                        <option value="TH">Thailand</option>
-                        <option value="PH">Philippines</option>
-                        <option value="VN">Vietnam</option>
-                        <option value="JP">Japan</option>
-                        <option value="KR">South Korea</option>
-                        <option value="CN">China</option>
-                        <option value="IN">India</option>
-                        <option value="AE">United Arab Emirates</option>
-                        <option value="SA">Saudi Arabia</option>
-                        <option value="CA">Canada</option>
-                        <option value="MX">Mexico</option>
-                        <option value="BR">Brazil</option>
-                        <option value="AR">Argentina</option>
-                        <option value="CL">Chile</option>
-                        <option value="DE">Germany</option>
-                        <option value="FR">France</option>
-                        <option value="ES">Spain</option>
-                        <option value="IT">Italy</option>
-                        <option value="NL">Netherlands</option>
-                        <option value="SE">Sweden</option>
-                        <option value="NO">Norway</option>
-                        <option value="DK">Denmark</option>
-                        <option value="FI">Finland</option>
-                        <option value="PL">Poland</option>
-                        <option value="RU">Russia</option>
-                        <option value="TR">Turkey</option>
-                        <option value="ZA">South Africa</option>
-                        <option value="NG">Nigeria</option>
-                        <option value="KE">Kenya</option>
-                        <option value="EG">Egypt</option>
-                        <option value="NZ">New Zealand</option>
-                        <option value="HK">Hong Kong</option>
-                        <option value="TW">Taiwan</option>
-                        <option value="BD">Bangladesh</option>
-                        <option value="PK">Pakistan</option>
-                        <option value="LK">Sri Lanka</option>
-                        <option value="MM">Myanmar</option>
-                        <option value="KH">Cambodia</option>
-                        <option value="LA">Laos</option>
-                        <option value="BN">Brunei</option>
-                        <option value="IL">Israel</option>
-                        <option value="JO">Jordan</option>
-                        <option value="LB">Lebanon</option>
-                        <option value="KW">Kuwait</option>
-                        <option value="QA">Qatar</option>
-                        <option value="BH">Bahrain</option>
-                        <option value="OM">Oman</option>
-                    </select>
-                    <div class="error-message" id="country-error" role="alert" aria-live="assertive"></div>
-                </div>
 
                 <div class="field">
                     <label for="timezone">Timezone <span class="required" aria-label="required">*</span></label>
@@ -1255,6 +1228,7 @@
 
             if (step === 1) {
                 const brandName = document.getElementById('brandName');
+                const country = document.getElementById('country');
                 const industry = document.getElementById('industry');
 
                 if (!brandName.value.trim()) {
@@ -1263,6 +1237,14 @@
                     firstError = brandName;
                 } else {
                     hideError('brandName');
+                }
+
+                if (!country.value) {
+                    showError('country', 'Please select your country/market');
+                    isValid = false;
+                    if (!firstError) firstError = country;
+                } else {
+                    hideError('country');
                 }
 
                 if (!industry.value) {
@@ -1420,9 +1402,9 @@
         function saveProgress() {
             // Collect all data
             formData.brandName = document.getElementById('brandName').value;
+            formData.country = document.getElementById('country').value;
             formData.industry = document.getElementById('industry').value;
             formData.website = document.getElementById('website').value;
-            formData.country = document.getElementById('country').value;
             formData.timezone = document.getElementById('timezone').value;
             formData.language = document.getElementById('language').value;
 
@@ -1474,9 +1456,9 @@
 
                 // Restore form fields
                 if (formData.brandName) document.getElementById('brandName').value = formData.brandName;
+                if (formData.country) document.getElementById('country').value = formData.country;
                 if (formData.industry) document.getElementById('industry').value = formData.industry;
                 if (formData.website) document.getElementById('website').value = formData.website;
-                if (formData.country) document.getElementById('country').value = formData.country;
                 if (formData.timezone) document.getElementById('timezone').value = formData.timezone;
                 if (formData.language) document.getElementById('language').value = formData.language;
 
@@ -1544,8 +1526,8 @@
                     },
                     body: JSON.stringify({
                         brand_name: formData.brandName,
-                        category: formData.industry,
                         country: formData.country,
+                        category: formData.industry,
                         web_url: formData.website || null,
                         description: `Goals: ${formData.goals.join(', ')}`,
                         timezone: formData.timezone,

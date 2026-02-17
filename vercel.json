@@ -2,6 +2,11 @@
   "buildCommand": "echo 'No build needed'",
   "outputDirectory": "frontend",
   "installCommand": "echo 'No install needed'",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 300
+    }
+  },
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/login", "destination": "/login.html" },
@@ -11,7 +16,10 @@
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/chat.html" },
-    { "source": "/content-studio", "destination": "/content-studio.html" }
+    { "source": "/content-studio", "destination": "/content-studio.html" },
+    { "source": "/report", "destination": "/report-viewer.html" },
+    { "source": "/bulletin", "destination": "/bulletin-branded.html" },
+    { "source": "/showcase", "destination": "/showcase-article.html" }
   ],
   "headers": [
     {
