@@ -189,14 +189,182 @@ async function getExistingLora(slug: string, supabaseUrl: string): Promise<{ wei
   }
 }
 
-// ─── FLUX Pro generation ───────────────────────────────────────────────────
+// ─── FLUX image generation ─────────────────────────────────────────────────
+// Supports two backends:
+//   A) Vast.ai Serverless ComfyUI (VAST_API_KEY + VAST_COMFYUI_ENDPOINT set)
+//      ~$0.003/image (RTX 4090, 20s @ $0.44/hr) — 90% cheaper than Fal.ai
+//   B) Fal.ai FLUX Pro fallback (FAL_API_KEY set)
+//      ~$0.04/image — used when Vast.ai not yet configured
+
+// ComfyUI workflow JSON for FLUX.1-dev + LoRA inference on Vast.ai
+// Nodes: Load Checkpoint → Load LoRA → CLIP Text Encode → KSampler → VAE Decode → Save Image
+function buildComfyWorkflow(prompt: string, loraUrl: string | undefined, loraScale: number): Record<string, unknown> {
+  const workflow: Record<string, unknown> = {
+    "1": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": { "ckpt_name": "flux1-dev.safetensors" }
+    },
+    "2": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": ["1", 1],
+        "text": prompt
+      }
+    },
+    "3": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": ["1", 1],
+        "text": ""
+      }
+    },
+    "4": {
+      "class_type": "EmptyLatentImage",
+      "inputs": { "width": 1344, "height": 768, "batch_size": 1 }
+    },
+    "5": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": loraUrl ? ["6", 0] : ["1", 0],
+        "positive": ["2", 0],
+        "negative": ["3", 0],
+        "latent_image": ["4", 0],
+        "seed": Math.floor(Math.random() * 9999999999),
+        "steps": 28,
+        "cfg": 3.5,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0
+      }
+    },
+    "7": {
+      "class_type": "VAEDecode",
+      "inputs": { "samples": ["5", 0], "vae": ["1", 2] }
+    },
+    "8": {
+      "class_type": "SaveImage",
+      "inputs": { "images": ["7", 0], "filename_prefix": "geovera_output" }
+    }
+  };
+
+  // Insert LoRA loader node if LoRA URL provided
+  if (loraUrl) {
+    workflow["6"] = {
+      "class_type": "LoraLoader",
+      "inputs": {
+        "model": ["1", 0],
+        "clip": ["1", 1],
+        "lora_name": loraUrl,   // Vast.ai ComfyUI accepts URLs here
+        "strength_model": loraScale,
+        "strength_clip": loraScale
+      }
+    };
+  }
+
+  return workflow;
+}
 
 async function generateFluxImage(
   prompt: string,
-  falApiKey: string,
+  apiKey: string,   // VAST_API_KEY or FAL_API_KEY
   loraWeightsUrl?: string,
   loraScale?: number,
+  vastEndpointName?: string,  // Vast.ai Serverless endpoint name (e.g. "geovera-flux")
 ): Promise<string | null> {
+  // ── Vast.ai Serverless path ──────────────────────────────────────────────
+  if (vastEndpointName) {
+    try {
+      // Step 1: Route request to get a GPU instance URL
+      const routeResp = await fetch('https://run.vast.ai/route/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: vastEndpointName,
+          args: { max_cost_cents: 5 },  // max $0.05 per request budget
+        }),
+      });
+
+      if (!routeResp.ok) {
+        const err = await routeResp.text();
+        console.error('Vast.ai route error:', routeResp.status, err.substring(0, 200));
+        return null;
+      }
+
+      const routeData = await routeResp.json();
+      const instanceUrl = routeData.url; // e.g. "https://abc123.vastai.net"
+      const instanceKey = routeData.api_key || apiKey;
+
+      if (!instanceUrl) {
+        console.error('Vast.ai route returned no instance URL:', JSON.stringify(routeData).substring(0, 200));
+        return null;
+      }
+
+      // Step 2: Send ComfyUI workflow to the instance
+      const workflow = buildComfyWorkflow(prompt, loraWeightsUrl, loraScale ?? 0.85);
+
+      const comfyResp = await fetch(`${instanceUrl}/prompt`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${instanceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: workflow }),
+      });
+
+      if (!comfyResp.ok) {
+        const err = await comfyResp.text();
+        console.error('Vast.ai ComfyUI error:', comfyResp.status, err.substring(0, 200));
+        return null;
+      }
+
+      const comfyData = await comfyResp.json();
+      // ComfyUI returns { prompt_id: "..." } — then we need to poll /history/{id}
+      const promptId = comfyData.prompt_id;
+      if (!promptId) {
+        console.error('ComfyUI returned no prompt_id:', JSON.stringify(comfyData).substring(0, 200));
+        return null;
+      }
+
+      // Step 3: Poll /history until image is ready (max 60s)
+      for (let attempt = 0; attempt < 30; attempt++) {
+        await new Promise(r => setTimeout(r, 2000)); // wait 2s between polls
+
+        const histResp = await fetch(`${instanceUrl}/history/${promptId}`, {
+          headers: { 'Authorization': `Bearer ${instanceKey}` },
+        });
+
+        if (!histResp.ok) continue;
+
+        const histData = await histResp.json();
+        const jobData = histData[promptId];
+        if (!jobData || !jobData.outputs) continue;
+
+        // Find the SaveImage output
+        for (const nodeId of Object.keys(jobData.outputs)) {
+          const nodeOut = jobData.outputs[nodeId];
+          if (nodeOut.images && nodeOut.images.length > 0) {
+            const img = nodeOut.images[0];
+            // Fetch image from ComfyUI /view endpoint
+            const imgUrl = `${instanceUrl}/view?filename=${img.filename}&subfolder=${img.subfolder || ''}&type=${img.type || 'output'}`;
+            console.log(`  ✓ ComfyUI image ready: ${imgUrl.substring(0, 80)}`);
+            return imgUrl;
+          }
+        }
+      }
+
+      console.error('ComfyUI timed out waiting for image after 60s');
+      return null;
+
+    } catch (err) {
+      console.error('Vast.ai inference error:', err);
+      return null;
+    }
+  }
+
+  // ── Fal.ai fallback path ────────────────────────────────────────────────
   try {
     const payload: Record<string, unknown> = {
       prompt,
@@ -215,7 +383,7 @@ async function generateFluxImage(
     const response = await fetch('https://fal.run/fal-ai/flux-pro/v1.1', {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${falApiKey}`,
+        'Authorization': `Key ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -249,15 +417,24 @@ Deno.serve(async (req) => {
       throw new Error('slug, brand_name, and report_markdown are required');
     }
 
-    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY') || null;
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;  // Still used for prompt crafting (GPT-4o)
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Inference backend: Vast.ai Serverless (preferred) or Fal.ai (fallback)
+    const VAST_API_KEY             = Deno.env.get('VAST_API_KEY');
+    const VAST_COMFYUI_ENDPOINT    = Deno.env.get('VAST_COMFYUI_ENDPOINT') || 'geovera-flux'; // Vast.ai Serverless endpoint name
+    const FAL_API_KEY              = Deno.env.get('FAL_API_KEY');
+    const PERPLEXITY_API_KEY       = Deno.env.get('PERPLEXITY_API_KEY') || null;
+    const OPENAI_API_KEY           = Deno.env.get('OPENAI_API_KEY')!;  // GPT-4o for prompt crafting
+    const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!FAL_API_KEY) {
-      throw new Error('FAL_API_KEY is required for image generation');
+    // Use Vast.ai if key configured, otherwise fall back to Fal.ai
+    const useVastai     = !!VAST_API_KEY;
+    const inferenceKey  = useVastai ? VAST_API_KEY! : (FAL_API_KEY || '');
+
+    if (!useVastai && !FAL_API_KEY) {
+      throw new Error('Either VAST_API_KEY or FAL_API_KEY is required for image generation');
     }
+
+    console.log(`   Inference backend: ${useVastai ? `Vast.ai Serverless (endpoint: ${VAST_COMFYUI_ENDPOINT}, ~$0.003/img)` : 'Fal.ai (~$0.04/img)'}`)
 
     console.log(`\n🎨 Starting FLUX image generation for: ${brand_name} (${slug})\n`);
 
@@ -478,12 +655,11 @@ ${sectionBriefs}`,
       throw new Error('Failed to parse image prompts from GPT-4o');
     }
 
-    // ─── Step 2: Generate images via FLUX Pro ────────────────────────────────
-    // IMPORTANT: Run sequentially (not Promise.all) to avoid edge function 150s timeout.
-    // Each FLUX + LoRA call takes ~15-25s. 6 parallel = 90-150s risk of timeout.
-    // Sequential = ~90-150s total but only ONE outstanding request at a time — more stable.
-    // We process in batches of 2 to balance speed vs stability.
-    console.log(`\n🚀 Step 2: Generating images via FLUX Pro ${usingLora ? `+ LoRA (trigger: ${loraInfo!.trigger_word})` : '(standard)'}...`);
+    // ─── Step 2: Generate images via FLUX ────────────────────────────────────
+    // Backend: Vast.ai Serverless ComfyUI (~$0.003/img) or Fal.ai (~$0.04/img)
+    // IMPORTANT: Run in sequential batches of 2 to avoid edge function 150s timeout.
+    const backendLabel = useVastai ? `Vast.ai Serverless (${VAST_COMFYUI_ENDPOINT})` : 'Fal.ai FLUX Pro';
+    console.log(`\n🚀 Step 2: Generating images via ${backendLabel} ${usingLora ? `+ LoRA (trigger: ${loraInfo!.trigger_word})` : '(standard)'}...`);
     console.log(`   Strategy: sequential batches of 2 to avoid 150s timeout\n`);
 
     const images: Array<{url: string; alt: string; sectionTitle: string; sectionNum: string; htmlMarker: string | null}> = [];
@@ -500,9 +676,10 @@ ${sectionBriefs}`,
 
         const imageUrl = await generateFluxImage(
           finalPrompt,
-          FAL_API_KEY,
+          inferenceKey,
           usingLora ? loraInfo!.weights_url : undefined,
           0.85,  // Consistent LoRA scale for all sections
+          useVastai ? VAST_COMFYUI_ENDPOINT : undefined,  // Vast.ai endpoint name
         );
 
         if (!imageUrl) {
@@ -649,7 +826,10 @@ ${sectionBriefs}`,
       JSON.stringify({
         success: true,
         slug,
-        engine: usingLora ? 'flux-pro-lora' : 'flux-pro-standard',
+        engine: useVastai
+          ? (usingLora ? 'vast-comfyui-flux-lora' : 'vast-comfyui-flux-standard')
+          : (usingLora ? 'fal-flux-pro-lora' : 'fal-flux-pro-standard'),
+        inference_backend: useVastai ? `vast.ai (${VAST_COMFYUI_ENDPOINT})` : 'fal.ai',
         images: images.map(img => ({ url: img.url, alt: img.alt, section: img.sectionTitle })),
         report_url: reportUrl,
         lora_training_started: loraTrainingStarted,
