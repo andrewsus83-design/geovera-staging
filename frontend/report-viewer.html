@@ -365,6 +365,14 @@
             try {
                 console.log('[Report Viewer] Loading report for:', brandSlug);
 
+                // Check localStorage first (from onboarding flow)
+                const localHtml = localStorage.getItem('report_html_' + brandSlug);
+                if (localHtml) {
+                    console.log('[Report Viewer] Found report in localStorage');
+                    renderFullHtml(localHtml);
+                    return;
+                }
+
                 // For demo, show Kata Oma report
                 if (brandSlug === 'kata-oma' || brandSlug === 'demo') {
                     showDemoReport();
@@ -391,6 +399,26 @@
                 console.error('[Report Viewer] Error:', error);
                 showError('Failed to load report');
             }
+        }
+
+        function renderFullHtml(htmlContent) {
+            // For full HTML reports from report-generator-v2, replace the entire page
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('report-view').style.display = 'none';
+
+            // Create iframe to render full HTML report
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'width:100%;height:100vh;border:none;position:fixed;top:0;left:0;z-index:1000;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(htmlContent);
+            iframe.contentDocument.close();
+
+            // Add back button overlay
+            const backBtn = document.createElement('div');
+            backBtn.innerHTML = '<a href="dashboard.html" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:white;color:#344054;border-radius:8px;text-decoration:none;font-family:Inter,sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:1px solid #e5e7eb;">← Back to Dashboard</a>';
+            backBtn.style.cssText = 'position:fixed;top:16px;left:16px;z-index:1001;';
+            document.body.appendChild(backBtn);
         }
 
         function showDemoReport() {

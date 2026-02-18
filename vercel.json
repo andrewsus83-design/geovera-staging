@@ -17,6 +17,7 @@
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/chat.html" },
     { "source": "/content-studio", "destination": "/content-studio.html" },
+    { "source": "/report/:slug", "destination": "/api/report/:slug" },
     { "source": "/report", "destination": "/report-viewer.html" },
     { "source": "/bulletin", "destination": "/bulletin-branded.html" },
     { "source": "/showcase", "destination": "/showcase-article.html" }

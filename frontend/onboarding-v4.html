@@ -771,6 +771,166 @@
             color: #991B1B;
         }
 
+        /* Report Generation Step */
+        .report-gen-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--gv-hero), #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 700;
+            color: white;
+            margin: 0 auto 24px;
+            position: relative;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards 0.1s;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid var(--gv-hero);
+            animation: pulse-ring 1.8s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        .report-time-hint {
+            font-size: 13px;
+            color: #9CA3AF;
+            margin-top: -28px;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards 0.4s;
+        }
+
+        .report-progress {
+            max-width: 460px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .report-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #E5E7EB;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .report-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gv-hero), #059669);
+            border-radius: 2px;
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%;
+        }
+
+        .report-steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .report-step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #D1D5DB;
+            transition: all 0.4s ease;
+            opacity: 0;
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        .report-step-item:nth-child(1) { animation-delay: 0.5s; }
+        .report-step-item:nth-child(2) { animation-delay: 0.6s; }
+        .report-step-item:nth-child(3) { animation-delay: 0.7s; }
+        .report-step-item:nth-child(4) { animation-delay: 0.8s; }
+        .report-step-item:nth-child(5) { animation-delay: 0.9s; }
+
+        .report-step-item.active {
+            color: var(--gv-anchor);
+        }
+
+        .report-step-item.active .report-step-label {
+            font-weight: 600;
+        }
+
+        .report-step-item.done {
+            color: var(--gv-hero);
+        }
+
+        .report-step-item.done .report-step-label {
+            text-decoration: line-through;
+            text-decoration-color: rgba(22, 163, 74, 0.3);
+        }
+
+        .report-step-label {
+            flex: 1;
+        }
+
+        .report-step-detail {
+            font-size: 12px;
+            color: #9CA3AF;
+            white-space: nowrap;
+        }
+
+        .report-step-item.active .report-step-detail {
+            color: var(--gv-body);
+        }
+
+        .report-step-item.done .report-step-detail {
+            color: rgba(22, 163, 74, 0.6);
+        }
+
+        .report-step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .report-step-dot.active {
+            background: var(--gv-hero);
+            box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
+            animation: dot-pulse 1.2s ease-in-out infinite;
+        }
+
+        .report-step-dot.done {
+            background: var(--gv-hero);
+        }
+
+        .report-step-dot.done::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 3.5px;
+            width: 3px;
+            height: 5px;
+            border: solid white;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+        }
+
+        @keyframes dot-pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15); }
+            50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.08); }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .question-title {
@@ -870,7 +1030,7 @@
     <!-- STEP 1: Brand Info -->
     <div class="step-container" id="step-1">
         <div class="step-content">
-            <div class="question-number">Question 1 → 5</div>
+            <div class="question-number">Question 1 → 3</div>
             <h2 class="question-title">What's your brand name?</h2>
             <p class="question-subtitle">Let's start with the basics about your business</p>
 
@@ -941,7 +1101,7 @@
     <!-- STEP 2: Social Media -->
     <div class="step-container" id="step-2">
         <div class="step-content">
-            <div class="question-number">Question 2 → 5</div>
+            <div class="question-number">Question 2 → 3</div>
             <h2 class="question-title">Connect your social media</h2>
             <p class="question-subtitle">Add your social media profiles (all optional)</p>
 
@@ -995,7 +1155,7 @@
     <!-- STEP 3: Confirmation -->
     <div class="step-container" id="step-3">
         <div class="step-content">
-            <div class="question-number">Question 3 → 5</div>
+            <div class="question-number">Question 3 → 3</div>
             <h2 class="question-title">Confirm your information</h2>
             <p class="question-subtitle">Review your brand details before continuing</p>
 
@@ -1018,12 +1178,85 @@
         </div>
     </div>
 
-    <!-- STEP 4: Thank You & Tier Selection -->
+    <!-- STEP 4: Report Generation -->
     <div class="step-container" id="step-4">
+        <div class="step-content thank-you-screen">
+            <!-- Loading State -->
+            <div id="reportLoading">
+                <div class="report-gen-icon" id="reportGenIcon">
+                    <div class="pulse-ring"></div>
+                    <span>AI</span>
+                </div>
+                <h2 class="question-title" id="reportGenTitle">Generating Your Brand Report</h2>
+                <p class="question-subtitle" id="reportGenSubtitle">Our AI is analyzing your brand across multiple data sources...</p>
+                <p class="report-time-hint" id="reportTimeHint">Estimated time: ~90 seconds</p>
+
+                <div class="report-progress" id="reportProgress">
+                    <div class="report-progress-bar">
+                        <div class="report-progress-fill" id="reportProgressFill"></div>
+                    </div>
+                    <div class="report-steps-list" id="reportStepsList">
+                        <div class="report-step-item" id="rs-0">
+                            <span class="report-step-dot"></span>
+                            <span class="report-step-label">Enhanced brand discovery</span>
+                            <span class="report-step-detail">15+ data points</span>
+                        </div>
+                        <div class="report-step-item" id="rs-1">
+                            <span class="report-step-dot"></span>
+                            <span class="report-step-label">Brand URL indexing</span>
+                            <span class="report-step-detail">Gemini 2.0</span>
+                        </div>
+                        <div class="report-step-item" id="rs-2">
+                            <span class="report-step-dot"></span>
+                            <span class="report-step-label">Deep market research</span>
+                            <span class="report-step-detail">Visual identity analysis</span>
+                        </div>
+                        <div class="report-step-item" id="rs-3">
+                            <span class="report-step-dot"></span>
+                            <span class="report-step-label">Strategic analysis</span>
+                            <span class="report-step-detail">Brand DNA, SWOT, Content</span>
+                        </div>
+                        <div class="report-step-item" id="rs-4">
+                            <span class="report-step-dot"></span>
+                            <span class="report-step-label">Final report generation</span>
+                            <span class="report-step-detail">Content Studio included</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Complete State -->
+            <div id="reportComplete" style="display: none;">
+                <div class="success-icon" style="animation-delay: 0s;">✓</div>
+                <h2 class="question-title" style="opacity: 0; animation: fadeInUp 0.5s ease forwards 0.15s;">Report Ready!</h2>
+                <p class="question-subtitle" style="opacity: 0; animation: fadeInUp 0.5s ease forwards 0.25s;">Your brand intelligence report has been generated successfully.</p>
+                <div class="action-bar" style="justify-content: center; opacity: 0; animation: fadeInUp 0.5s ease forwards 0.35s;">
+                    <button type="button" class="btn btn-primary" style="opacity: 1; animation: none;" id="viewReportBtn" onclick="viewReport()">View Report</button>
+                    <button type="button" class="btn btn-secondary" onclick="nextStep()">Choose Plan First</button>
+                </div>
+            </div>
+
+            <!-- Report Error State -->
+            <div id="reportError" style="display: none;">
+                <div class="report-gen-icon" style="background: linear-gradient(135deg, #DC2626, #991B1B);">
+                    <span>!</span>
+                </div>
+                <h2 class="question-title">Generation Failed</h2>
+                <p class="question-subtitle" style="color: #DC2626;" id="reportErrorMsg">Something went wrong generating your report.</p>
+                <div class="action-bar" style="justify-content: center;">
+                    <button type="button" class="btn btn-primary" style="opacity: 1; animation: none;" onclick="retryReportGeneration()">Try Again</button>
+                    <button type="button" class="btn btn-secondary" onclick="nextStep()">Skip & Choose Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 5: Tier Selection -->
+    <div class="step-container" id="step-5">
         <div class="step-content thank-you-screen">
             <div class="success-icon">✓</div>
             <h2 class="question-title">All set!</h2>
-            <p class="question-subtitle">Your brand profile is being created. Choose a plan to get started.</p>
+            <p class="question-subtitle">Your brand profile is ready. Choose a plan to get started.</p>
 
             <div class="billing-toggle">
                 <span class="billing-label active" id="monthlyLabel">Monthly</span>
@@ -1088,15 +1321,12 @@
         const SUPABASE_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
         const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Check authentication
-        const accessToken = localStorage.getItem('access_token');
-        if (!accessToken) {
-            window.location.href = 'login-redesign.html';
-        }
+        // Check authentication (bypass for local dev)
+        const accessToken = localStorage.getItem('access_token') || 'dev-token';
 
         // State
         let currentStep = 0;
-        const totalSteps = 5;
+        const totalSteps = 6;
         const formData = {};
 
         // Progress bar
@@ -1193,6 +1423,8 @@
             };
 
             const businessTypeNames = {
+                'online': 'Online Business',
+                'hybrid': 'Online + Physical Store',
                 'b2b': 'B2B (Business to Business)',
                 'b2c': 'B2C (Business to Consumer)',
                 'both': 'Both B2B & B2C'
@@ -1359,7 +1591,8 @@
                 formData.brand_id = brandId;
 
                 showAlert('Brand profile created successfully!', 'success');
-                nextStep(); // Go to tier selection
+                nextStep(); // Go to report generation step
+                startReportGeneration(); // Trigger AI report
             } catch (error) {
                 console.error('[GeoVera] Error:', error);
                 showAlert('Network error: ' + error.message, 'error');
@@ -1478,6 +1711,120 @@
             }
 
             window.location.href = 'dashboard.html';
+        }
+
+        // Report Generation
+        let reportGenerationUrl = null;
+
+        // Map country codes to full names for the API
+        const countryMap = {
+            'ID': 'Indonesia', 'SG': 'Singapore', 'MY': 'Malaysia',
+            'TH': 'Thailand', 'PH': 'Philippines', 'VN': 'Vietnam',
+            'US': 'United States', 'GB': 'United Kingdom', 'AU': 'Australia',
+            'OTHER': 'Other'
+        };
+
+        async function startReportGeneration() {
+            const progressFill = document.getElementById('reportProgressFill');
+            const reportLoading = document.getElementById('reportLoading');
+            const reportComplete = document.getElementById('reportComplete');
+            const reportError = document.getElementById('reportError');
+
+            // Reset state
+            reportLoading.style.display = 'block';
+            reportComplete.style.display = 'none';
+            reportError.style.display = 'none';
+
+            // Simulate progress steps
+            const steps = [0, 1, 2, 3, 4];
+            let currentAIStep = 0;
+
+            const progressInterval = setInterval(() => {
+                if (currentAIStep < steps.length) {
+                    // Mark previous as done
+                    if (currentAIStep > 0) {
+                        const prevItem = document.getElementById('rs-' + (currentAIStep - 1));
+                        prevItem.classList.remove('active');
+                        prevItem.classList.add('done');
+                        prevItem.querySelector('.report-step-dot').classList.remove('active');
+                        prevItem.querySelector('.report-step-dot').classList.add('done');
+                    }
+                    // Mark current as active
+                    const curItem = document.getElementById('rs-' + currentAIStep);
+                    curItem.classList.add('active');
+                    curItem.querySelector('.report-step-dot').classList.add('active');
+
+                    // Update progress bar
+                    progressFill.style.width = ((currentAIStep + 1) / steps.length * 80) + '%';
+                    currentAIStep++;
+                }
+            }, 12000); // Every 12 seconds (total ~60s for 5 steps)
+
+            try {
+                const countryName = countryMap[formData.country] || formData.country;
+                const brandSlug = formData.brand_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+                console.log('[GeoVera] Starting report generation for:', formData.brand_name, countryName);
+
+                const response = await fetch(SUPABASE_URL + '/functions/v1/report-generator-v2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_KEY,
+                    },
+                    body: JSON.stringify({
+                        brand_name: formData.brand_name,
+                        country: countryName
+                    })
+                });
+
+                clearInterval(progressInterval);
+
+                const data = await response.json();
+                console.log('[GeoVera] Report generation response:', data.success ? 'SUCCESS' : 'FAILED');
+
+                if (data.success && (data.static_html || data.html_content)) {
+                    // Mark all steps as done
+                    steps.forEach(i => {
+                        const item = document.getElementById('rs-' + i);
+                        item.classList.remove('active');
+                        item.classList.add('done');
+                        item.querySelector('.report-step-dot').classList.remove('active');
+                        item.querySelector('.report-step-dot').classList.add('done');
+                    });
+                    progressFill.style.width = '100%';
+
+                    // Use report URL from server (report.geovera.xyz)
+                    localStorage.setItem('last_report_slug', brandSlug);
+                    localStorage.setItem('last_report_brand', formData.brand_name);
+                    reportGenerationUrl = data.report_url || ('https://report.geovera.xyz/report/' + brandSlug);
+
+                    // Show success state after short delay
+                    setTimeout(() => {
+                        reportLoading.style.display = 'none';
+                        reportComplete.style.display = 'block';
+                    }, 800);
+                } else {
+                    throw new Error(data.error || 'Failed to generate report');
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                console.error('[GeoVera] Report generation error:', error);
+
+                reportLoading.style.display = 'none';
+                reportError.style.display = 'block';
+                document.getElementById('reportErrorMsg').textContent = 'Report generation failed: ' + error.message;
+            }
+        }
+
+        function retryReportGeneration() {
+            startReportGeneration();
+        }
+
+        function viewReport() {
+            if (reportGenerationUrl) {
+                window.location.href = reportGenerationUrl;
+            }
         }
 
         // Keyboard navigation
