@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug, brand_name, image_urls, trigger_word, country, zip_url } = await req.json();
+    const { slug, brand_name, image_urls, trigger_word, country, zip_url, force } = await req.json();
 
     if (!slug || !brand_name) {
       return new Response(JSON.stringify({
@@ -246,6 +246,47 @@ Deno.serve(async (req) => {
 
     console.log(`\n🎨 Starting LoRA training pipeline for: ${brand_name} (${slug})`);
     console.log(`   Trigger word: ${loraTrigggerWord}`);
+
+    // ─── Safety check: Skip if LoRA already exists (prevents double billing) ──
+    // Pass force=true to override and retrain anyway
+    const existingMetaUrl = `${SUPABASE_URL}/storage/v1/object/public/report-images/lora-models/${slug}/metadata.json`;
+    if (!force) try {
+      const existingResp = await fetch(existingMetaUrl);
+      if (existingResp.ok) {
+        const existingMeta = await existingResp.json();
+        if (existingMeta.status === 'ready' && existingMeta.lora_weights_url) {
+          console.log(`   ✓ LoRA already exists for ${slug} — skipping training to avoid double billing`);
+          return new Response(JSON.stringify({
+            success: true,
+            status: 'ready',
+            lora_weights_url: existingMeta.lora_weights_url,
+            lora_config_url: existingMeta.lora_config_url || null,
+            lora_id: existingMeta.fal_request_id || null,
+            trigger_word: existingMeta.trigger_word || loraTrigggerWord,
+            images_used: existingMeta.images_used || 0,
+            metadata_url: existingMetaUrl,
+            cost_usd: 0,
+            skipped: true,
+            reason: 'LoRA already trained for this slug — reusing existing weights',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (existingMeta.status === 'training' && existingMeta.fal_request_id) {
+          console.log(`   ⏳ LoRA already in training for ${slug} (request_id: ${existingMeta.fal_request_id}) — skipping`);
+          return new Response(JSON.stringify({
+            success: true,
+            status: 'training',
+            lora_id: existingMeta.fal_request_id,
+            trigger_word: existingMeta.trigger_word || loraTrigggerWord,
+            metadata_url: existingMetaUrl,
+            cost_usd: 0,
+            skipped: true,
+            reason: 'LoRA training already in progress — poll check-lora-status to get result',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+    } catch {
+      // No existing LoRA — proceed with training
+    }
 
     // ─── Step 1: Collect product image URLs ──────────────────────────────────
     let productImageUrls: string[] = [...(image_urls || [])];
@@ -304,8 +345,11 @@ Deno.serve(async (req) => {
     console.log(`\n🎓 Starting Fal.ai FLUX LoRA training with ${downloadedCount} images...`);
 
     // ─── Step 4: Submit FLUX LoRA training to Fal.ai queue (async) ───────────
-    // Use queue submit instead of fal.run to avoid 150s edge function timeout
-    // Training takes ~5min, so we submit and return request_id immediately
+    // CRITICAL: ALWAYS use queue.fal.run (async), NEVER fal.run (sync).
+    // Reason: training takes ~5min but Supabase edge limit is 150s.
+    // fal.run (sync) sends request, waits for response — edge fn times out at 150s
+    // but Fal.ai KEEPS RUNNING the job and CHARGES $2 even though we never got the response.
+    // queue.fal.run submits job and returns request_id immediately (<10s) — no double billing risk.
     const falPayload = {
       images_data_url: zipPublicUrl,
       trigger_word: loraTrigggerWord,
