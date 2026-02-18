@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug, request_id } = await req.json();
+    const { slug, request_id, trigger_word } = await req.json();
 
     if (!slug || !request_id) {
       return new Response(JSON.stringify({
@@ -92,9 +92,14 @@ Deno.serve(async (req) => {
     const loraWeightsUrl = result.diffusers_lora_file?.url || result.lora_weights_url || null;
     const loraConfigUrl = result.config_file?.url || null;
 
+    // Reconstruct trigger_word if not provided (format: SLUG_PRODUCT)
+    const resolvedTriggerWord = trigger_word ||
+      `${slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_PRODUCT`;
+
     // Save metadata to Supabase Storage
     const loraMetadata = {
       slug,
+      trigger_word: resolvedTriggerWord,
       fal_request_id: request_id,
       lora_weights_url: loraWeightsUrl,
       lora_config_url: loraConfigUrl,

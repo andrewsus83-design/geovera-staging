@@ -72,9 +72,21 @@ function extractSections(markdown: string): SectionData[] {
   }
 
   // Fallback: if we couldn't match 6, grab any ## sections
+  // Spread picks across the full section list to get variety
   if (sections.length < 3) {
     const allSections = [...markdown.matchAll(/^## (.+)$/gm)];
-    const fallbackTargets = [0, 2, 4, 7, 9, 13];
+    const totalSections = allSections.length;
+    // Pick 6 evenly distributed indices from available sections
+    const fallbackTargets: number[] = [];
+    if (totalSections >= 6) {
+      // Evenly spread: pick sections at 0, 20%, 40%, 60%, 80%, last
+      for (let i = 0; i < 6; i++) {
+        fallbackTargets.push(Math.round(i * (totalSections - 1) / 5));
+      }
+    } else {
+      // Fewer sections: use all of them
+      for (let i = 0; i < totalSections; i++) fallbackTargets.push(i);
+    }
     for (const idx of fallbackTargets) {
       if (allSections[idx] && sections.length < 6) {
         const title = allSections[idx][1].trim();
@@ -165,8 +177,11 @@ async function getExistingLora(slug: string, supabaseUrl: string): Promise<{ wei
     if (!resp.ok) return null;
     const meta = await resp.json();
     if (meta.status === 'ready' && meta.lora_weights_url) {
-      console.log(`   ✓ Found existing LoRA: ${meta.trigger_word} → ${meta.lora_weights_url.substring(0, 60)}...`);
-      return { weights_url: meta.lora_weights_url, trigger_word: meta.trigger_word };
+      // Fallback: if trigger_word missing from metadata, reconstruct from slug
+      const triggerWord = meta.trigger_word ||
+        `${slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_PRODUCT`;
+      console.log(`   ✓ Found existing LoRA: trigger="${triggerWord}" → ${meta.lora_weights_url.substring(0, 60)}...`);
+      return { weights_url: meta.lora_weights_url, trigger_word: triggerWord };
     }
     return null;
   } catch {
@@ -464,86 +479,98 @@ ${sectionBriefs}`,
     }
 
     // ─── Step 2: Generate images via FLUX Pro ────────────────────────────────
+    // IMPORTANT: Run sequentially (not Promise.all) to avoid edge function 150s timeout.
+    // Each FLUX + LoRA call takes ~15-25s. 6 parallel = 90-150s risk of timeout.
+    // Sequential = ~90-150s total but only ONE outstanding request at a time — more stable.
+    // We process in batches of 2 to balance speed vs stability.
     console.log(`\n🚀 Step 2: Generating images via FLUX Pro ${usingLora ? `+ LoRA (trigger: ${loraInfo!.trigger_word})` : '(standard)'}...`);
+    console.log(`   Strategy: sequential batches of 2 to avoid 150s timeout\n`);
 
-    const imageResults = await Promise.allSettled(
-      imageSpecs.map(async (spec, idx) => {
-        try {
-          console.log(`  Generating image ${idx + 1}: "${spec.sectionTitle}"...`);
+    const images: Array<{url: string; alt: string; sectionTitle: string; sectionNum: string; htmlMarker: string | null}> = [];
 
-          // All sections use LoRA when available — product is in every image
-          // The GPT-4o prompt already includes the trigger word; prepend it as safety backup
-          const finalPrompt = (usingLora && loraInfo && !spec.prompt.includes(loraInfo.trigger_word))
-            ? `${loraInfo.trigger_word} ${spec.prompt}`
-            : spec.prompt;
+    async function generateAndUpload(spec: ImageSpec, idx: number) {
+      try {
+        console.log(`  [${idx + 1}/6] Generating: "${spec.sectionTitle}"...`);
 
-          const imageUrl = await generateFluxImage(
-            finalPrompt,
-            FAL_API_KEY,
-            usingLora ? loraInfo!.weights_url : undefined,
-            0.85,  // Consistent LoRA scale for all sections
-          );
+        // All sections use LoRA when available — product is in every image
+        // The GPT-4o prompt already includes the trigger word; prepend it as safety backup
+        const finalPrompt = (usingLora && loraInfo && !spec.prompt.includes(loraInfo.trigger_word))
+          ? `${loraInfo.trigger_word} ${spec.prompt}`
+          : spec.prompt;
 
-          if (!imageUrl) {
-            console.error(`  ✗ FLUX failed for image ${idx + 1}`);
-            return null;
-          }
+        const imageUrl = await generateFluxImage(
+          finalPrompt,
+          FAL_API_KEY,
+          usingLora ? loraInfo!.weights_url : undefined,
+          0.85,  // Consistent LoRA scale for all sections
+        );
 
-          // Download image bytes
-          const imgResponse = await fetch(imageUrl);
-          const imgBlob = await imgResponse.arrayBuffer();
-
-          // Upload to Supabase Storage
-          const storagePath = `${slug}/section-${spec.sectionNum || String(idx).padStart(2, '0')}.jpg`;
-          const uploadResponse = await fetch(
-            `${SUPABASE_URL}/storage/v1/object/report-images/${storagePath}`,
-            {
-              method: 'POST',
-              headers: {
-                'apikey': SUPABASE_SERVICE_KEY,
-                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                'Content-Type': 'image/jpeg',
-                'x-upsert': 'true',
-              },
-              body: imgBlob,
-            }
-          );
-
-          if (!uploadResponse.ok) {
-            const err = await uploadResponse.text();
-            console.error(`  Storage upload error for image ${idx}:`, err);
-            return null;
-          }
-
-          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/report-images/${storagePath}`;
-          console.log(`  ✓ Image ${idx + 1} uploaded: ${spec.sectionTitle} ${usingLora ? '[LoRA+trigger]' : ''}`);
-
-          // Flexible section matching: exact title, sectionNum, or partial title overlap
-          const matchedSection = sections.find(s =>
-            s.title === spec.sectionTitle ||
-            s.sectionNum === spec.sectionNum ||
-            spec.sectionTitle.startsWith(s.title) ||
-            s.title.startsWith(spec.sectionTitle) ||
-            (spec.sectionTitle.includes(s.title.split(' ')[0]) && s.title.length > 5)
-          );
-
-          return {
-            url: publicUrl,
-            alt: spec.alt,
-            sectionTitle: spec.sectionTitle,
-            sectionNum: spec.sectionNum,
-            htmlMarker: matchedSection?.htmlMarker || null,
-          };
-        } catch (err) {
-          console.error(`  Image ${idx} failed:`, err);
+        if (!imageUrl) {
+          console.error(`  ✗ FLUX failed for image ${idx + 1}`);
           return null;
         }
-      })
-    );
 
-    const images = imageResults
-      .filter(r => r.status === 'fulfilled' && r.value)
-      .map(r => (r as PromiseFulfilledResult<any>).value);
+        // Download image bytes
+        const imgResponse = await fetch(imageUrl);
+        const imgBlob = await imgResponse.arrayBuffer();
+
+        // Upload to Supabase Storage
+        const storagePath = `${slug}/section-${spec.sectionNum || String(idx).padStart(2, '0')}.jpg`;
+        const uploadResponse = await fetch(
+          `${SUPABASE_URL}/storage/v1/object/report-images/${storagePath}`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'image/jpeg',
+              'x-upsert': 'true',
+            },
+            body: imgBlob,
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const err = await uploadResponse.text();
+          console.error(`  Storage upload error for image ${idx}:`, err);
+          return null;
+        }
+
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/report-images/${storagePath}`;
+        console.log(`  ✓ [${idx + 1}/6] Done: ${spec.sectionTitle} ${usingLora ? '[LoRA+trigger]' : ''}`);
+
+        // Flexible section matching: exact title, sectionNum, or partial title overlap
+        const matchedSection = sections.find(s =>
+          s.title === spec.sectionTitle ||
+          s.sectionNum === spec.sectionNum ||
+          spec.sectionTitle.startsWith(s.title) ||
+          s.title.startsWith(spec.sectionTitle) ||
+          (spec.sectionTitle.includes(s.title.split(' ')[0]) && s.title.length > 5)
+        );
+
+        return {
+          url: publicUrl,
+          alt: spec.alt,
+          sectionTitle: spec.sectionTitle,
+          sectionNum: spec.sectionNum,
+          htmlMarker: matchedSection?.htmlMarker || null,
+        };
+      } catch (err) {
+        console.error(`  Image ${idx} failed:`, err);
+        return null;
+      }
+    }
+
+    // Process in batches of 2 (parallel pairs) to balance speed vs timeout risk
+    for (let i = 0; i < imageSpecs.length; i += 2) {
+      const batch = imageSpecs.slice(i, i + 2);
+      const batchResults = await Promise.all(
+        batch.map((spec, batchIdx) => generateAndUpload(spec, i + batchIdx))
+      );
+      for (const result of batchResults) {
+        if (result) images.push(result);
+      }
+    }
 
     console.log(`\n✅ ${images.length}/6 images generated and uploaded\n`);
 
