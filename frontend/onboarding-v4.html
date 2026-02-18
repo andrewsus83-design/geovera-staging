@@ -1152,8 +1152,56 @@
         </div>
     </div>
 
-    <!-- STEP 3: Confirmation -->
+    <!-- STEP 3: Product Photos (LoRA Training) -->
     <div class="step-container" id="step-3">
+        <div class="step-content">
+            <div class="question-number">Optional · Brand Visuals</div>
+            <h2 class="question-title">Upload product photos</h2>
+            <p class="question-subtitle">Help our AI generate accurate, on-brand images for your reports. Upload clear product photos — packaging, hero shots, lifestyle.</p>
+
+            <div id="product-upload-area" style="border:2px dashed #E5E7EB;border-radius:12px;padding:32px 24px;text-align:center;margin-bottom:20px;transition:border-color 0.2s,background 0.2s;cursor:pointer;background:#FAFAFA;" onclick="document.getElementById('product_photos_input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+                <div style="font-size:36px;margin-bottom:12px;">📸</div>
+                <p style="font-weight:600;color:#0B0F19;margin-bottom:6px;">Drag & drop or click to upload</p>
+                <p style="font-size:13px;color:#6B7280;" id="upload-limit-hint">Supports JPG, PNG, WEBP · Min 4 photos recommended</p>
+                <input type="file" id="product_photos_input" multiple accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handlePhotoSelection(event)">
+            </div>
+
+            <!-- Photo preview grid -->
+            <div id="photo-preview-grid" style="display:none;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <p style="font-size:13px;font-weight:600;color:#0B0F19;" id="photo-count-label">0 photos selected</p>
+                    <button type="button" onclick="clearPhotos()" style="font-size:12px;color:#6B7280;background:none;border:none;cursor:pointer;text-decoration:underline;">Clear all</button>
+                </div>
+                <div id="photo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;"></div>
+            </div>
+
+            <!-- Upload progress -->
+            <div id="upload-progress" style="display:none;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div style="width:16px;height:16px;border:2px solid #16A34A;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+                    <p style="font-size:13px;font-weight:500;color:#0B0F19;" id="upload-progress-text">Uploading photos...</p>
+                </div>
+                <div style="height:4px;background:#E5E7EB;border-radius:2px;overflow:hidden;">
+                    <div id="upload-progress-bar" style="height:100%;background:#16A34A;width:0%;transition:width 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- Plan limit info -->
+            <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#166534;">
+                <strong>💡 Product limits by plan:</strong> Basic → 2 products · Premium → 5 products · Partner → 8 products<br>
+                <span style="color:#6B7280;">GeoVera regenerates brand images automatically every month using your trained model.</span>
+            </div>
+
+            <div class="action-bar">
+                <button type="button" class="btn btn-secondary" onclick="previousStep()">Back</button>
+                <button type="button" class="btn btn-primary" id="uploadContinueBtn" onclick="handlePhotoUpload()">Upload &amp; Continue</button>
+                <button type="button" class="btn btn-text" onclick="skipPhotoUpload()">Skip for now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 4: Confirmation -->
+    <div class="step-container" id="step-4">
         <div class="step-content">
             <div class="question-number">Question 3 → 3</div>
             <h2 class="question-title">Confirm your information</h2>
@@ -1178,8 +1226,8 @@
         </div>
     </div>
 
-    <!-- STEP 4: Report Generation -->
-    <div class="step-container" id="step-4">
+    <!-- STEP 5: Report Generation -->
+    <div class="step-container" id="step-5">
         <div class="step-content thank-you-screen">
             <!-- Loading State -->
             <div id="reportLoading">
@@ -1251,8 +1299,8 @@
         </div>
     </div>
 
-    <!-- STEP 5: Tier Selection -->
-    <div class="step-container" id="step-5">
+    <!-- STEP 6: Tier Selection -->
+    <div class="step-container" id="step-6">
         <div class="step-content thank-you-screen">
             <div class="success-icon">✓</div>
             <h2 class="question-title">All set!</h2>
@@ -1276,6 +1324,7 @@
                         <li>1 brand</li>
                         <li>Weekly reports</li>
                         <li>Basic analytics</li>
+                        <li>🎨 Train 2 product models</li>
                     </ul>
                 </div>
 
@@ -1289,6 +1338,7 @@
                         <li>Up to 5 brands</li>
                         <li>Daily reports</li>
                         <li>Priority support</li>
+                        <li>🎨 Train 5 product models</li>
                     </ul>
                 </div>
 
@@ -1301,6 +1351,7 @@
                         <li>Custom integrations</li>
                         <li>Dedicated support</li>
                         <li>White-label options</li>
+                        <li>🎨 Train 8 product models</li>
                     </ul>
                 </div>
             </div>
@@ -1326,8 +1377,10 @@
 
         // State
         let currentStep = 0;
-        const totalSteps = 6;
+        const totalSteps = 7;
         const formData = {};
+        let selectedPhotos = [];  // File objects for product photos
+        let uploadedPhotoUrls = []; // Supabase Storage URLs after upload
 
         // Progress bar
         function updateProgress() {
@@ -1394,7 +1447,141 @@
             formData.youtube_url = document.getElementById('youtube_url').value.trim() || null;
 
             console.log('[GeoVera] Step 2 completed - Social media URLs collected');
-            // Show review
+            // Go to Step 3: product photo upload
+            nextStep();
+        }
+
+        // ─── STEP 3: Product Photo Upload ───────────────────────────────────
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('product-upload-area').style.borderColor = '#16A34A';
+            document.getElementById('product-upload-area').style.background = '#F0FDF4';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('product-upload-area').style.borderColor = '#E5E7EB';
+            document.getElementById('product-upload-area').style.background = '#FAFAFA';
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            addPhotos(files);
+        }
+
+        function handlePhotoSelection(e) {
+            const files = Array.from(e.target.files);
+            addPhotos(files);
+        }
+
+        function addPhotos(files) {
+            // No hard limit here — plan limit enforced on backend. Show warning if >20.
+            const maxSoft = 20;
+            const combined = [...selectedPhotos, ...files].slice(0, maxSoft);
+            selectedPhotos = combined;
+            renderPhotoGrid();
+        }
+
+        function renderPhotoGrid() {
+            const grid = document.getElementById('photo-grid');
+            const preview = document.getElementById('photo-preview-grid');
+            const countLabel = document.getElementById('photo-count-label');
+            grid.innerHTML = '';
+            if (selectedPhotos.length === 0) {
+                preview.style.display = 'none';
+                return;
+            }
+            preview.style.display = 'block';
+            countLabel.textContent = selectedPhotos.length + ' photo' + (selectedPhotos.length !== 1 ? 's' : '') + ' selected';
+            selectedPhotos.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const wrap = document.createElement('div');
+                    wrap.style.cssText = 'position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1.5px solid #E5E7EB;';
+                    wrap.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" alt="Product ${idx+1}">
+                        <button onclick="removePhoto(${idx})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:18px;padding:0;">✕</button>`;
+                    grid.appendChild(wrap);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removePhoto(idx) {
+            selectedPhotos.splice(idx, 1);
+            renderPhotoGrid();
+        }
+
+        function clearPhotos() {
+            selectedPhotos = [];
+            document.getElementById('product_photos_input').value = '';
+            renderPhotoGrid();
+        }
+
+        function skipPhotoUpload() {
+            console.log('[GeoVera] Photo upload skipped');
+            formData.product_photo_urls = [];
+            populateReview();
+            nextStep();
+        }
+
+        async function handlePhotoUpload() {
+            if (selectedPhotos.length === 0) {
+                skipPhotoUpload();
+                return;
+            }
+
+            const btn = document.getElementById('uploadContinueBtn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            const progressDiv = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressText = document.getElementById('upload-progress-text');
+            progressDiv.style.display = 'block';
+
+            uploadedPhotoUrls = [];
+            const brandSlug = (formData.brand_name || 'brand').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+            formData.brand_slug_temp = brandSlug;
+
+            for (let i = 0; i < selectedPhotos.length; i++) {
+                const file = selectedPhotos[i];
+                const ext = file.name.split('.').pop() || 'jpg';
+                const storagePath = `brand-assets/${brandSlug}/product-${i + 1}.${ext}`;
+                progressText.textContent = `Uploading photo ${i + 1} of ${selectedPhotos.length}...`;
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uploadResp = await fetch(
+                        SUPABASE_URL + '/storage/v1/object/brand-assets/' + storagePath,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                                'Content-Type': file.type || 'image/jpeg',
+                                'x-upsert': 'true',
+                            },
+                            body: arrayBuffer,
+                        }
+                    );
+                    if (uploadResp.ok) {
+                        const publicUrl = SUPABASE_URL + '/storage/v1/object/public/brand-assets/' + storagePath;
+                        uploadedPhotoUrls.push(publicUrl);
+                        console.log('[GeoVera] Uploaded photo ' + (i + 1) + ':', publicUrl);
+                    } else {
+                        const err = await uploadResp.text();
+                        console.warn('[GeoVera] Photo upload failed:', err);
+                    }
+                } catch (err) {
+                    console.warn('[GeoVera] Photo upload error:', err);
+                }
+
+                progressBar.style.width = Math.round(((i + 1) / selectedPhotos.length) * 100) + '%';
+            }
+
+            progressDiv.style.display = 'none';
+            formData.product_photo_urls = uploadedPhotoUrls;
+            console.log('[GeoVera] Step 3 complete — ' + uploadedPhotoUrls.length + ' photos uploaded');
+
+            btn.disabled = false;
+            btn.textContent = 'Upload & Continue';
             populateReview();
             nextStep();
         }
@@ -1798,6 +1985,34 @@
                     localStorage.setItem('last_report_slug', brandSlug);
                     localStorage.setItem('last_report_brand', formData.brand_name);
                     reportGenerationUrl = data.report_url || ('https://report.geovera.xyz/report/' + brandSlug);
+
+                    // Fire-and-forget: trigger image generation + LoRA training in background
+                    if (data.report_markdown) {
+                        console.log('[GeoVera] Triggering background image generation...');
+                        const imgPayload = {
+                            slug: brandSlug,
+                            brand_name: formData.brand_name,
+                            report_markdown: data.report_markdown,
+                            country: countryMap[formData.country] || formData.country,
+                            visual_research: data.visual_research || null,
+                            product_photo_urls: formData.product_photo_urls || [],
+                        };
+                        fetch(SUPABASE_URL + '/functions/v1/report-image-generator', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                            },
+                            body: JSON.stringify(imgPayload)
+                        }).then(r => r.json()).then(imgData => {
+                            console.log('[GeoVera] Image generation:', imgData.success ? 'SUCCESS' : 'FAILED', imgData);
+                            if (imgData.lora_training_started) {
+                                console.log('[GeoVera] LoRA training started — model will be ready in ~10 minutes');
+                            }
+                        }).catch(err => {
+                            console.log('[GeoVera] Image generation background error:', err);
+                        });
+                    }
 
                     // Show success state after short delay
                     setTimeout(() => {

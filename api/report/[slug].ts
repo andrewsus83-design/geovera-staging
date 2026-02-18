@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vozjwptzutolvkvfpknk.supabase.co';
-  const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/reports/${safeSlug}.html`;
+  const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/reports/report-html/${safeSlug}.html`;
 
   try {
     const response = await fetch(storageUrl);
