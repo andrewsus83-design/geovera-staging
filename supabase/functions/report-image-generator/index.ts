@@ -551,6 +551,18 @@ ${sectionBriefs}`,
       if (htmlResponse.ok) {
         let html = await htmlResponse.text();
 
+        // First pass: strip ALL previously injected <figure> blocks that follow any <h2>
+        // Uses a greedy loop to handle multiple stacked figures after one h2
+        // Pattern: <h2>...</h2> followed by one or more <figure>...</figure> blocks
+        let prevHtml = '';
+        while (prevHtml !== html) {
+          prevHtml = html;
+          html = html.replace(
+            /(<h2>[^<]+<\/h2>)(\s*<figure\b[\s\S]*?<\/figure>)+/g,
+            '$1'
+          );
+        }
+
         for (const img of images) {
           if (!img.htmlMarker || !html.includes(img.htmlMarker)) {
             console.log(`  ⚠️ No marker found for: ${img.sectionTitle}`);
@@ -562,7 +574,13 @@ ${sectionBriefs}`,
 <figcaption style="padding:10px 18px;font-size:12px;color:#667085;border-top:1px solid #f2f4f7;background:#fcfcfd;font-family:Inter,system-ui,sans-serif;font-weight:500;letter-spacing:0.02em;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;flex-shrink:0"></span>${img.alt}</figcaption>
 </figure>`;
 
-          html = html.replace(img.htmlMarker, img.htmlMarker + '\n' + figureHtml);
+          // Replace only the FIRST occurrence to avoid duplicating across sections
+          const markerIdx = html.indexOf(img.htmlMarker);
+          if (markerIdx !== -1) {
+            html = html.slice(0, markerIdx + img.htmlMarker.length) +
+                   '\n' + figureHtml +
+                   html.slice(markerIdx + img.htmlMarker.length);
+          }
           console.log(`  ✓ Injected image into: ${img.sectionTitle}`);
         }
 
