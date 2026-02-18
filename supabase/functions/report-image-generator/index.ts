@@ -310,34 +310,34 @@ Deno.serve(async (req) => {
 
     const sectionModeMap: Record<string, { mode: string; concept: string; productSection?: boolean }> = {
       'The Brief':              {
-        mode: 'HUMAN SCENE',
+        mode: 'LIFESTYLE PRODUCT',
         productSection: true,
-        concept: 'Wide urban establishing shot — busy street market or city crowd, overhead or street level, golden hour light, authentic daily life in ' + location,
+        concept: `Young ${isIndonesia ? 'Indonesian' : 'local'} professional walking briskly on a busy city sidewalk, morning commute, carrying a bag, drinking from the product bottle mid-stride, golden morning light, candid street photography style, f/1.8 bokeh background of urban ${location}`,
       },
       'Origin Story':           {
-        mode: 'HUMAN SCENE',
-        productSection: false,
-        concept: 'Intimate indoor scene — modest home kitchen or family gathering, warm incandescent light, textured walls, sense of origin and beginnings in ' + location,
+        mode: 'MACRO PRODUCT',
+        productSection: true,
+        concept: `Macro close-up beauty shot — crystal clear water droplets falling in slow motion into an open product bottle mouth, multiple droplets mid-fall, pure and clean, cool blue water tones, black background, studio backlit lighting, commercial water photography style`,
       },
       'The Competition':        {
-        mode: 'ABSTRACT/MINIMAL',
-        productSection: false,
-        concept: 'Overhead shot — 7 identical empty clear drinking glasses arranged in a circle on white marble, studio lighting from above, cool blue shadow tones, no labels, no text, no bottles',
+        mode: 'LIFESTYLE PRODUCT',
+        productSection: true,
+        concept: `${isIndonesia ? 'Indonesian' : 'local'} gym scene — person just finished a workout, sitting on a bench catching breath, holding the product bottle up, sweat visible, dramatic gym lighting from above, authentic athletic lifestyle`,
       },
       'Five Big Opportunities': {
-        mode: 'ABSTRACT/MINIMAL',
-        productSection: false,
-        concept: 'Top-down flat lay on raw concrete — only these items: a black smartphone face-down, white earbuds, a crumpled rupiah note, door keys, a pen. No branded items, no food packaging, no bottles, no logos anywhere',
+        mode: 'LIFESTYLE PRODUCT',
+        productSection: true,
+        concept: `Group of young ${isIndonesia ? 'Indonesian' : 'local'} friends at a casual outdoor cafe, laughing together, product bottles on the table, relaxed social scene, warm afternoon light, candid and authentic feeling`,
       },
       'Search & Discovery':     {
-        mode: 'ABSTRACT/MINIMAL',
-        productSection: false,
-        concept: 'Extreme macro close-up — human hand holding a smartphone in a dark room, only the blue glow of the screen illuminates the fingers and palm, shallow depth of field, deep shadow background, no screen content visible',
+        mode: 'LIFESTYLE PRODUCT',
+        productSection: true,
+        concept: `${isIndonesia ? 'Indonesian' : 'local'} office worker at a standing desk, focused on laptop screen, product bottle beside the laptop within easy reach, clean modern workspace, natural daylight from window, professional lifestyle`,
       },
       'Top Creators':           {
-        mode: 'HUMAN SCENE',
-        productSection: false,
-        concept: `Young ${isIndonesia ? 'Indonesian' : 'local'} person filming vertical video with phone on a tripod in a small bedroom, ring light visible, authentic creator setup, casual clothing`,
+        mode: 'LIFESTYLE PRODUCT',
+        productSection: true,
+        concept: `Young ${isIndonesia ? 'Indonesian' : 'local'} content creator filming a TikTok in their bedroom — they're holding up the product bottle toward their phone camera, ring light glow, authentic creator vibe, fun and energetic mood`,
       },
     };
 
@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
 
     const usingLora = !!(loraInfo);
     const loraContext = usingLora
-      ? `\n\nNOTE: A LoRA model has been trained on this brand's actual product images. For sections marked as PRODUCT SECTION, use the trigger word "${loraInfo!.trigger_word}" naturally in the prompt so the LoRA activates the correct product appearance.`
+      ? `\n\nIMPORTANT: A LoRA model trained on real ${brand_name} product photos is active. Trigger word: "${loraInfo!.trigger_word}". ALWAYS start every prompt with this trigger word — it tells FLUX to render the accurate product bottle. Every image must show the ${brand_name} bottle in a natural lifestyle context.`
       : '';
 
     // Fuzzy-match section title to mode map (handles "Top Creators to Watch" → "Top Creators")
@@ -373,8 +373,8 @@ Deno.serve(async (req) => {
 
     const sectionBriefs = sections.map((s, i) => {
       const mode = findSectionMode(s.title);
-      const loraNote = (usingLora && mode.productSection)
-        ? `\n[PRODUCT SECTION — include trigger word "${loraInfo!.trigger_word}" in prompt]`
+      const loraNote = usingLora
+        ? `\n[INCLUDE TRIGGER WORD "${loraInfo!.trigger_word}" at the START of the prompt]`
         : '';
       return `IMAGE ${i + 1} — Section "${s.title}"\nMODE: ${mode.mode}${loraNote}\nCONCEPT: ${mode.concept}\nSECTION CONTEXT: ${s.excerpt?.substring(0, 200) || '(general brand context)'}`;
     }).join('\n\n---\n\n');
@@ -390,38 +390,46 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a senior photo editor at Bloomberg Businessweek creating FLUX Pro prompts for a brand intelligence report.
+            content: `You are an expert FLUX Pro prompt engineer creating photorealistic lifestyle images for a brand intelligence report. You specialize in crafting prompts that produce stunning, magazine-quality editorial photography using the Fal.ai FLUX Pro model with LoRA.
 ${loraContext}
 
-## ABSOLUTE RULES — NEVER BREAK THESE:
-1. **ZERO product shots** — unless it's a PRODUCT SECTION with a LoRA trigger word
-2. **ZERO logos or text** — no brand names, no labels, no text on any object
-3. **ZERO AI clichés** — no glowing holograms, no pie charts floating in air, no handshakes
+## FLUX PRO PROMPT ENGINEERING — MASTER GUIDE:
 
-## TWO VISUAL MODES:
+FLUX Pro (Black Forest Labs) responds best to prompts that are:
+1. **Highly descriptive** — describe exactly what's in frame, not abstract concepts
+2. **Technically precise** — specify camera, lens, aperture, ISO, shutter speed
+3. **Lighting-focused** — FLUX renders light extremely well; describe the source, quality, direction
+4. **Style-referenced** — name specific photographers, films, magazines for visual style
+5. **Sequential structure**: Subject → Action → Environment → Lighting → Camera → Style
 
-**HUMAN SCENE** — Documentary photography style:
-- Real ${isIndonesia ? 'Indonesian' : location} people in authentic environments
-- ${isIndonesia ? 'Settings: narrow gang alleys, pasar tradisional, warung kopi, kos-kosan, angkot, masjid courtyards' : 'Real local everyday settings'}
-- Lighting: natural — harsh midday equatorial sun, golden hour warmth, fluorescent warung light
-- Style: candid, unposed, documentary — like Magnum Photos or VII Photo Agency
-- FLUX-specific: add "f/1.8 bokeh, Leica Q2, film grain, Kodak Portra 400" for authenticity
+## TRIGGER WORD USAGE (CRITICAL):
+- The LoRA trigger word MUST appear early in the prompt (first 5-10 words)
+- It activates the brand's custom product model trained on real photos
+- After the trigger word, describe how the product appears in the scene
 
-**ABSTRACT/MINIMAL** — Clean conceptual photography:
-- Simple objects on plain surfaces (white marble, raw concrete, wooden table)
-- Overhead (bird's eye) or 45-degree angle
-- Minimal — 3-6 objects maximum, lots of negative space
-- FLUX-specific: add "studio lighting, 50mm macro, sharp focus, clean background, commercial photography"
+## VISUAL STYLE TARGET:
+All 6 images should look like they belong in a single editorial story — consistent mood:
+- **Color grade**: Slightly desaturated, cinematic — not oversaturated Instagram style
+- **People**: Real ${isIndonesia ? 'Indonesian' : location} people, diverse ages, authentic clothes — not models
+- **Moments**: Candid, mid-action — not posed, not looking at camera
+- **Product**: Always present, naturally integrated, label visible but not front-and-center
 
-## YOUR TASK:
-Expand each concept into a precise FLUX Pro prompt (250-400 chars) with:
-- Exact subject + environment
-- Camera: angle, lens (mm), aperture
-- Lighting quality and direction
-- Color temperature and dominant tones
-- Film/photography style reference
+## FLUX-SPECIFIC TECHNIQUES:
+- "shot on [camera model]" dramatically improves photorealism (use: Sony A7IV, Canon R5, Leica Q3, Fujifilm X-T5)
+- "RAW photo, photorealistic" unlocks maximum detail
+- Specify: f/[number], ISO [number], [focal length]mm
+- For bokeh: "f/1.4, 85mm portrait lens, subject in sharp focus, background compressed"
+- For motion: "1/500s shutter speed, frozen motion" or "1/30s, motion blur suggesting movement"
+- "editorial photography, [magazine name] style" — use: Vogue, National Geographic, TIME, Monocle, Kinfolk
+- Lighting descriptors FLUX loves: "Rembrandt lighting", "golden hour backlighting", "practical light sources", "hard rim light", "soft diffused window light"
 
-Return ONLY valid JSON array, no markdown:
+## ANATOMY OF A PERFECT PROMPT (500-600 characters):
+[TRIGGER WORD], [subject age/gender/ethnicity/clothing], [exact action], [precise location], [environmental detail], [lighting: source + quality + direction + color temp], [camera: model + lens + aperture + focus], [style: mood + magazine reference + film stock or grade]
+
+EXAMPLE:
+"AQUVIVA_PRODUCT, 28-year-old Indonesian woman in crisp white office blazer and jeans, drinking from the AQUVIVA water bottle while walking, Jakarta CBD sidewalk at 7:30am, glass skyscrapers blurred behind her, warm golden backlight from rising sun creating rim light on her hair, foreground bokeh of passing commuters, shot on Sony A7IV 85mm f/1.4 ISO 400, Kinfolk magazine editorial style, cinematic color grade"
+
+Return ONLY a valid JSON array with no markdown fences:
 [{"sectionNum":"01","sectionTitle":"The Brief","prompt":"...","alt":"..."}]`,
           },
           {
@@ -456,26 +464,24 @@ ${sectionBriefs}`,
     }
 
     // ─── Step 2: Generate images via FLUX Pro ────────────────────────────────
-    console.log(`\n🚀 Step 2: Generating images via FLUX Pro ${usingLora ? '+ LoRA' : '(standard)'}...`);
+    console.log(`\n🚀 Step 2: Generating images via FLUX Pro ${usingLora ? `+ LoRA (trigger: ${loraInfo!.trigger_word})` : '(standard)'}...`);
 
     const imageResults = await Promise.allSettled(
       imageSpecs.map(async (spec, idx) => {
         try {
           console.log(`  Generating image ${idx + 1}: "${spec.sectionTitle}"...`);
 
-          const modeInfo = findSectionMode(spec.sectionTitle);
-          const isProductSection = usingLora && modeInfo?.productSection;
-
-          // Build the final prompt
-          const finalPrompt = isProductSection
-            ? `${loraInfo!.trigger_word} product, ${spec.prompt}`
+          // All sections use LoRA when available — product is in every image
+          // The GPT-4o prompt already includes the trigger word; prepend it as safety backup
+          const finalPrompt = (usingLora && loraInfo && !spec.prompt.includes(loraInfo.trigger_word))
+            ? `${loraInfo.trigger_word} ${spec.prompt}`
             : spec.prompt;
 
           const imageUrl = await generateFluxImage(
             finalPrompt,
             FAL_API_KEY,
             usingLora ? loraInfo!.weights_url : undefined,
-            isProductSection ? 0.9 : 0.7,  // Higher LoRA scale for product sections
+            0.85,  // Consistent LoRA scale for all sections
           );
 
           if (!imageUrl) {
@@ -510,7 +516,7 @@ ${sectionBriefs}`,
           }
 
           const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/report-images/${storagePath}`;
-          console.log(`  ✓ Image ${idx + 1} uploaded: ${spec.sectionTitle} ${usingLora && isProductSection ? '[LoRA]' : ''}`);
+          console.log(`  ✓ Image ${idx + 1} uploaded: ${spec.sectionTitle} ${usingLora ? '[LoRA+trigger]' : ''}`);
 
           // Flexible section matching: exact title, sectionNum, or partial title overlap
           const matchedSection = sections.find(s =>
