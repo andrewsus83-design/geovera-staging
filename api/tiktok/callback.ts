@@ -16,6 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [, context] = state ? state.split(":") : [];
   const frontendBase = context === "tiktok-calendar"
     ? "https://app.geovera.xyz/tiktok-calendar"
+    : context === "home"
+    ? "https://app.geovera.xyz"
     : "https://app.geovera.xyz/connect";
 
   // ── OAuth error from TikTok ───────────────────────────────────────────────
