@@ -151,7 +151,9 @@ function ConnectDetailPanel({
 }) {
   const features = platformFeatures[platform.id] || [];
   return (
-    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-gray-800 p-5">
         <div className="flex items-center gap-3 mb-3">
@@ -222,11 +224,15 @@ function ConnectDetailPanel({
           <p className="text-[10px] text-brand-500 dark:text-brand-400 mt-1">Basic: 50/day · Premium: 100/day · Enterprise: 150/day</p>
         </div>
 
-        {/* Save button */}
+      </div>{/* end features */}
+      </div>{/* end scrollable content */}
+
+      {/* Save button — sticky at bottom, always visible */}
+      <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 p-4">
         <button
           onClick={onSave}
           disabled={saving || !hasUnsaved}
-          className={`mt-4 w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             hasUnsaved
               ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
               : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
