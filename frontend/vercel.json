@@ -11,7 +11,9 @@
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/chat.html" },
-    { "source": "/content-studio", "destination": "/content-studio.html" }
+    { "source": "/content-studio", "destination": "/content-studio.html" },
+    { "source": "/terms",          "destination": "/terms.html" },
+    { "source": "/privacy",        "destination": "/privacy.html" }
   ],
   "headers": [
     {
