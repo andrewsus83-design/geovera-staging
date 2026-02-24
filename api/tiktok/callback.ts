@@ -12,7 +12,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, state, error, error_description } = req.query as Record<string, string>;
 
-  const frontendBase = "https://app.geovera.xyz/tiktok-calendar";
+  // Determine frontend redirect based on state context
+  const [, context] = state ? state.split(":") : [];
+  const frontendBase = context === "tiktok-calendar"
+    ? "https://app.geovera.xyz/tiktok-calendar"
+    : "https://app.geovera.xyz/connect";
 
   // ── OAuth error from TikTok ───────────────────────────────────────────────
   if (error) {
