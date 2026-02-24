@@ -86,6 +86,8 @@ function ConnectPageInner() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // ── Load real connections from Supabase ──────────────────────────────────
   const loadConnections = useCallback(async () => {
@@ -201,49 +203,81 @@ function ConnectPageInner() {
       return;
     }
 
-    // TikTok → real PKCE OAuth (if client key is configured)
-    if (id === "tiktok" && !platform.connected) {
-      if (!TIKTOK_CLIENT_KEY) {
-        setToast({
-          type: "error",
-          msg: "⏳ TikTok OAuth is pending app approval from TikTok. Coming soon!",
-        });
+    // TikTok → real PKCE OAuth if client key configured, else mock toggle
+    if (id === "tiktok") {
+      if (!platform.connected && TIKTOK_CLIENT_KEY) {
+        // Real OAuth
+        setConnecting(true);
+        try {
+          const oauthUrl = await buildTikTokOAuthUrl(DEMO_BRAND_ID);
+          window.location.href = oauthUrl;
+        } catch {
+          setConnecting(false);
+          setToast({ type: "error", msg: "Failed to build TikTok OAuth URL." });
+        }
         return;
       }
-      setConnecting(true);
-      try {
-        const oauthUrl = await buildTikTokOAuthUrl(DEMO_BRAND_ID);
-        window.location.href = oauthUrl;
-      } catch {
-        setConnecting(false);
-        setToast({ type: "error", msg: "Failed to build TikTok OAuth URL." });
-      }
+      // Mock toggle (no client key yet) — user can Save manually
+      setPlatforms((prev) =>
+        prev.map((p) => (p.id === "tiktok" ? { ...p, connected: !p.connected } : p))
+      );
+      setHasUnsaved(true);
       return;
     }
 
-    // Disconnect TikTok
-    if (id === "tiktok" && platform.connected) {
-      try {
-        await supabase
-          .from("social_connections")
-          .update({ status: "disconnected" })
-          .eq("brand_id", DEMO_BRAND_ID)
-          .eq("platform", "tiktok");
-
-        setPlatforms((prev) =>
-          prev.map((p) => (p.id === "tiktok" ? { ...p, connected: false, handle: undefined } : p))
-        );
-        setToast({ type: "success", msg: "Disconnected TikTok" });
-      } catch {
-        setToast({ type: "error", msg: "Failed to disconnect TikTok. Try again." });
-      }
-      return;
-    }
-
-    // Other platforms — mock toggle for now
+    // Other platforms — mock toggle + mark unsaved
     setPlatforms((prev) =>
       prev.map((p) => (p.id === id ? { ...p, connected: !p.connected } : p))
     );
+    setHasUnsaved(true);
+  };
+
+  // ── Save all toggled connections to Supabase ───────────────────────────────
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      // Upsert all non-Meta connected platforms (Meta is handled via real OAuth)
+      const mockPlatforms = platforms.filter(
+        (p) => p.connected && p.id !== "instagram" && p.id !== "facebook"
+      );
+      const disconnectedMock = platforms.filter(
+        (p) => !p.connected && p.id !== "instagram" && p.id !== "facebook"
+      );
+
+      // Upsert connected
+      for (const p of mockPlatforms) {
+        await supabase.from("social_connections").upsert(
+          {
+            brand_id:            DEMO_BRAND_ID,
+            platform:            p.id,
+            platform_account_id: `demo_${p.id}_user`,
+            platform_username:   `geovera_${p.id}`,
+            status:              "active",
+            connected_at:        now,
+            updated_at:          now,
+          },
+          { onConflict: "brand_id,platform" }
+        );
+      }
+
+      // Mark disconnected
+      for (const p of disconnectedMock) {
+        await supabase
+          .from("social_connections")
+          .update({ status: "disconnected", updated_at: now })
+          .eq("brand_id", DEMO_BRAND_ID)
+          .eq("platform", p.id);
+      }
+
+      setHasUnsaved(false);
+      const names = mockPlatforms.map((p) => p.name).join(", ") || "connections";
+      setToast({ type: "success", msg: `✅ Saved: ${names}` });
+    } catch {
+      setToast({ type: "error", msg: "Failed to save. Try again." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── Auto-reply toggle ──────────────────────────────────────────────────────
@@ -442,6 +476,37 @@ function ConnectPageInner() {
           <p className="text-[10px] text-gray-400 leading-relaxed">
             <span className="font-medium text-gray-500 dark:text-gray-400">📘 Instagram & Facebook</span> are connected via Meta Login — one click connects both platforms. Your page tokens are stored securely and never expire.
           </p>
+        </div>
+
+        {/* Save button */}
+        <div className="mt-4">
+          <button
+            onClick={handleSaveChanges}
+            disabled={saving || !hasUnsaved}
+            className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              hasUnsaved
+                ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
+                : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
+            } disabled:opacity-60`}
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+                Saving…
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                {hasUnsaved ? "Save Changes" : "No changes"}
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
