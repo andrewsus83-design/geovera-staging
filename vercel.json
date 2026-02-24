@@ -1,26 +1,10 @@
 {
-  "buildCommand": "echo 'No build needed'",
-  "outputDirectory": "frontend",
-  "installCommand": "echo 'No install needed'",
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 300
-    }
-  },
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/login", "destination": "/login.html" },
-    { "source": "/signup", "destination": "/login.html" },
-    { "source": "/email-confirmed", "destination": "/email-confirmed.html" },
-    { "source": "/onboarding", "destination": "/onboarding-v4.html" },
-    { "source": "/pricing", "destination": "/pricing.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/chat", "destination": "/chat.html" },
-    { "source": "/content-studio", "destination": "/content-studio.html" },
-    { "source": "/report/:slug", "destination": "/api/report/:slug" },
-    { "source": "/report", "destination": "/report-viewer.html" },
-    { "source": "/bulletin", "destination": "/bulletin-branded.html" },
-    { "source": "/showcase", "destination": "/showcase-article.html" }
+    { "source": "/report/:slug",         "destination": "/api/report/:slug" },
+    { "source": "/rss/:brandId",         "destination": "/api/rss/:brandId" },
+    { "source": "/webhooks/:path*",      "destination": "/api/webhooks/:path*" },
+    { "source": "/api/tiktok/callback",  "destination": "/api/tiktok/callback" },
+    { "source": "/api/tiktok/publish",   "destination": "/api/tiktok/publish" }
   ],
   "headers": [
     {
