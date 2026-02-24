@@ -151,9 +151,9 @@ function ConnectDetailPanel({
 }) {
   const features = platformFeatures[platform.id] || [];
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-gray-800 p-5">
         <div className="flex items-center gap-3 mb-3">
