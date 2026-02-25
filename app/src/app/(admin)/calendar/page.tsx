@@ -655,42 +655,76 @@ const demoTasks: Task[] = [
   },
 ];
 
-type TaskFilter = "inprogress" | "done";
+type TaskFilter = "inprogress" | "done" | "rejected";
+type SubTab = "content" | "comments" | "others";
+
+// 72H window: today + 3 days ahead
+const getMaxDateStr = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3);
+  return d.toISOString().slice(0, 10);
+};
 
 export default function CalendarPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    new Date().toISOString().slice(0, 10) // default to today
+  );
   const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
-  const [doneExpanded, setDoneExpanded] = useState(true);
+  const [rejectedTaskIds, setRejectedTaskIds] = useState<Set<string>>(new Set());
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("inprogress");
+  const [subTab, setSubTab] = useState<SubTab>("content");
+  const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+
+  // Mobile: open right panel when task selected
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+    setMobileRightOpen(true);
+  };
+  const handleMobileBack = () => {
+    setMobileRightOpen(false);
+    setSelectedTask(null);
+  };
+
+  const maxDateStr = useMemo(() => getMaxDateStr(), []);
 
   const taskDates = useMemo(() => demoTasks.map((t) => t.dueDate), []);
 
-  const filteredTasks = useMemo(() => {
+  // Base filter by date (72H window for content tab)
+  const baseTasks = useMemo(() => {
     if (selectedDate) {
-      // Klik tanggal tertentu → tampilkan tasks tanggal itu (termasuk history)
       return demoTasks.filter((t) => t.dueDate === selectedDate);
     }
-    // Default: tampilkan tasks dari hari ini hingga 2 hari ke depan
-    // + semua tasks lampau yang belum selesai (overdue, belum di-done)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const twoDaysAhead = new Date(today);
-    twoDaysAhead.setDate(today.getDate() + 2);
+    const maxDate = new Date(maxDateStr + "T23:59:59");
     return demoTasks.filter((t) => {
       const taskDate = new Date(t.dueDate + "T00:00:00");
-      // Tampilkan jika: task hari ini/2 hari ke depan, ATAU task lampau belum done
-      return taskDate <= twoDaysAhead;
+      return taskDate <= maxDate; // include overdue + up to 72H ahead
     });
-  }, [selectedDate]);
+  }, [selectedDate, maxDateStr]);
 
-  // Split active vs done
-  const activeTasks = filteredTasks.filter((t) => !doneTaskIds.has(t.id));
-  const doneTasks = filteredTasks.filter((t) => doneTaskIds.has(t.id));
+  // Split by sub-tab type
+  const contentTasks = useMemo(() =>
+    baseTasks.filter((t) => t.taskType !== "reply" && t.agent !== "CEO"),
+  [baseTasks]);
+  const commentTasks = useMemo(() =>
+    baseTasks.filter((t) => t.taskType === "reply"),
+  [baseTasks]);
+  const othersTasks = useMemo(() =>
+    baseTasks.filter((t) => t.agent === "CEO"),
+  [baseTasks]);
 
-  const highTasks = activeTasks.filter((t) => t.priority === "high");
+  // Active sub-tab tasks (for filter pill counts)
+  const activeBucket = subTab === "content" ? contentTasks : subTab === "comments" ? commentTasks : othersTasks;
+  const activeTasks   = activeBucket.filter((t) => !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id));
+  const doneTasks     = activeBucket.filter((t) => doneTaskIds.has(t.id));
+  const rejectedTasks = activeBucket.filter((t) => rejectedTaskIds.has(t.id));
+
+  const highTasks   = activeTasks.filter((t) => t.priority === "high");
   const mediumTasks = activeTasks.filter((t) => t.priority === "medium");
-  const lowTasks = activeTasks.filter((t) => t.priority === "low");
+  const lowTasks    = activeTasks.filter((t) => t.priority === "low");
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(selectedDate === date ? null : date);
@@ -701,46 +735,58 @@ export default function CalendarPage() {
     setDoneTaskIds((prev) => new Set([...prev, taskId]));
   };
 
+  const handleReject = (taskId: string, reason: string) => {
+    setRejectedTaskIds((prev) => new Set([...prev, taskId]));
+    setRejectionReasons((prev) => ({ ...prev, [taskId]: reason }));
+    setSelectedTask(null);
+    // In production: POST to Supabase training_data table with task + reason
+    console.log("[GeoVera] Rejected task:", taskId, "reason:", reason, "→ training data");
+  };
+
   const left = (
     <NavColumn>
-      <h3
-        className="text-sm font-semibold text-gray-900 dark:text-white px-1"
-        style={{ fontFamily: "Georgia, serif" }}
-      >
-        Calendar
-      </h3>
+      {/* Calendar widget — desktop only (mobile uses floating FAB) */}
+      <div className="hidden lg:block">
+        <h3
+          className="text-sm font-semibold text-gray-900 dark:text-white px-1"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
+          Calendar
+        </h3>
 
-      {/* Show selected date info below heading */}
-      {selectedDate ? (
-        <div className="px-1 mt-1 mb-3">
-          <p className="text-xs font-medium text-brand-600 dark:text-brand-400">
-            {new Date(selectedDate + "T00:00:00").toLocaleDateString("en", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
+        {/* Show selected date info below heading */}
+        {selectedDate ? (
+          <div className="px-1 mt-1 mb-3">
+            <p className="text-xs font-medium text-brand-600 dark:text-brand-400">
+              {new Date(selectedDate + "T00:00:00").toLocaleDateString("en", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={() => { setSelectedDate(null); setSelectedTask(null); }}
+              className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mt-1 underline"
+            >
+              Clear selection
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 px-1 mt-1 mb-3">
+            Showing today + 2 days ahead. Tap a date to see history.
           </p>
-          <p className="text-[10px] text-gray-400 mt-0.5">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
-          </p>
-          <button
-            onClick={() => { setSelectedDate(null); setSelectedTask(null); }}
-            className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mt-1 underline"
-          >
-            Clear selection
-          </button>
-        </div>
-      ) : (
-        <p className="text-xs text-gray-400 px-1 mt-1 mb-3">
-          Showing today + 2 days ahead. Tap a date to see history.
-        </p>
-      )}
+        )}
 
-      <MiniCalendar
-        taskDates={taskDates}
-        onDateSelect={handleDateSelect}
-        selectedDate={selectedDate}
-      />
+        <MiniCalendar
+          taskDates={taskDates}
+          onDateSelect={handleDateSelect}
+          selectedDate={selectedDate}
+          maxDate={maxDateStr}
+        />
+      </div>
     </NavColumn>
   );
 
@@ -751,7 +797,7 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <h2
-              className="text-lg font-semibold text-gray-900 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               style={{ fontFamily: "Georgia, serif" }}
             >
               {selectedDate
@@ -764,7 +810,7 @@ export default function CalendarPage() {
             </h2>
             {/* Active / Total counter */}
             <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              {activeTasks.length}/{filteredTasks.length}
+              {activeTasks.length}/{activeBucket.length}
             </span>
             {doneTasks.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/10 dark:text-green-400">
@@ -774,123 +820,379 @@ export default function CalendarPage() {
                 {doneTasks.length} done
               </span>
             )}
+            {rejectedTasks.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                {rejectedTasks.length} rejected
+              </span>
+            )}
           </div>
-          {/* On Progress / Done filter pills */}
+          {/* On Progress / Done / Rejected filter pills */}
           <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 flex-shrink-0">
-            <button
-              onClick={() => setTaskFilter("inprogress")}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                taskFilter === "inprogress"
-                  ? "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-              }`}
-            >
-              On Progress
-            </button>
-            <button
-              onClick={() => setTaskFilter("done")}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                taskFilter === "done"
-                  ? "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-              }`}
-            >
-              Done
-            </button>
+            {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setTaskFilter(f)}
+                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
+                  taskFilter === f
+                    ? f === "rejected"
+                      ? "bg-red-500 text-white shadow-sm"
+                      : "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+                }`}
+              >
+                {f === "inprogress" ? "On Progress" : f === "done" ? "Done" : "Rejected"}
+              </button>
+            ))}
           </div>
         </div>
       </div>
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-1">
 
-      {/* ── ON PROGRESS view ── */}
-      {taskFilter === "inprogress" && (
-        activeTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600 dark:text-green-400">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+        {/* Comments tab — placeholder until Late API connected */}
+        {subTab === "comments" && (
+          <div className="py-6 space-y-2">
+            <div className="rounded-xl border border-teal-200 bg-teal-50/60 dark:border-teal-500/20 dark:bg-teal-500/5 p-3 mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm">🛡️</span>
+                <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">FeedGuardian Auto-Reply</p>
+              </div>
+              <p className="text-[10px] text-teal-600 dark:text-teal-500">
+                Connect your social accounts to see live comment queues here. FeedGuardian ranks comments by author score and drafts personalized replies via OpenAI.
+              </p>
             </div>
-            <p className="text-sm font-medium text-gray-500">All tasks completed!</p>
-            <p className="text-xs text-gray-400 mt-1">Switch to Done to review published tasks</p>
-            <button
-              onClick={() => setTaskFilter("done")}
-              className="mt-2 text-xs text-brand-500 hover:text-brand-600"
-            >
-              View Done →
-            </button>
+            {commentTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-sm font-medium text-gray-500">No comment tasks for this date</p>
+                <p className="text-xs text-gray-400 mt-1">FeedGuardian reply queues appear here daily</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {commentTasks
+                  .filter(t => taskFilter === "inprogress" ? !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id)
+                              : taskFilter === "done" ? doneTaskIds.has(t.id)
+                              : rejectedTaskIds.has(t.id))
+                  .map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => handleTaskSelect(task)}
+                      className={`w-full text-left rounded-xl border p-2.5 transition-all ${
+                        selectedTask?.id === task.id
+                          ? "border-teal-400 bg-teal-50/50 dark:border-teal-500/40"
+                          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">🛡️ FeedGuardian</span>
+                        {task.platform && <span className="text-[10px] text-gray-400">{task.platform}</span>}
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">{task.title}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {(task.replyQueue?.length || 0)} replies pending
+                      </p>
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            <PrioritySection priority="high" tasks={highTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={setSelectedTask} />
-            <PrioritySection priority="medium" tasks={mediumTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={setSelectedTask} />
-            <PrioritySection priority="low" tasks={lowTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={setSelectedTask} />
-          </>
-        )
-      )}
+        )}
 
-      {/* ── DONE view ── */}
-      {taskFilter === "done" && (
-        doneTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-gray-500">No completed tasks yet</p>
-            <p className="text-xs text-gray-400 mt-1">Publish tasks to see them here</p>
+        {/* Others tab — CEO tasks */}
+        {subTab === "others" && (
+          <div className="py-1 space-y-1">
+            {othersTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-sm font-medium text-gray-500">No strategy tasks for this date</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {othersTasks
+                  .filter(t => taskFilter === "inprogress" ? !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id)
+                              : taskFilter === "done" ? doneTaskIds.has(t.id)
+                              : rejectedTaskIds.has(t.id))
+                  .map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => handleTaskSelect(task)}
+                      className={`w-full text-left rounded-xl border p-2.5 transition-all ${
+                        selectedTask?.id === task.id
+                          ? "border-blue-400 bg-blue-50/50 dark:border-blue-500/40"
+                          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">CEO</span>
+                        {doneTaskIds.has(task.id) && <span className="text-[9px] text-green-600">✓ Done</span>}
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">{task.title}</p>
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="space-y-1">
-            {doneTasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => setSelectedTask(task)}
-                className={`w-full text-left rounded-xl border p-2.5 transition-all opacity-70 ${
-                  selectedTask?.id === task.id
-                    ? "border-green-300 bg-green-50/50 dark:border-green-500/30 dark:bg-green-500/5 opacity-100"
-                    : "border-gray-200 bg-gray-50 hover:opacity-90 dark:border-gray-800 dark:bg-gray-900/50"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Published
-                      </span>
-                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                        task.agent === "CEO"
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                          : "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
-                      }`}>
-                        {task.agent}
-                      </span>
-                      {task.platform && (
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                          {task.platform}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 leading-tight line-through">
-                      {task.title}
-                    </h4>
+        )}
+
+        {/* Content tab */}
+        {subTab === "content" && (
+          <>
+            {/* ── ON PROGRESS view ── */}
+            {taskFilter === "inprogress" && (
+              activeTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600 dark:text-green-400">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
+                  <p className="text-sm font-medium text-gray-500">All tasks completed!</p>
+                  <p className="text-xs text-gray-400 mt-1">Switch to Done to review published tasks</p>
+                  <button onClick={() => setTaskFilter("done")} className="mt-2 text-xs text-brand-500 hover:text-brand-600">
+                    View Done →
+                  </button>
                 </div>
-              </button>
-            ))}
+              ) : (
+                <>
+                  <PrioritySection priority="high" tasks={highTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
+                  <PrioritySection priority="medium" tasks={mediumTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
+                  <PrioritySection priority="low" tasks={lowTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
+                </>
+              )
+            )}
+
+            {/* ── DONE view ── */}
+            {taskFilter === "done" && (
+              doneTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">No published tasks yet</p>
+                  <p className="text-xs text-gray-400 mt-1">Publish tasks to see them here</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {doneTasks.map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => handleTaskSelect(task)}
+                      className={`w-full text-left rounded-xl border p-2.5 transition-all opacity-70 ${
+                        selectedTask?.id === task.id
+                          ? "border-green-300 bg-green-50/50 dark:border-green-500/30 dark:bg-green-500/5 opacity-100"
+                          : "border-gray-200 bg-gray-50 hover:opacity-90 dark:border-gray-800 dark:bg-gray-900/50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                              Published
+                            </span>
+                            {task.platform && (
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                {task.platform}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 leading-tight line-through">{task.title}</h4>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* ── REJECTED view ── */}
+            {taskFilter === "rejected" && (
+              rejectedTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                      <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">No rejected content</p>
+                  <p className="text-xs text-gray-400 mt-1">Rejected tasks are used as AI training data</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-3 py-2 mb-2">
+                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                      🧠 {rejectedTasks.length} rejected task{rejectedTasks.length !== 1 ? "s" : ""} added to AI training data to improve future content generation.
+                    </p>
+                  </div>
+                  {rejectedTasks.map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => handleTaskSelect(task)}
+                      className={`w-full text-left rounded-xl border p-2.5 transition-all opacity-70 ${
+                        selectedTask?.id === task.id
+                          ? "border-red-300 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5 opacity-100"
+                          : "border-gray-200 bg-gray-50 hover:opacity-90 dark:border-gray-800 dark:bg-gray-900/50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-500/20 dark:text-red-400">
+                              ✕ Rejected
+                            </span>
+                            {rejectionReasons[task.id] && (
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500 dark:bg-gray-800 dark:text-gray-400 capitalize">
+                                {rejectionReasons[task.id]}
+                              </span>
+                            )}
+                            {task.platform && (
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                                {task.platform}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-medium text-gray-400 dark:text-gray-600 leading-tight line-through">{task.title}</h4>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Mobile: Floating calendar button (bottom-right, above tab bar) ── */}
+      <div className="lg:hidden">
+        {/* Floating button */}
+        <button
+          onClick={() => setMobileCalendarOpen(true)}
+          className="fixed bottom-[70px] right-4 z-[35] h-12 w-12 flex items-center justify-center rounded-full bg-brand-500 text-white shadow-lg border-2 border-white dark:border-gray-900 transition-transform active:scale-95"
+          aria-label="Open calendar"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          {/* Badge: selected date day number */}
+          {selectedDate && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-white dark:bg-gray-900 text-[9px] font-bold text-brand-600 dark:text-brand-400 border border-brand-500">
+              {new Date(selectedDate + "T00:00:00").getDate()}
+            </span>
+          )}
+        </button>
+
+        {/* Calendar popup overlay */}
+        {mobileCalendarOpen && (
+          <div className="fixed inset-0 z-[55]">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileCalendarOpen(false)} />
+            {/* Calendar card - positioned bottom right above FAB */}
+            <div className="absolute bottom-[134px] right-4 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {/* Popup header */}
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {selectedDate
+                    ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en", { weekday: "short", month: "long", day: "numeric" })
+                    : "Select a date"}
+                </p>
+                <button
+                  onClick={() => setMobileCalendarOpen(false)}
+                  className="h-6 w-6 flex items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              {/* Mini calendar */}
+              <MiniCalendar
+                taskDates={taskDates}
+                onDateSelect={(date) => {
+                  handleDateSelect(date);
+                  setMobileCalendarOpen(false);
+                }}
+                selectedDate={selectedDate}
+                maxDate={maxDateStr}
+              />
+              {/* Show all / clear */}
+              {selectedDate && (
+                <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <p className="text-[11px] text-gray-400">{baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""} this day</p>
+                  <button
+                    onClick={() => { setSelectedDate(null); setSelectedTask(null); setMobileCalendarOpen(false); }}
+                    className="text-[11px] text-brand-500 hover:text-brand-600 font-medium"
+                  >
+                    Show all →
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        )
-      )}
+        )}
+      </div>
+
+      {/* ── Sticky bottom tabs — Content / Comments / Others ── */}
+      <div className="sticky bottom-0 z-10 border-t border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="flex h-full">
+          {([
+            {
+              key: "content" as SubTab,
+              label: "Content",
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                </svg>
+              ),
+            },
+            {
+              key: "comments" as SubTab,
+              label: "Comments",
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+              ),
+            },
+            {
+              key: "others" as SubTab,
+              label: "Others",
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
+                </svg>
+              ),
+            },
+          ]).map(({ key, icon, label }) => (
+            <button
+              key={key}
+              onClick={() => { setSubTab(key); setSelectedTask(null); }}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-[11px] font-medium transition-colors border-r last:border-r-0 border-gray-200 dark:border-gray-800 ${
+                subTab === key
+                  ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                  : "bg-white text-gray-400 dark:bg-gray-900 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
+              }`}
+            >
+              {icon}
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 
-  const right = <TaskDetailPanel task={selectedTask} onPublish={handlePublish} />;
+  const right = <TaskDetailPanel task={selectedTask} onPublish={handlePublish} onReject={handleReject} isRejected={selectedTask ? rejectedTaskIds.has(selectedTask.id) : false} />;
 
-  return <ThreeColumnLayout left={left} center={center} right={right} />;
+  return (
+    <ThreeColumnLayout
+      left={left}
+      center={center}
+      right={right}
+      mobileRightOpen={mobileRightOpen}
+      onMobileBack={handleMobileBack}
+      mobileBackLabel="Tasks"
+    />
+  );
 }

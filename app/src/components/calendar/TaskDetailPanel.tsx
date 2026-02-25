@@ -67,6 +67,8 @@ function TikTokPreviewCard({ caption, hashtags, accentColor = "#FE2C55" }: { cap
 interface TaskDetailPanelProps {
   task: Task | null;
   onPublish?: (taskId: string) => void;
+  onReject?: (taskId: string, reason: string) => void;
+  isRejected?: boolean;
 }
 
 // ── FeedGuardian Reply Queue UI ──────────────────────────────────
@@ -316,15 +318,54 @@ function ReplyQueuePanel({ queue, onPublish }: { queue: ReplyComment[]; onPublis
   );
 }
 
+// ── Rejection reasons ──────────────────────────────────────────
+const REJECT_REASONS = [
+  { reason: "image", label: "🖼️ Image / Visual", desc: "Wrong style, low quality, or off-brand" },
+  { reason: "video", label: "🎬 Video", desc: "Wrong format, length, or quality" },
+  { reason: "text",  label: "📝 Caption / Text", desc: "Wrong tone, message, or accuracy" },
+  { reason: "other", label: "🔄 Other", desc: "Content does not match brand guidelines" },
+];
+
 // ── Main TaskDetailPanel ─────────────────────────────────────────
-export default function TaskDetailPanel({ task, onPublish }: TaskDetailPanelProps) {
+export default function TaskDetailPanel({ task, onPublish, onReject, isRejected }: TaskDetailPanelProps) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [published, setPublished] = useState(false);
   const [tiktokLoading, setTiktokLoading] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejected, setRejected] = useState(false);
+
+  // Media upload
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
 
   const isTikTok = task?.platform === "TikTok";
+  const isVideoTask = ["TikTok", "Reels", "Shorts", "YouTube", "YouTube Shorts"].includes(task?.platform || "");
+  const isInstagram = task?.platform === "Instagram";
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const selected = isVideoTask ? [files[0]] : files;
+    setMediaFiles(selected);
+    const previews = selected.map((f) => URL.createObjectURL(f));
+    setMediaPreviews(previews);
+  };
+
+  const removeMedia = (idx: number) => {
+    const newFiles = mediaFiles.filter((_, i) => i !== idx);
+    const newPreviews = mediaPreviews.filter((_, i) => i !== idx);
+    URL.revokeObjectURL(mediaPreviews[idx]);
+    setMediaFiles(newFiles);
+    setMediaPreviews(newPreviews);
+  };
+
+  const handleRejectWithReason = (reason: string) => {
+    setShowRejectDialog(false);
+    setRejected(true);
+    onReject?.(task!.id, reason);
+  };
 
   const handleTikTokPublish = useCallback(async () => {
     setTiktokLoading(true);
@@ -342,6 +383,10 @@ export default function TaskDetailPanel({ task, onPublish }: TaskDetailPanelProp
     setShowScheduler(false);
     setScheduleDate("");
     setScheduleTime("");
+    setShowRejectDialog(false);
+    setRejected(false);
+    setMediaFiles([]);
+    setMediaPreviews([]);
   }, [task?.id]);
 
   if (!task) {
@@ -458,7 +503,147 @@ export default function TaskDetailPanel({ task, onPublish }: TaskDetailPanelProp
           </div>
         )}
 
+        {/* ── Media Upload ── */}
+        {task.platform && task.platform !== "Blog" && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <h4 className="text-xs font-medium uppercase text-gray-400">Upload Media</h4>
+              {isInstagram && (
+                <span className="inline-flex items-center rounded-full bg-pink-50 px-1.5 py-0.5 text-[9px] font-medium text-pink-600 dark:bg-pink-500/10 dark:text-pink-400">
+                  Carousel up to 10
+                </span>
+              )}
+              {isVideoTask && (
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                  9:16 video only
+                </span>
+              )}
+            </div>
+
+            {mediaPreviews.length === 0 ? (
+              <label className="block cursor-pointer">
+                <input
+                  type="file"
+                  accept={isVideoTask ? "video/mp4,video/*" : "image/*"}
+                  multiple={isInstagram && !isVideoTask}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 text-center hover:border-brand-300 dark:hover:border-brand-600 transition-colors">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-2 text-gray-300">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <p className="text-xs text-gray-400">
+                    {isVideoTask
+                      ? "Click to upload 9:16 video (MP4)"
+                      : isInstagram
+                      ? "Click to upload images (single or carousel)"
+                      : "Click to upload image"}
+                  </p>
+                  <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">
+                    {isVideoTask ? "Landscape video will be cropped to 9:16" : "PNG, JPG, WebP"}
+                  </p>
+                </div>
+              </label>
+            ) : (
+              <div>
+                {/* Instagram carousel grid */}
+                {isInstagram && (
+                  <div>
+                    {mediaPreviews.length > 1 && (
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-medium text-pink-700 dark:bg-pink-500/10 dark:text-pink-400">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18" /></svg>
+                          Carousel · {mediaPreviews.length} images
+                        </span>
+                        <label className="cursor-pointer text-[10px] text-brand-500 hover:text-brand-600 underline">
+                          <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+                          + Add more
+                        </label>
+                      </div>
+                    )}
+                    <div className={`grid gap-1 ${mediaPreviews.length === 1 ? "grid-cols-1" : mediaPreviews.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                      {mediaPreviews.map((src, i) => (
+                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                          {i === 0 && mediaPreviews.length > 1 && (
+                            <span className="absolute top-1 left-1 text-[8px] bg-black/70 text-white rounded px-1 py-0.5">Cover</span>
+                          )}
+                          <button
+                            onClick={() => removeMedia(i)}
+                            className="absolute top-1 right-1 h-4 w-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >×</button>
+                        </div>
+                      ))}
+                      {mediaPreviews.length < 10 && (
+                        <label className="cursor-pointer aspect-square rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-brand-300 transition-colors">
+                          <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+                          <span className="text-xl text-gray-300">+</span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Video preview */}
+                {isVideoTask && (
+                  <div className="relative rounded-xl overflow-hidden bg-black" style={{ aspectRatio: "9/16", maxHeight: 220 }}>
+                    <video src={mediaPreviews[0]} className="w-full h-full object-contain" controls />
+                    <button
+                      onClick={() => removeMedia(0)}
+                      className="absolute top-2 right-2 rounded-full bg-black/70 text-white text-xs px-2 py-0.5 hover:bg-black/90"
+                    >
+                      Remove
+                    </button>
+                    <div className="absolute bottom-2 left-2 rounded-full bg-black/60 text-white text-[9px] px-1.5 py-0.5">
+                      9:16
+                    </div>
+                  </div>
+                )}
+                {/* Non-instagram, non-video single image */}
+                {!isInstagram && !isVideoTask && (
+                  <div className="relative rounded-xl overflow-hidden group">
+                    <img src={mediaPreviews[0]} alt="" className="w-full h-40 object-cover" />
+                    <button
+                      onClick={() => removeMedia(0)}
+                      className="absolute top-2 right-2 rounded-full bg-black/70 text-white text-xs px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <FeedbackSection taskId={task.id} />
+
+        {/* ── Rejection dialog ── */}
+        {showRejectDialog && (
+          <div className="rounded-xl border border-red-200 bg-red-50/60 dark:border-red-500/30 dark:bg-red-500/5 p-3">
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">
+              ❓ What&apos;s not suitable?
+            </p>
+            <div className="space-y-1.5">
+              {REJECT_REASONS.map(({ reason, label, desc }) => (
+                <button
+                  key={reason}
+                  onClick={() => handleRejectWithReason(reason)}
+                  className="w-full text-left rounded-lg border border-red-200 dark:border-red-500/20 bg-white dark:bg-gray-900 px-3 py-2 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                >
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{label}</p>
+                  <p className="text-[10px] text-gray-400">{desc}</p>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowRejectDialog(false)}
+              className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-700 py-1.5 text-xs text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {showScheduler && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
@@ -497,50 +682,68 @@ export default function TaskDetailPanel({ task, onPublish }: TaskDetailPanelProp
 
       {/* Action buttons */}
       <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-        {published ? (
+        {rejected || isRejected ? (
+          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 py-2.5 text-center">
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">✕ Content Rejected</p>
+            <p className="text-xs text-red-500 dark:text-red-500/70 mt-0.5">Added to AI training data</p>
+          </div>
+        ) : published ? (
           <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-2.5 text-center">
             <p className="text-sm font-medium text-green-700 dark:text-green-400">✓ Published successfully</p>
             <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">Moved to Done section</p>
           </div>
         ) : (
-          <div className="flex gap-2">
-            {isTikTok ? (
-              <button
-                onClick={handleTikTokPublish}
-                disabled={tiktokLoading}
-                className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
-              >
-                <TikTokSVG size={14} />
-                {tiktokLoading ? "Redirecting…" : "Publish to TikTok"}
-              </button>
-            ) : (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              {isTikTok ? (
+                <button
+                  onClick={handleTikTokPublish}
+                  disabled={tiktokLoading}
+                  className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  <TikTokSVG size={14} />
+                  {tiktokLoading ? "Redirecting…" : "Publish to TikTok"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setPublished(true);
+                    onPublish?.(task.id);
+                  }}
+                  className="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600 transition-colors"
+                >
+                  Publish Now
+                </button>
+              )}
               <button
                 onClick={() => {
                   setPublished(true);
                   onPublish?.(task.id);
                 }}
-                className="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600 transition-colors"
+                className="rounded-lg border border-brand-200 px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400"
+                title={`Auto publish at best time on ${task.dueDate}`}
               >
-                Publish Now
+                Auto
               </button>
-            )}
+              <button
+                onClick={() => setShowScheduler(!showScheduler)}
+                className="rounded-lg border border-gray-200 px-3 py-2.5 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                </svg>
+              </button>
+            </div>
+            {/* Reject button */}
             <button
-              onClick={() => {
-                setPublished(true);
-                onPublish?.(task.id);
-              }}
-              className="rounded-lg border border-brand-200 px-4 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400"
-              title={`Auto publish at best time on ${task.dueDate}`}
+              onClick={() => setShowRejectDialog(!showRejectDialog)}
+              className={`w-full rounded-lg border py-2 text-xs font-medium transition-colors ${
+                showRejectDialog
+                  ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-400"
+                  : "border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 dark:border-gray-700 dark:hover:border-red-500/30"
+              }`}
             >
-              Auto Publish
-            </button>
-            <button
-              onClick={() => setShowScheduler(!showScheduler)}
-              className="rounded-lg border border-gray-200 px-3 py-2.5 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
+              {showRejectDialog ? "✕ Cancel Rejection" : "Reject Content"}
             </button>
           </div>
         )}

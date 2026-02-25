@@ -435,8 +435,219 @@ function ConnectAllPanel({
   );
 }
 
+// ── Security Panel (right column) ───────────────────────────────
+function SecurityPanel() {
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwSaved, setPwSaved] = useState(false);
+  const [pwError, setPwError] = useState("");
+
+  const handleToggle2FA = () => {
+    if (!twoFaEnabled) { setShowQr(true); setTwoFaEnabled(true); }
+    else { setTwoFaEnabled(false); setShowQr(false); }
+  };
+
+  const handleChangePw = () => {
+    setPwError("");
+    if (!currentPw) { setPwError("Current password is required."); return; }
+    if (newPw.length < 8) { setPwError("New password must be at least 8 characters."); return; }
+    if (newPw !== confirmPw) { setPwError("Passwords do not match."); return; }
+    setPwSaved(true);
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    setTimeout(() => setPwSaved(false), 3000);
+  };
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/10">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 dark:text-red-400">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>Security</h3>
+        </div>
+        <p className="text-xs text-gray-400">Manage your account security settings</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+
+        {/* ── Two-Factor Authentication ── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Two-Factor Authentication</p>
+              <p className="text-xs text-gray-400 mt-0.5">Add an extra layer of security to your account</p>
+            </div>
+            {/* Toggle */}
+            <button
+              onClick={handleToggle2FA}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                twoFaEnabled ? "bg-brand-500" : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFaEnabled ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </div>
+
+          {twoFaEnabled && (
+            <div className="rounded-xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600 dark:text-brand-400 flex-shrink-0">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <p className="text-xs font-medium text-brand-700 dark:text-brand-400">2FA is enabled on your account</p>
+              </div>
+
+              {showQr && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Scan with your authenticator app (Google Authenticator, Authy):</p>
+                  {/* QR placeholder */}
+                  <div className="w-28 h-28 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mx-auto">
+                    <svg viewBox="0 0 100 100" className="w-24 h-24">
+                      {/* Simple QR placeholder pattern */}
+                      {[0,30,60].map(x => [0,30,60].map(y => (
+                        <rect key={`${x}-${y}`} x={x+2} y={y+2} width="26" height="26" rx="3" fill="none" stroke="#374151" strokeWidth="2"/>
+                      )))}
+                      <rect x="8" y="8" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="38" y="8" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="8" y="38" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="38" y="38" width="6" height="6" rx="1" fill="#374151"/>
+                      <rect x="50" y="38" width="6" height="6" rx="1" fill="#374151"/>
+                      <rect x="62" y="38" width="6" height="6" rx="1" fill="#374151"/>
+                      <rect x="68" y="8" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="68" y="68" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="8" y="68" width="14" height="14" rx="1" fill="#374151"/>
+                      <rect x="32" y="62" width="6" height="6" rx="1" fill="#374151"/>
+                      <rect x="44" y="62" width="6" height="6" rx="1" fill="#374151"/>
+                      <rect x="56" y="56" width="6" height="6" rx="1" fill="#374151"/>
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-gray-400 text-center mt-1">Demo QR — connect real auth in production</p>
+                </div>
+              )}
+
+              {/* Recovery codes */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1.5">Recovery Codes</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {["8F2K-9XPQ", "3M7R-2WNT", "6B4H-5CYL", "1J9V-8ZUE"].map((code) => (
+                    <code key={code} className="rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-mono text-gray-700 dark:text-gray-300 text-center">
+                      {code}
+                    </code>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-400 mt-1">Save these codes in a safe place. Each can only be used once.</p>
+              </div>
+
+              <button
+                onClick={() => setTwoFaEnabled(false)}
+                className="w-full rounded-lg border border-red-200 dark:border-red-500/30 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+              >
+                Disable 2FA
+              </button>
+            </div>
+          )}
+
+          {!twoFaEnabled && (
+            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-3 text-center">
+              <p className="text-xs text-gray-400">2FA is currently <span className="font-medium text-gray-600 dark:text-gray-400">disabled</span>. Enable it to protect your account.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
+        {/* ── Change Password ── */}
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Change Password</p>
+          <p className="text-xs text-gray-400 mb-3">Use a strong password with letters, numbers, and symbols</p>
+
+          <div className="space-y-2.5">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Current Password</label>
+              <input
+                type="password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">New Password</label>
+              <input
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="Min. 8 characters"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
+              />
+            </div>
+
+            {pwError && (
+              <p className="text-xs text-red-500 dark:text-red-400">{pwError}</p>
+            )}
+            {pwSaved && (
+              <p className="text-xs text-brand-600 dark:text-brand-400">✓ Password updated successfully</p>
+            )}
+
+            <button
+              onClick={handleChangePw}
+              className="w-full rounded-lg bg-gray-900 dark:bg-white py-2.5 text-xs font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
+              Update Password
+            </button>
+          </div>
+        </div>
+
+        <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
+        {/* ── Active Sessions ── */}
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Active Sessions</p>
+          <div className="space-y-2">
+            {[
+              { device: "MacBook Pro · Chrome", location: "Jakarta, ID", time: "Current session", current: true },
+              { device: "iPhone 15 · Safari",   location: "Jakarta, ID", time: "2 hours ago",    current: false },
+            ].map((s) => (
+              <div key={s.device} className={`rounded-xl border p-3 flex items-center justify-between gap-3 ${s.current ? "border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5" : "border-gray-200 dark:border-gray-800"}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.device}</p>
+                    {s.current && <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[8px] font-semibold text-white flex-shrink-0">Now</span>}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{s.location} · {s.time}</p>
+                </div>
+                {!s.current && (
+                  <button className="flex-shrink-0 text-[10px] font-medium text-red-500 hover:text-red-600">Revoke</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 type Section = "profile" | "agents" | null;
-type RightPanelMode = "brand" | "assets" | "agent" | "plan" | "connect" | "subscription" | "billing";
+type RightPanelMode = "brand" | "assets" | "agent" | "plan" | "connect" | "subscription" | "billing" | "security";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -457,6 +668,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 export default function HomePage() {
   const [openSection, setOpenSection] = useState<Section>("profile");
   const [rightMode, setRightMode] = useState<RightPanelMode>("brand");
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState("ceo");
   const [selectedPlanId, setSelectedPlanId] = useState<PlanId>(CURRENT_PLAN);
   // Brand / auth state (production multi-tenant)
@@ -465,6 +677,12 @@ export default function HomePage() {
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [replyEnabled, setReplyEnabled] = useState<Record<string, boolean>>({ instagram: true });
   const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  // Mobile: open right panel when a section card is clicked
+  const openRightMode = (mode: RightPanelMode) => {
+    setRightMode(mode);
+    setMobileRightOpen(true);
+  };
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId)!;
   const selectedPlan = PLANS.find((p) => p.id === selectedPlanId)!;
@@ -627,7 +845,7 @@ export default function HomePage() {
   const left = (
     <NavColumn>
       <h3
-        className="text-sm font-semibold text-gray-900 dark:text-white px-1"
+        className="text-base font-semibold text-gray-900 dark:text-white px-1"
         style={{ fontFamily: "Georgia, serif" }}
       >
         Home
@@ -653,7 +871,7 @@ export default function HomePage() {
       {/* ── PROFILE ─────────────────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
         <button
-          onClick={() => { toggleSection("profile"); if (openSection !== "profile") setRightMode("brand"); }}
+          onClick={() => { toggleSection("profile"); if (openSection !== "profile") openRightMode("brand"); else openRightMode("brand"); }}
           className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         >
           <div className="flex items-center gap-3">
@@ -707,24 +925,13 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Edit button */}
-            <button
-              onClick={() => setRightMode("brand")}
-              className={`w-full rounded-lg border py-2 text-xs font-medium transition-colors ${
-                rightMode === "brand"
-                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-                  : "border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400"
-              }`}
-            >
-              Edit Brand Profile
-            </button>
           </div>
         )}
       </div>
 
       {/* ── ASSETS ──────────────────────────────────────── */}
       <button
-        onClick={() => setRightMode("assets")}
+        onClick={() => openRightMode("assets")}
         className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
           rightMode === "assets"
             ? "border-purple-400 bg-purple-50/30 dark:border-purple-500/50 dark:bg-purple-500/5"
@@ -749,7 +956,7 @@ export default function HomePage() {
 
       {/* ── SUBSCRIPTION ────────────────────────────────── */}
       <button
-        onClick={() => setRightMode("subscription")}
+        onClick={() => openRightMode("subscription")}
         className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
           rightMode === "subscription"
             ? "border-amber-400 bg-amber-50/30 dark:border-amber-500/50 dark:bg-amber-500/5"
@@ -776,7 +983,7 @@ export default function HomePage() {
 
       {/* ── BILLING ─────────────────────────────────────── */}
       <button
-        onClick={() => setRightMode("billing")}
+        onClick={() => openRightMode("billing")}
         className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
           rightMode === "billing"
             ? "border-blue-400 bg-blue-50/30 dark:border-blue-500/50 dark:bg-blue-500/5"
@@ -799,9 +1006,34 @@ export default function HomePage() {
         </svg>
       </button>
 
+      {/* ── SECURITY ────────────────────────────────────── */}
+      <button
+        onClick={() => openRightMode("security")}
+        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+          rightMode === "security"
+            ? "border-red-400 bg-red-50/30 dark:border-red-500/50 dark:bg-red-500/5"
+            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "security" ? "bg-red-100 dark:bg-red-500/20" : "bg-red-100 dark:bg-red-500/10"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 dark:text-red-400">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Security</p>
+            <p className="text-xs text-gray-400 mt-0.5">2FA · Password · Sessions</p>
+          </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
+
       {/* ── CONNECT ─────────────────────────────────────── */}
       <button
-        onClick={() => setRightMode("connect")}
+        onClick={() => openRightMode("connect")}
         className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
           rightMode === "connect"
             ? "border-brand-400 bg-brand-50/30 dark:border-brand-500/50 dark:bg-brand-500/5"
@@ -861,7 +1093,7 @@ export default function HomePage() {
               return (
                 <button
                   key={agent.id}
-                  onClick={() => { setSelectedAgentId(agent.id); setRightMode("agent"); }}
+                  onClick={() => { setSelectedAgentId(agent.id); openRightMode("agent"); }}
                   className={`w-full text-left rounded-xl border p-3 transition-all ${
                     isSelected
                       ? "border-brand-500 bg-brand-50/50 shadow-sm dark:border-brand-400 dark:bg-brand-500/5"
@@ -912,10 +1144,11 @@ export default function HomePage() {
       {rightMode === "subscription" && (
         <SubscriptionPanel
           selectedPlanId={selectedPlanId}
-          onSelectPlan={(id) => { setSelectedPlanId(id); setRightMode("plan"); }}
+          onSelectPlan={(id) => { setSelectedPlanId(id); openRightMode("plan"); }}
         />
       )}
       {rightMode === "billing" && <BillingPanel />}
+      {rightMode === "security" && <SecurityPanel />}
       {rightMode === "connect" && (
         <ConnectAllPanel
           platforms={platforms}
@@ -928,5 +1161,14 @@ export default function HomePage() {
     </>
   );
 
-  return <ThreeColumnLayout left={left} center={center} right={right} />;
+  return (
+    <ThreeColumnLayout
+      left={left}
+      center={center}
+      right={right}
+      mobileRightOpen={mobileRightOpen}
+      onMobileBack={() => setMobileRightOpen(false)}
+      mobileBackLabel="Home"
+    />
+  );
 }
