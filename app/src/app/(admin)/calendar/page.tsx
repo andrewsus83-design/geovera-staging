@@ -1634,20 +1634,22 @@ export default function CalendarPage() {
       {/* Phone preview */}
       <TikTokPhoneMockup post={selectedPost} caption={editCaption} hashtags={editHashtags.split(/\s+/)} />
 
-      {/* Edit fields */}
-      <div className="px-4 pb-6 space-y-3">
+      {/* Fields */}
+      <div className="px-4 pb-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1.5">Caption</label>
-          <textarea value={editCaption} onChange={e => setEditCaption(e.target.value)} rows={5}
-            className="w-full text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30" />
-          <span className="text-xs text-gray-400 float-right">{editCaption.length}/2200</span>
+          <h4 className="text-sm font-medium text-gray-400 mb-1.5">Caption</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedPost.caption}</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1.5">Hashtags</label>
-          <input value={editHashtags} onChange={e => setEditHashtags(e.target.value)}
-            className="w-full text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30"
-            placeholder="#hashtag1 #hashtag2 ..." />
+          <h4 className="text-sm font-medium text-gray-400 mb-1.5">Hashtags</h4>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedPost.hashtags.map((tag, i) => (
+              <span key={i} className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-sm text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 py-1">
