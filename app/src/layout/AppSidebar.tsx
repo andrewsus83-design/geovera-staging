@@ -1,6 +1,7 @@
 "use client";
 import { useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
@@ -65,9 +66,13 @@ const AppSidebar: React.FC = () => {
         }`}
       >
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-sm">
-            G
-          </span>
+          <Image
+            src="/images/geoveralogo.png"
+            alt="GeoVera"
+            width={32}
+            height={32}
+            className="flex-shrink-0"
+          />
           {(isExpanded || isHovered || isMobileOpen) && (
             <span
               className="text-xl font-bold text-gray-900 dark:text-white"

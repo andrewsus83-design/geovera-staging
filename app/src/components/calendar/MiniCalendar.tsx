@@ -99,7 +99,7 @@ export default function MiniCalendar({ taskDates = [], onDateSelect, selectedDat
               const dateStr = getDateStr(day);
               const isToday = dateStr === today;
               const isSelected = dateStr === selectedDate;
-              const isLocked = maxDate != null && dateStr > maxDate;
+              const isLocked = dateStr < today || (maxDate != null && dateStr > maxDate);
               const taskCount = taskCountMap[dateStr] || 0;
 
               return (

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   GridIcon,
@@ -61,9 +62,13 @@ export default function NavColumn({ children }: NavColumnProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-2 px-2 pt-2 pb-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-sm flex-shrink-0">
-          G
-        </span>
+        <Image
+          src="/images/geoveralogo.png"
+          alt="GeoVera"
+          width={32}
+          height={32}
+          className="flex-shrink-0"
+        />
         <span
           className="text-xl font-bold text-gray-900 dark:text-white"
           style={{ fontFamily: "Georgia, serif" }}
