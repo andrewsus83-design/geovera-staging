@@ -1618,10 +1618,10 @@ export default function CalendarPage() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <StatusBadge status={selectedPost.status} />
-            <h2 className="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white leading-snug">{selectedPost.title}</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5">{selectedPost.date} · {selectedPost.time} WIB · {selectedPost.duration}</p>
+            <h2 className="mt-1.5 text-base font-semibold text-gray-900 dark:text-white leading-snug">{selectedPost.title}</h2>
+            <p className="text-sm text-gray-400 mt-0.5">{selectedPost.date} · {selectedPost.time} WIB · {selectedPost.duration}</p>
             {selectedPost.views && (
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                 <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.views}</span> views ·{" "}
                 <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.likes}</span> likes
               </p>
@@ -1637,26 +1637,26 @@ export default function CalendarPage() {
       {/* Edit fields */}
       <div className="px-4 pb-6 space-y-3">
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Caption</label>
+          <label className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1.5">Caption</label>
           <textarea value={editCaption} onChange={e => setEditCaption(e.target.value)} rows={5}
-            className="w-full text-[12px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30" />
-          <span className="text-[10px] text-gray-400 float-right">{editCaption.length}/2200</span>
+            className="w-full text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30" />
+          <span className="text-xs text-gray-400 float-right">{editCaption.length}/2200</span>
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Hashtags</label>
+          <label className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1.5">Hashtags</label>
           <input value={editHashtags} onChange={e => setEditHashtags(e.target.value)}
-            className="w-full text-[12px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30"
+            className="w-full text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30"
             placeholder="#hashtag1 #hashtag2 ..." />
         </div>
 
-        <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.04] rounded-xl p-3">
+        <div className="flex items-center gap-2 py-1">
           <span className="text-sm">📅</span>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{selectedPost.date}</p>
-            <p className="text-[10px] text-gray-400">at {selectedPost.time} WIB</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedPost.date}</p>
+            <p className="text-xs text-gray-400">at {selectedPost.time} WIB</p>
           </div>
-          <button className="text-[11px] text-brand-500 hover:underline font-medium">Edit</button>
+          <button className="text-sm text-brand-500 hover:underline font-medium">Edit</button>
         </div>
 
         <div className="space-y-2 pt-1">
@@ -1698,9 +1698,9 @@ export default function CalendarPage() {
           )}
         </div>
 
-        <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 p-3">
-          <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-400">📡 TikTok Content Posting API v2</p>
-          <p className="text-[10px] text-blue-600 dark:text-blue-300 mt-0.5 leading-relaxed">
+        <div className="pt-1">
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">📡 TikTok Content Posting API v2</p>
+          <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5 leading-relaxed">
             Scopes: <code className="font-mono">video.publish</code> · <code className="font-mono">video.upload</code><br/>
             Mode: <code className="font-mono">SEND_TO_USER_INBOX</code>
           </p>
