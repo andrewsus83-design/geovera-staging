@@ -293,6 +293,9 @@ export async function POST(request: NextRequest) {
 // ── GET: load analytics from Supabase ────────────────────────────────────────
 export async function GET(request: NextRequest) {
   const brandId = request.nextUrl.searchParams.get("brand_id") || DEMO_BRAND_ID;
+  if (!SUPABASE_KEY) {
+    return NextResponse.json({ success: true, data: [] }, { headers: cors });
+  }
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const { data, error } = await supabase

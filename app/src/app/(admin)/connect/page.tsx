@@ -62,15 +62,14 @@ async function buildTikTokOAuthUrl(brandId: string): Promise<string> {
   const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 
-  // Store verifier for callback
-  sessionStorage.setItem("tiktok_code_verifier", verifier);
-
+  // Embed verifier in state so the server-side callback can do the PKCE exchange
+  // Format: "{brandId}:{source}:{verifier}"
   const url = new URL("https://www.tiktok.com/v2/auth/authorize/");
   url.searchParams.set("client_key", TIKTOK_CLIENT_KEY);
   url.searchParams.set("scope", "user.info.basic,video.publish,video.upload");
   url.searchParams.set("response_type", "code");
   url.searchParams.set("redirect_uri", TIKTOK_REDIRECT_URI);
-  url.searchParams.set("state", `${brandId}:connect`);
+  url.searchParams.set("state", `${brandId}:connect:${verifier}`);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
   return url.toString();

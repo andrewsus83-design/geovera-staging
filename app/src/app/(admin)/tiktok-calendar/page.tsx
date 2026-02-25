@@ -361,13 +361,14 @@ function TikTokCalendarInner() {
   // ── TikTok OAuth → redirect to TikTok login ───────────────────────────────
   const redirectToTikTokLogin = useCallback(async () => {
     const { verifier, challenge } = await generatePKCE();
-    sessionStorage.setItem("tiktok_code_verifier", verifier);
+    // Embed verifier in state so server-side callback can do PKCE exchange
+    // Format: "{brandId}:{source}:{verifier}"
     const params = new URLSearchParams({
       client_key:            TIKTOK_CLIENT_KEY || "aw_demo_key",
       response_type:         "code",
       scope:                 "user.info.basic,video.publish,video.upload",
       redirect_uri:          TIKTOK_REDIRECT_URI,
-      state:                 `${DEMO_BRAND_ID}:tiktok-calendar`,
+      state:                 `${DEMO_BRAND_ID}:tiktok-calendar:${verifier}`,
       code_challenge:        challenge,
       code_challenge_method: "S256",
     });
