@@ -64,9 +64,14 @@ function TikTokPreviewCard({ caption, hashtags, accentColor = "#FE2C55" }: { cap
   );
 }
 
+interface PublishOptions {
+  publishNow?: boolean;
+  scheduledFor?: string;
+}
+
 interface TaskDetailPanelProps {
   task: Task | null;
-  onPublish?: (taskId: string) => void;
+  onPublish?: (taskId: string, options?: PublishOptions) => Promise<void>;
   onReject?: (taskId: string, reason: string) => void;
   isRejected?: boolean;
   onPublishReplies?: (taskId: string, replies: ReplyComment[]) => Promise<{ queued: number }>;
@@ -378,6 +383,8 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [published, setPublished] = useState(false);
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [tiktokLoading, setTiktokLoading] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejected, setRejected] = useState(false);
@@ -407,6 +414,23 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
     setMediaPreviews(newPreviews);
   };
 
+  const doPublish = useCallback(async (options?: PublishOptions) => {
+    if (!task) return;
+    setPublishLoading(true);
+    setPublishError(null);
+    try {
+      if (onPublish) {
+        await onPublish(task.id, options);
+      }
+      setPublished(true);
+      setShowScheduler(false);
+    } catch (e) {
+      setPublishError(e instanceof Error ? e.message : "Publish failed. Try again.");
+    } finally {
+      setPublishLoading(false);
+    }
+  }, [task, onPublish]);
+
   const handleRejectWithReason = (reason: string) => {
     setShowRejectDialog(false);
     setRejected(true);
@@ -426,6 +450,8 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
   // Reset local state whenever the selected task changes
   useEffect(() => {
     setPublished(false);
+    setPublishLoading(false);
+    setPublishError(null);
     setShowScheduler(false);
     setScheduleDate("");
     setScheduleTime("");
@@ -715,10 +741,22 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
             </div>
             <div className="flex gap-2">
               <button
-                disabled={!scheduleDate || !scheduleTime}
-                className="flex-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  const scheduledFor = `${scheduleDate}T${scheduleTime}:00`;
+                  doPublish({ publishNow: false, scheduledFor });
+                }}
+                disabled={!scheduleDate || !scheduleTime || publishLoading}
+                className="flex-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                Confirm
+                {publishLoading ? (
+                  <>
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    Scheduling…
+                  </>
+                ) : "Confirm"}
               </button>
               <button
                 onClick={() => setShowScheduler(false)}
@@ -745,11 +783,14 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
           </div>
         ) : (
           <div className="space-y-2">
+            {publishError && (
+              <p className="text-xs text-red-500 text-center">{publishError}</p>
+            )}
             <div className="flex gap-2">
               {isTikTok ? (
                 <button
                   onClick={handleTikTokPublish}
-                  disabled={tiktokLoading}
+                  disabled={tiktokLoading || publishLoading}
                   className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   <TikTokSVG size={14} />
@@ -757,21 +798,25 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
                 </button>
               ) : (
                 <button
-                  onClick={() => {
-                    setPublished(true);
-                    onPublish?.(task.id);
-                  }}
-                  className="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600 transition-colors"
+                  onClick={() => doPublish({ publishNow: true })}
+                  disabled={publishLoading}
+                  className="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Publish Now
+                  {publishLoading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                      Publishing…
+                    </>
+                  ) : "Publish Now"}
                 </button>
               )}
               <button
-                onClick={() => {
-                  setPublished(true);
-                  onPublish?.(task.id);
-                }}
-                className="rounded-lg border border-brand-200 px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400"
+                onClick={() => doPublish({ publishNow: false })}
+                disabled={publishLoading}
+                className="rounded-lg border border-brand-200 px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400 disabled:opacity-50"
                 title={`Auto publish at best time on ${task.dueDate}`}
               >
                 Auto

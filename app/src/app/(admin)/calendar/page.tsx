@@ -775,9 +775,40 @@ export default function CalendarPage() {
     setSelectedTask(null);
   };
 
-  const handlePublish = (taskId: string) => {
+  const handlePublish = useCallback(async (
+    taskId: string,
+    options?: { publishNow?: boolean; scheduledFor?: string }
+  ) => {
+    const task = demoTasks.find((t) => t.id === taskId);
+    const platform = (task?.platform || "instagram").toLowerCase();
+    const caption = task?.content?.caption || task?.description || "";
+    const hashtags = task?.content?.hashtags || [];
+
+    try {
+      const res = await fetch("/api/social/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_id: DEMO_BRAND_ID,
+          platform,
+          content: caption,
+          hashtags,
+          publish_now: options?.publishNow ?? true,
+          scheduled_for: options?.scheduledFor,
+        }),
+      });
+      const data = await res.json() as { success: boolean; error?: string };
+      if (!data.success) {
+        throw new Error(data.error || "Publish failed");
+      }
+    } catch (err) {
+      // Re-throw so TaskDetailPanel can show the error
+      throw err;
+    }
+
+    // Mark done in UI only after successful publish
     setDoneTaskIds((prev) => new Set([...prev, taskId]));
-  };
+  }, []);
 
   const handleReject = (taskId: string, reason: string) => {
     setRejectedTaskIds((prev) => new Set([...prev, taskId]));
