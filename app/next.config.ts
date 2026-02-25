@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
@@ -10,11 +9,11 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    localPatterns:[
+    localPatterns: [
       {
-        pathname: '/**',
+        pathname: "/**",
       },
-    ]
+    ],
   },
   turbopack: {
     rules: {
@@ -23,6 +22,25 @@ const nextConfig: NextConfig = {
         as: "*.js",
       },
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      { source: "/report/:slug", destination: "/api/report/:slug" },
+      { source: "/rss/:brandId", destination: "/api/rss/:brandId" },
+      { source: "/webhooks/:path*", destination: "/api/webhooks/:path*" },
+    ];
   },
 };
 
