@@ -72,7 +72,7 @@ interface TaskDetailPanelProps {
   onPublishReplies?: (taskId: string, replies: ReplyComment[]) => Promise<{ queued: number }>;
 }
 
-// ── FeedGuardian Reply Queue UI ──────────────────────────────────
+// ── Late Reply Queue UI ──────────────────────────────────
 function ReplyQueuePanel({
   queue,
   onPublish,
@@ -311,7 +311,7 @@ function ReplyQueuePanel({
         {publishedAll ? (
           <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-3 text-center">
             <p className="text-sm font-semibold text-green-700 dark:text-green-400">🛡️ {queuedCount} {queuedCount === 1 ? "reply" : "replies"} queued</p>
-            <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">FeedGuardian will auto-send based on your delay settings</p>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">Late will auto-send based on your delay settings</p>
           </div>
         ) : (
           <>
@@ -451,7 +451,7 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
     );
   }
 
-  // FeedGuardian reply task — special layout
+  // Late reply task — special layout
   if (task.taskType === "reply" && task.replyQueue) {
     return (
       <div className="flex flex-col h-full">
@@ -459,7 +459,7 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
         <div className="border-b border-gray-200 p-4 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-2">
             <span className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">
-              🛡️ FeedGuardian
+              🔗 Late
             </span>
             <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
               {task.agent}

@@ -85,7 +85,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using FeedGuardian technology. Available on Enterprise plan.",
+      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using Late API. Available on Enterprise plan.",
     dailyTasks: [
       "Reply to top-priority comments (by score)",
       "Respond to customer DMs and inquiries",

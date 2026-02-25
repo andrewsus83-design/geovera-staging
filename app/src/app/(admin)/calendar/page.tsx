@@ -558,13 +558,13 @@ const demoTasks: Task[] = [
   // ══════════════════════════════════════════════════════
   // FEEDGUARDIAN — Daily Reply Queue (per day)
   // Premium: top 100 comments, mix Instagram + TikTok + X
-  // Replies drafted by FeedGuardian, adapted by OpenAI
+  // Replies drafted by Late, adapted by OpenAI
   // User reviews drafts → approve/edit/reject → publish
   // ══════════════════════════════════════════════════════
   {
     id: "feb23-feedguardian",
-    title: "FeedGuardian: Review & Publish Top 100 Reply Queue",
-    description: "FeedGuardian has pulled today's top 100 priority comments from Instagram, TikTok, and X — ranked by author influence score, comment sentiment, and engagement potential. Each reply has been drafted by FeedGuardian and adapted by OpenAI to sound natural and on-brand. Review drafts, edit if needed, approve, and publish in one click.",
+    title: "Late: Review & Publish Top 100 Reply Queue",
+    description: "Late has pulled today's top 100 priority comments from Instagram, TikTok, and X — ranked by author influence score, comment sentiment, and engagement potential. Each reply has been drafted by Late and adapted by OpenAI to sound natural and on-brand. Review drafts, edit if needed, approve, and publish in one click.",
     agent: "CMO",
     priority: "high",
     impact: 3,
@@ -584,8 +584,8 @@ const demoTasks: Task[] = [
   },
   {
     id: "feb24-feedguardian",
-    title: "FeedGuardian: Review & Publish Top 100 Reply Queue",
-    description: "Today's top 100 priority comments pulled from Instagram, TikTok, and X. Ranked by: author influence score (1–100), positive sentiment weight, and engagement velocity. Replies drafted by FeedGuardian + adapted by OpenAI for natural brand voice. Review, approve, and publish.",
+    title: "Late: Review & Publish Top 100 Reply Queue",
+    description: "Today's top 100 priority comments pulled from Instagram, TikTok, and X. Ranked by: author influence score (1–100), positive sentiment weight, and engagement velocity. Replies drafted by Late + adapted by OpenAI for natural brand voice. Review, approve, and publish.",
     agent: "CMO",
     priority: "high",
     impact: 3,
@@ -603,8 +603,8 @@ const demoTasks: Task[] = [
   },
   {
     id: "feb25-feedguardian",
-    title: "FeedGuardian: Review & Publish Top 100 Reply Queue",
-    description: "Today's top 100 priority comments across connected platforms. FeedGuardian ranks by: verified/high-follower accounts first, then sentiment score, then comment quality. Each draft reply adapted by OpenAI to match your brand DNA and sound naturally human. Review queue and publish approved replies.",
+    title: "Late: Review & Publish Top 100 Reply Queue",
+    description: "Today's top 100 priority comments across connected platforms. Late ranks by: verified/high-follower accounts first, then sentiment score, then comment quality. Each draft reply adapted by OpenAI to match your brand DNA and sound naturally human. Review queue and publish approved replies.",
     agent: "CMO",
     priority: "high",
     impact: 3,
@@ -621,8 +621,8 @@ const demoTasks: Task[] = [
   },
   {
     id: "feb26-feedguardian",
-    title: "FeedGuardian: Review & Publish Top 100 Reply Queue",
-    description: "End-of-week reply queue — today's top 100 priority comments from all connected platforms. Weekend comments tend to come from highly engaged followers and casual browsers. FeedGuardian has prioritized warm, community-building tones. OpenAI has adapted each reply to feel conversational and genuine. Review and publish before EOD.",
+    title: "Late: Review & Publish Top 100 Reply Queue",
+    description: "End-of-week reply queue — today's top 100 priority comments from all connected platforms. Weekend comments tend to come from highly engaged followers and casual browsers. Late has prioritized warm, community-building tones. OpenAI has adapted each reply to feel conversational and genuine. Review and publish before EOD.",
     agent: "CMO",
     priority: "high",
     impact: 3,
@@ -639,8 +639,8 @@ const demoTasks: Task[] = [
   },
   {
     id: "feb28-feedguardian",
-    title: "FeedGuardian: End-of-Month Review — Top 150 Reply Queue",
-    description: "End-of-month special: top 150 priority comments pulled from all platforms including the YouTube Video published today. February's most important community interactions — including comments on the monthly video, high-value DM mentions, and verified account replies. FeedGuardian + OpenAI adapted replies for warm, brand-authentic tone. This queue has the highest potential impact of the month.",
+    title: "Late: End-of-Month Review — Top 150 Reply Queue",
+    description: "End-of-month special: top 150 priority comments pulled from all platforms including the YouTube Video published today. February's most important community interactions — including comments on the monthly video, high-value DM mentions, and verified account replies. Late + OpenAI adapted replies for warm, brand-authentic tone. This queue has the highest potential impact of the month.",
     agent: "CMO",
     priority: "high",
     impact: 3,
@@ -650,10 +650,10 @@ const demoTasks: Task[] = [
     replyQueue: [
       { id: "r28-1", platform: "Instagram", platformIcon: "📸", author: "verified.brand.id", authorScore: 99, comment: "We've been watching GeoVera grow all month. Incredible journey — let's collab!", draftReply: "Wow, this means a lot coming from you 🙏 We've been huge fans of your work too. Absolutely open to exploring a collaboration — this could be something really special. DM us directly and let's make it happen! 💚", status: "pending" },
       { id: "r28-2", platform: "TikTok", platformIcon: "🎵", author: "viralcreator.id", authorScore: 95, comment: "Your YouTube video was insane. The AI pipeline walkthrough blew my mind.", draftReply: "Thank you so much! 🤯 We wanted to pull back the curtain and show exactly how the intelligence layer works. So glad it landed! More deep-dives coming next month — make sure you're subscribed so you don't miss them 🎬", status: "pending" },
-      { id: "r28-3", platform: "Instagram", platformIcon: "📸", author: "marketing.kol", authorScore: 92, comment: "Just signed up for Premium after seeing the February results. You earned it.", draftReply: "Welcome to Premium! 🎉 You're in for a completely different experience. Your full AI team — CEO + CMO + FeedGuardian — is now active. Reach out anytime if you need help setting things up. So excited to see your brand grow! 🌿", status: "pending" },
+      { id: "r28-3", platform: "Instagram", platformIcon: "📸", author: "marketing.kol", authorScore: 92, comment: "Just signed up for Premium after seeing the February results. You earned it.", draftReply: "Welcome to Premium! 🎉 You're in for a completely different experience. Your full AI team — CEO + CMO + Late — is now active. Reach out anytime if you need help setting things up. So excited to see your brand grow! 🌿", status: "pending" },
       { id: "r28-4", platform: "X (Twitter)", platformIcon: "𝕏", author: "vc.analyst.sea", authorScore: 90, comment: "Interesting product. What's your moat long term?", draftReply: "Great question for end of month 😄 Our moat is Brand DNA — the deeper a brand uses GeoVera, the more personalized and accurate the AI becomes. It's a compounding advantage. Plus our multi-model pipeline is continuously upgraded. The product gets smarter as you use it.", status: "pending" },
       { id: "r28-5", platform: "Instagram", platformIcon: "📸", author: "startup.mentor.id", authorScore: 87, comment: "February was clearly a big month for you. What's March looking like?", draftReply: "March is going to be even bigger! 🚀 We're rolling out some major new features and expanding platform integrations. Follow along — you won't want to miss what's coming. February was just the beginning 💪", status: "pending" },
-      { id: "r28-6", platform: "TikTok", platformIcon: "🎵", author: "contentfarm.creator", authorScore: 83, comment: "How do I know the AI replies won't sound robotic?", draftReply: "That's the most important question and we take it very seriously 🎯 Every reply goes through two layers: FeedGuardian drafts it based on your brand DNA, then OpenAI adapts it to sound natural, warm, and genuinely human. You also review everything before it posts. Zero robot vibes, guaranteed.", status: "pending" },
+      { id: "r28-6", platform: "TikTok", platformIcon: "🎵", author: "contentfarm.creator", authorScore: 83, comment: "How do I know the AI replies won't sound robotic?", draftReply: "That's the most important question and we take it very seriously 🎯 Every reply goes through two layers: Late drafts it based on your brand DNA, then OpenAI adapts it to sound natural, warm, and genuinely human. You also review everything before it posts. Zero robot vibes, guaranteed.", status: "pending" },
     ],
   },
 ];
@@ -900,7 +900,7 @@ export default function CalendarPage() {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">🛡️</span>
-                  <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">FeedGuardian Auto-Reply</p>
+                  <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">Late Auto-Reply</p>
                 </div>
                 {connectedPlatforms.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
@@ -920,14 +920,14 @@ export default function CalendarPage() {
                 </div>
               ) : (
                 <p className="text-[10px] text-teal-600 dark:text-teal-500 mt-1">
-                  Connect your social accounts to see live comment queues here. FeedGuardian ranks comments by author score and drafts personalized replies via OpenAI.
+                  Connect your social accounts to see live comment queues here. Late ranks comments by author score and drafts personalized replies via OpenAI.
                 </p>
               )}
             </div>
             {commentTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-sm font-medium text-gray-500">No comment tasks for this date</p>
-                <p className="text-xs text-gray-400 mt-1">FeedGuardian reply queues appear here daily</p>
+                <p className="text-xs text-gray-400 mt-1">Late reply queues appear here daily</p>
               </div>
             ) : (
               <div className="space-y-1">
@@ -946,7 +946,7 @@ export default function CalendarPage() {
                       }`}
                     >
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">🛡️ FeedGuardian</span>
+                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">🔗 Late</span>
                         {task.platform && <span className="text-[10px] text-gray-400">{task.platform}</span>}
                       </div>
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">{task.title}</p>

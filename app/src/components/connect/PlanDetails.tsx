@@ -16,7 +16,7 @@ const plans = [
       "X/Twitter auto-publish",
       "Reddit long-form articles",
       "50 auto-replies/day",
-      "FeedGuardian AI replies",
+      "Late AI replies",
     ],
   },
   {

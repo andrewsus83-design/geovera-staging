@@ -146,7 +146,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using FeedGuardian technology. Available on Partner plan.",
+      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using Late API. Available on Partner plan.",
     dailyTasks: [
       "Reply to top-priority comments (by score)",
       "Respond to customer DMs and inquiries",
@@ -424,9 +424,9 @@ function ConnectAllPanel({
           })}
         </div>
 
-        {/* FeedGuardian note */}
+        {/* Late note */}
         <div className="mx-2 mt-2 mb-2 rounded-lg border border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5 p-2">
-          <p className="text-xs font-medium text-brand-700 dark:text-brand-300">FeedGuardian Auto-Reply Limits</p>
+          <p className="text-xs font-medium text-brand-700 dark:text-brand-300">Late Auto-Reply Limits</p>
           <p className="text-[10px] text-brand-500 dark:text-brand-400 mt-1">Basic: 50/day · Premium: 100/day · Partner: 150/day</p>
         </div>
       </div>

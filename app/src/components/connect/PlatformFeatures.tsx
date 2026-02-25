@@ -9,31 +9,31 @@ interface PlatformFeaturesProps {
 const featuresByPlatform: Record<string, { name: string; description: string; available: boolean }[]> = {
   facebook: [
     { name: "Auto-publish Posts", description: "Schedule and auto-publish posts to your Facebook Page", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI responds to Page comments based on priority scoring", available: true },
+    { name: "Auto-reply Comments", description: "Late AI responds to Page comments based on priority scoring", available: true },
     { name: "Schedule Content", description: "Queue content with optimal posting times for your audience", available: true },
     { name: "Comment Analysis", description: "Score comments by sentiment, engagement potential, and relevance", available: true },
   ],
   instagram: [
     { name: "Auto-publish Posts", description: "Schedule and auto-publish images and carousels to your feed", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI responds to comments based on priority scoring", available: true },
+    { name: "Auto-reply Comments", description: "Late AI responds to comments based on priority scoring", available: true },
     { name: "Schedule Content", description: "Queue content with optimal posting times", available: true },
     { name: "Comment Analysis", description: "Score comments by profile quality, sentiment, and relevance", available: true },
   ],
   reels: [
     { name: "Auto-publish Reels", description: "Schedule and auto-publish short-form video Reels", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI responds to Reels comments automatically", available: true },
+    { name: "Auto-reply Comments", description: "Late AI responds to Reels comments automatically", available: true },
     { name: "Schedule Content", description: "Queue Reels with trending time slots", available: true },
     { name: "Engagement Analytics", description: "Track Reels reach, plays, and engagement rates", available: true },
   ],
   tiktok: [
     { name: "Auto-publish Videos", description: "Schedule and auto-publish short-form TikTok videos", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI responds to top comments automatically", available: true },
+    { name: "Auto-reply Comments", description: "Late AI responds to top comments automatically", available: true },
     { name: "Schedule Content", description: "Queue videos with trending time slots", available: true },
     { name: "Comment Analysis", description: "Prioritize replies based on engagement potential", available: true },
   ],
   x: [
     { name: "Auto-publish Tweets", description: "Schedule and auto-publish tweets and threads", available: true },
-    { name: "Auto-reply Mentions", description: "FeedGuardian AI responds to mentions and replies", available: true },
+    { name: "Auto-reply Mentions", description: "Late AI responds to mentions and replies", available: true },
     { name: "Schedule Content", description: "Queue tweets with optimal engagement windows", available: true },
     { name: "Engagement Tracking", description: "Track impressions, likes, retweets, and replies", available: true },
   ],
@@ -51,13 +51,13 @@ const featuresByPlatform: Record<string, { name: string; description: string; av
   ],
   "youtube-shorts": [
     { name: "Auto-publish Shorts", description: "Schedule and upload YouTube Shorts automatically", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI manages Shorts comment responses", available: true },
+    { name: "Auto-reply Comments", description: "Late AI manages Shorts comment responses", available: true },
     { name: "Schedule Content", description: "Queue Shorts with optimal posting times", available: true },
     { name: "Performance Analytics", description: "Track views, watch time, and engagement rates", available: true },
   ],
   "youtube-video": [
     { name: "Auto-publish Videos", description: "Schedule and upload long-form YouTube videos", available: true },
-    { name: "Auto-reply Comments", description: "FeedGuardian AI manages video comment responses", available: true },
+    { name: "Auto-reply Comments", description: "Late AI manages video comment responses", available: true },
     { name: "Schedule Content", description: "Queue videos with optimal upload times", available: true },
     { name: "Advanced Analytics", description: "Track watch time, retention, CTR, and subscriber growth", available: true },
   ],
@@ -150,7 +150,7 @@ export default function PlatformFeatures({ platform, onConnect }: PlatformFeatur
 
       {/* Auto-reply info */}
       <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-4 dark:border-brand-500/30 dark:bg-brand-500/5">
-        <h4 className="text-sm font-medium text-brand-800 dark:text-brand-300 mb-1">FeedGuardian Auto-Reply</h4>
+        <h4 className="text-sm font-medium text-brand-800 dark:text-brand-300 mb-1">Late Auto-Reply</h4>
         <p className="text-xs text-brand-600 dark:text-brand-400 leading-relaxed">
           AI-powered comment replies prioritize must-reply comments based on: profile score, comment sentiment, and comment quality. Limits: Basic 50/day, Premium 100/day, Enterprise 150/day.
         </p>
