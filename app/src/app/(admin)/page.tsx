@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import BrandEditPanel from "@/components/home/BrandEditPanel";
@@ -10,9 +10,37 @@ import AgentDetailCard from "@/components/ai-agent/AgentDetailCard";
 import SubscriptionTierCard, { PLANS } from "@/components/home/SubscriptionTierCard";
 import type { PlanId } from "@/components/home/SubscriptionTierCard";
 import PlanDetailPanel from "@/components/home/PlanDetailPanel";
+import PlatformIcon from "@/components/shared/PlatformIcon";
 import { supabase } from "@/lib/supabase";
 
-const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
+const DEMO_BRAND_ID   = process.env.NEXT_PUBLIC_DEMO_BRAND_ID   || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
+const LATE_PROFILE_ID = process.env.NEXT_PUBLIC_LATE_PROFILE_ID || "699e53896106e38879670023";
+const SUPABASE_FN_URL = "https://vozjwptzutolvkvfpknk.supabase.co/functions/v1";
+
+// Late platform id map (our id → Late's platform name)
+const LATE_PLATFORM: Record<string, string> = {
+  tiktok:    "tiktok",
+  instagram: "instagram",
+  facebook:  "facebook",
+  youtube:   "youtube",
+  linkedin:  "linkedin",
+  x:         "twitter",
+  threads:   "threads",
+  reddit:    "reddit",
+  gbp:       "google_business",
+};
+
+// ── localStorage persistence helpers ────────────────────────────
+const LS_CONNECTIONS = "gv_connections";    // JSON array of connected platform ids
+const SS_PENDING     = "gv_pending_connect"; // platform id waiting for OAuth callback
+
+const loadLS = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try { return new Set(JSON.parse(localStorage.getItem(LS_CONNECTIONS) || "[]")); } catch { return new Set(); }
+};
+const saveLS = (ps: Platform[]) => {
+  try { localStorage.setItem(LS_CONNECTIONS, JSON.stringify(ps.filter(p => p.connected).map(p => p.id))); } catch {}
+};
 
 // ── Connect / Platform types ─────────────────────────────────────
 interface Platform {
@@ -23,21 +51,22 @@ interface Platform {
   handle?: string;
   plan: "basic" | "premium" | "enterprise";
 }
-const CONNECT_PLAN = "premium";
+const CONNECT_PLAN = "enterprise";
 const planOrder: Record<string, number> = { basic: 0, premium: 1, enterprise: 2 };
-const planLabel: Record<string, string> = { basic: "Basic", premium: "Premium", enterprise: "Enterprise" };
+const planLabel: Record<string, string> = { basic: "Basic", premium: "Premium", enterprise: "Partner" };
 const initialPlatforms: Platform[] = [
-  { id: "instagram", name: "Instagram", icon: "📸", connected: true, handle: "geovera.id", plan: "basic" },
-  { id: "reels", name: "Reels", icon: "🎬", connected: false, plan: "premium" },
-  { id: "tiktok", name: "TikTok", icon: "🎵", connected: false, plan: "premium" },
-  { id: "x", name: "X (Twitter)", icon: "𝕏", connected: false, plan: "basic" },
-  { id: "blog", name: "Blog", icon: "✍️", connected: false, plan: "basic" },
-  { id: "linkedin", name: "LinkedIn", icon: "💼", connected: false, plan: "premium" },
-  { id: "youtube-shorts", name: "YouTube Shorts", icon: "▶️", connected: false, plan: "premium" },
-  { id: "youtube-video", name: "YouTube Video", icon: "🎥", connected: false, plan: "enterprise" },
+  { id: "tiktok",    name: "TikTok",                  icon: "🎵", connected: false, plan: "premium" },
+  { id: "instagram", name: "Instagram",               icon: "📸", connected: true,  handle: "geovera.id", plan: "basic" },
+  { id: "facebook",  name: "Facebook",                icon: "💬", connected: false, plan: "basic" },
+  { id: "youtube",   name: "YouTube",                 icon: "▶️", connected: false, plan: "premium" },
+  { id: "linkedin",  name: "LinkedIn",                icon: "💼", connected: false, plan: "premium" },
+  { id: "x",         name: "X (Twitter)",             icon: "𝕏", connected: false, plan: "basic" },
+  { id: "threads",   name: "Threads",                 icon: "🧵", connected: false, plan: "premium" },
+  { id: "reddit",    name: "Reddit",                  icon: "🟠", connected: false, plan: "basic" },
+  { id: "gbp",       name: "Google Business Profile", icon: "📍", connected: false, plan: "enterprise" },
 ];
 
-const CURRENT_PLAN: PlanId = "premium";
+const CURRENT_PLAN: PlanId = "enterprise";
 
 const agents: Agent[] = [
   {
@@ -98,7 +127,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI CTO handles technical strategy including website optimization, analytics setup, automation workflows, and integration management. Available on Enterprise plan.",
+      "Your AI CTO handles technical strategy including website optimization, analytics setup, automation workflows, and integration management. Available on Partner plan.",
     dailyTasks: [
       "Monitor website performance and uptime",
       "Optimize page speed and Core Web Vitals",
@@ -117,7 +146,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using FeedGuardian technology. Available on Enterprise plan.",
+      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using FeedGuardian technology. Available on Partner plan.",
     dailyTasks: [
       "Reply to top-priority comments (by score)",
       "Respond to customer DMs and inquiries",
@@ -130,140 +159,284 @@ const agents: Agent[] = [
   },
 ];
 
-// ── Connect Detail Panel (right column) ─────────────────────────
-const platformFeatures: Record<string, string[]> = {
-  instagram: ["Auto-publish Posts", "Auto-reply Comments", "Schedule Content", "Comment Score Analysis"],
-  reels: ["Auto-publish Reels", "Auto-reply Comments", "Schedule Content", "Engagement Analytics"],
-  tiktok: ["Auto-publish Videos", "Auto-reply Comments", "Schedule Content", "Comment Analysis"],
-  x: ["Auto-publish Tweets", "Auto-reply Mentions", "Schedule Content", "Engagement Tracking"],
-  blog: ["Auto-publish Articles", "Short Article Posts", "SEO Optimization", "Internal Linking"],
-  linkedin: ["Auto-publish Posts", "Auto-reply Comments", "Schedule Content", "Network Analytics"],
-  "youtube-shorts": ["Auto-publish Shorts", "Auto-reply Comments", "Schedule Content", "Performance Analytics"],
-  "youtube-video": ["Auto-publish Videos", "Auto-reply Comments", "Schedule Content", "Advanced Analytics"],
-};
-
-function ConnectDetailPanel({
-  platform, isAccessible, isConnected, replyOn, onToggleConnect, onToggleReply,
-  hasUnsaved, saving, onSave,
-}: {
-  platform: Platform; isAccessible: boolean; isConnected: boolean; replyOn: boolean;
-  onToggleConnect: () => void; onToggleReply: () => void;
-  hasUnsaved: boolean; saving: boolean; onSave: () => void;
-}) {
-  const features = platformFeatures[platform.id] || [];
+// ── Billing toggle (monthly / yearly) ───────────────────────────
+function BillingToggle() {
+  const [yearly, setYearly] = useState(false);
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-      {/* Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 p-5">
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`text-3xl ${!isAccessible ? "grayscale opacity-50" : ""}`}>{platform.icon}</span>
-          <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
-              {platform.name}
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {isConnected ? `Connected${platform.handle ? ` · @${platform.handle}` : ""}` :
-               isAccessible ? "Not connected" : `Requires ${planLabel[platform.plan]} plan`}
-            </p>
-          </div>
-        </div>
-        {/* Connect + Reply toggles */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Connect</p>
-              <p className="text-[11px] text-gray-400">Enable publishing & syncing</p>
-            </div>
-            {isAccessible ? (
-              <button
-                onClick={onToggleConnect}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isConnected ? "bg-brand-500" : "bg-gray-200 dark:bg-gray-700"}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isConnected ? "translate-x-6" : "translate-x-1"}`} />
-              </button>
-            ) : (
-              <span className="rounded-full bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
-                {planLabel[platform.plan]}+
-              </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-sm font-medium ${!isConnected || !isAccessible ? "text-gray-400" : "text-gray-900 dark:text-white"}`}>Auto-Reply</p>
-              <p className="text-[11px] text-gray-400">FeedGuardian comment responses</p>
-            </div>
-            {isAccessible ? (
-              <button
-                onClick={onToggleReply}
-                disabled={!isConnected}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${replyOn && isConnected ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${replyOn && isConnected ? "translate-x-6" : "translate-x-1"}`} />
-              </button>
-            ) : (
-              <span className="text-[10px] text-gray-300 dark:text-gray-600">—</span>
-            )}
-          </div>
-        </div>
+    <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5">
+      <div>
+        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Billing cycle</p>
+        <p className="text-[10px] text-gray-400 mt-0.5">
+          {yearly
+            ? "Yearly — pay 11 months, get 1 month free"
+            : "Monthly billing"}
+        </p>
       </div>
-      {/* Features */}
-      <div className="p-5 space-y-2 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Available Features</p>
-        {features.map((f) => (
-          <div key={f} className="flex items-center gap-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={isAccessible ? "text-brand-500" : "text-gray-300"}>
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <span className={`text-xs font-medium ${isAccessible ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}`}>{f}</span>
-          </div>
-        ))}
-        {/* FeedGuardian note */}
-        <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5 p-3">
-          <p className="text-[11px] font-medium text-brand-700 dark:text-brand-300">FeedGuardian Limits</p>
-          <p className="text-[10px] text-brand-500 dark:text-brand-400 mt-1">Basic: 50/day · Premium: 100/day · Enterprise: 150/day</p>
-        </div>
-
-      </div>{/* end features */}
-      </div>{/* end scrollable content */}
-
-      {/* Save button — sticky at bottom, always visible */}
-      <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 p-4">
+      <div className="flex items-center gap-2">
+        <span className={`text-[10px] font-medium ${!yearly ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}`}>Monthly</span>
         <button
-          onClick={onSave}
-          disabled={saving || !hasUnsaved}
-          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-            hasUnsaved
-              ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
-              : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
-          } disabled:opacity-60`}
+          onClick={() => setYearly((v) => !v)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${yearly ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-600"}`}
         >
-          {saving ? (
-            <>
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 12a9 9 0 11-6.219-8.56" />
-              </svg>
-              Saving…
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-              </svg>
-              {hasUnsaved ? "Save Changes" : "No changes"}
-            </>
-          )}
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${yearly ? "translate-x-4.5" : "translate-x-0.5"}`} />
         </button>
+        <span className={`text-[10px] font-medium ${yearly ? "text-brand-600 dark:text-brand-400" : "text-gray-400"}`}>
+          Yearly
+          {yearly && <span className="ml-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-400">1 mo free</span>}
+        </span>
       </div>
     </div>
   );
 }
 
-type Section = "profile" | "assets" | "subscription" | "billing" | "agents" | "connect" | null;
-type RightPanelMode = "brand" | "assets" | "agent" | "plan" | "connect";
+// ── Subscription Panel (right column) ───────────────────────────
+function SubscriptionPanel({
+  selectedPlanId, onSelectPlan,
+}: {
+  selectedPlanId: PlanId;
+  onSelectPlan: (id: PlanId) => void;
+}) {
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="border-b border-gray-200 dark:border-gray-800 p-2">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+          Subscription Plans
+        </h3>
+        <p className="text-xs text-gray-400 mt-0.5">Click a plan to see details</p>
+      </div>
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+        <BillingToggle />
+        {PLANS.map((plan) => (
+          <SubscriptionTierCard
+            key={plan.id}
+            plan={plan}
+            isCurrent={plan.id === CURRENT_PLAN}
+            isSelected={selectedPlanId === plan.id}
+            onClick={() => onSelectPlan(plan.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Billing Panel (right column) — Xendit-standard ──────────────
+function BillingPanel() {
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="border-b border-gray-200 dark:border-gray-800 p-2">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+          Billing
+        </h3>
+        <p className="text-xs text-gray-400 mt-0.5">Next billing: Mar 23, 2026</p>
+      </div>
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
+        {/* Current billing summary */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Current Subscription</p>
+          </div>
+          <table className="w-full text-xs">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {[
+                { label: "Plan", value: <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">Premium</span> },
+                { label: "Price", value: "$499 / month" },
+                { label: "Billing Cycle", value: "Monthly" },
+                { label: "Next Billing", value: "Mar 23, 2026" },
+                { label: "Status", value: <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">Active</span> },
+              ].map(({ label, value }) => (
+                <tr key={label}>
+                  <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Payment Method (Xendit) */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Payment Method</p>
+          </div>
+          <table className="w-full text-xs">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {[
+                { label: "Gateway", value: "Xendit" },
+                { label: "Method", value: "Virtual Account (BCA)" },
+                { label: "Account No.", value: "··· 8842" },
+                { label: "Currency", value: "IDR (Indonesian Rupiah)" },
+                { label: "Equivalent", value: "Rp 8.100.000 / bln" },
+              ].map(({ label, value }) => (
+                <tr key={label}>
+                  <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+            <button className="w-full rounded-lg border border-brand-300 px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/50 dark:text-brand-400 dark:hover:bg-brand-500/10">
+              Update Payment Method
+            </button>
+          </div>
+        </div>
+
+        {/* Invoice History */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoice History</p>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800">
+                <th className="px-3 py-2 text-left font-semibold text-gray-400">Date</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-400">Invoice ID</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-400">Amount</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-400">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {[
+                { date: "Feb 23, 2026", id: "INV-2026-02", amount: "Rp 8.100.000", status: "Paid" },
+                { date: "Jan 23, 2026", id: "INV-2026-01", amount: "Rp 8.100.000", status: "Paid" },
+                { date: "Dec 23, 2025", id: "INV-2025-12", amount: "Rp 8.100.000", status: "Paid" },
+                { date: "Nov 23, 2025", id: "INV-2025-11", amount: "Rp 8.100.000", status: "Paid" },
+              ].map((inv) => (
+                <tr key={inv.id}>
+                  <td className="px-3 py-2 text-gray-500">{inv.date}</td>
+                  <td className="px-3 py-2 text-gray-500 font-mono text-[10px]">{inv.id}</td>
+                  <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{inv.amount}</td>
+                  <td className="px-3 py-2 text-right">
+                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                      {inv.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// (platformFeatures removed — no longer used in ConnectAllPanel)
+
+// ── Connect All Platforms Panel (right column) ──────────────────
+function ConnectAllPanel({
+  platforms, replyEnabled, isAccessible, onToggleConnect, onToggleReply,
+}: {
+  platforms: Platform[];
+  replyEnabled: Record<string, boolean>;
+  isAccessible: (p: Platform) => boolean;
+  onToggleConnect: (id: string) => void;
+  onToggleReply: (id: string) => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+        {/* Header */}
+        <div className="border-b border-gray-200 dark:border-gray-800 p-2">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+            Connected Platforms
+          </h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {platforms.filter((p) => p.connected).length} of {platforms.length} connected
+          </p>
+        </div>
+
+        {/* Column headers */}
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-2 py-2 border-b border-gray-100 dark:border-gray-800">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Platform</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-16 text-center">Connect</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-16 text-center">Auto-Reply</span>
+        </div>
+
+        {/* Platform rows */}
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {platforms.map((platform) => {
+            const accessible = isAccessible(platform);
+            const isConnected = platform.connected;
+            const replyOn = replyEnabled[platform.id] ?? false;
+            return (
+              <div
+                key={platform.id}
+                className={`grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-2 py-2 ${!accessible ? "opacity-50" : ""}`}
+              >
+                {/* Platform info */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`flex-shrink-0 ${!accessible ? "opacity-40" : ""}`}>
+                    <PlatformIcon id={platform.id} size={22} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{platform.name}</p>
+                      {!accessible && (
+                        <span className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[9px] font-medium text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 flex-shrink-0">
+                          {planLabel[platform.plan]}+
+                        </span>
+                      )}
+                    </div>
+                    {platform.handle && accessible && isConnected && (
+                      <p className="text-[10px] text-gray-400 truncate">@{platform.handle}</p>
+                    )}
+                    {!isConnected && accessible && (
+                      <p className="text-[10px] text-gray-400">Not connected</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connect toggle */}
+                <div className="w-16 flex justify-center">
+                  {accessible ? (
+                    <button
+                      onClick={() => onToggleConnect(platform.id)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isConnected ? "bg-brand-500" : "bg-gray-200 dark:bg-gray-700"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isConnected ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  ) : (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 dark:text-gray-600">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Auto-Reply toggle */}
+                <div className="w-16 flex justify-center">
+                  {accessible ? (
+                    <button
+                      onClick={() => onToggleReply(platform.id)}
+                      disabled={!isConnected}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${replyOn && isConnected ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${replyOn && isConnected ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-gray-300 dark:text-gray-600">—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* FeedGuardian note */}
+        <div className="mx-2 mt-2 mb-2 rounded-lg border border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5 p-2">
+          <p className="text-xs font-medium text-brand-700 dark:text-brand-300">FeedGuardian Auto-Reply Limits</p>
+          <p className="text-[10px] text-brand-500 dark:text-brand-400 mt-1">Basic: 50/day · Premium: 100/day · Partner: 150/day</p>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+type Section = "profile" | "agents" | null;
+type RightPanelMode = "brand" | "assets" | "agent" | "plan" | "connect" | "subscription" | "billing";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -289,9 +462,6 @@ export default function HomePage() {
   // Connect state
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [replyEnabled, setReplyEnabled] = useState<Record<string, boolean>>({ instagram: true });
-  const [selectedPlatformId, setSelectedPlatformId] = useState("instagram");
-  const [hasUnsaved, setHasUnsaved] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId)!;
@@ -303,53 +473,135 @@ export default function HomePage() {
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
-  const handleToggleConnect = (id: string) => {
-    setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, connected: !p.connected } : p)));
-    setHasUnsaved(true);
+  // Load connection state on mount
+  useEffect(() => {
+    // 0) If running in a popup after OAuth redirect → close popup
+    if (typeof window !== "undefined" && window.opener && window.location.search.includes("oauth_done=1")) {
+      window.opener.postMessage({ type: "gv_oauth_done" }, window.location.origin);
+      window.close();
+      return;
+    }
+
+    // 0b) Listen for popup postMessage from OAuth callback
+    const handleOAuthMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "gv_oauth_done") {
+        setTimeout(() => refreshStatus(), 1500);
+      }
+    };
+    window.addEventListener("message", handleOAuthMessage);
+
+    // 1) Check if we just returned from an OAuth flow (fallback redirect path)
+    const pendingId = sessionStorage.getItem(SS_PENDING);
+    if (pendingId) {
+      sessionStorage.removeItem(SS_PENDING);
+      setPlatforms((prev) => {
+        const updated = prev.map((p) => (p.id === pendingId ? { ...p, connected: true } : p));
+        saveLS(updated);
+        setSaveToast(`✅ ${updated.find(p => p.id === pendingId)?.name || pendingId} connected!`);
+        setTimeout(() => setSaveToast(null), 4000);
+        return updated;
+      });
+    }
+
+    // 2) Restore from localStorage instantly (before API responds)
+    const saved = loadLS();
+    if (saved.size > 0) {
+      setPlatforms((prev) => prev.map((p) => ({ ...p, connected: saved.has(p.id) })));
+    }
+
+    // 3) Verify with Late API (async — updates if different)
+    refreshStatus();
+
+    return () => window.removeEventListener("message", handleOAuthMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reusable: fetch Late API status and sync to state + localStorage
+  const refreshStatus = async () => {
+    try {
+      const res = await fetch(
+        `${SUPABASE_FN_URL}/social-connect/status?profile_id=${LATE_PROFILE_ID}`
+      );
+      if (!res.ok) return;
+      const data = await res.json() as { accounts?: { platform?: string; accountId?: string; username?: string }[] };
+      if (!data.accounts) return;
+      const connectedPlatforms = new Set(
+        data.accounts.map((a) => {
+          return Object.entries(LATE_PLATFORM).find(([, v]) => v === a.platform)?.[0];
+        }).filter(Boolean)
+      );
+      setPlatforms((prev) => {
+        const updated = prev.map((p) => ({
+          ...p,
+          connected: connectedPlatforms.has(p.id),
+          handle: data.accounts?.find((a) => LATE_PLATFORM[p.id] === a.platform)?.username || p.handle,
+        }));
+        saveLS(updated);
+        return updated;
+      });
+    } catch {
+      // silently fail — keep localStorage state
+    }
+  };
+
+  const handleToggleConnect = async (id: string) => {
+    const platform = platforms.find((p) => p.id === id);
+    if (!platform) return;
+
+    if (!platform.connected) {
+      // ── Connect: open OAuth in popup so user stays on GeoVera ──
+      try {
+        const latePlatform = LATE_PLATFORM[id] || id;
+        const res = await fetch(
+          `${SUPABASE_FN_URL}/social-connect?platform=${latePlatform}&profile_id=${LATE_PROFILE_ID}`
+        );
+        const data = await res.json() as { auth_url?: string; error?: string };
+        if (data.auth_url) {
+          const popup = window.open(
+            data.auth_url,
+            "oauth_connect",
+            "width=600,height=700,left=200,top=100,noopener=0"
+          );
+          if (popup) {
+            // Poll until popup closes, then refresh status
+            const poll = setInterval(() => {
+              if (popup.closed) {
+                clearInterval(poll);
+                setTimeout(async () => {
+                  await refreshStatus();
+                  setSaveToast(`✅ ${platform.name} — checking connection…`);
+                  setTimeout(() => setSaveToast(null), 3000);
+                }, 1500);
+              }
+            }, 600);
+          } else {
+            // Popup blocked — fallback to full-page redirect
+            sessionStorage.setItem(SS_PENDING, id);
+            window.location.href = data.auth_url;
+          }
+          return;
+        } else {
+          setSaveToast(`❌ Failed to connect ${platform.name}: ${data.error || "unknown error"}`);
+          setTimeout(() => setSaveToast(null), 4000);
+        }
+      } catch {
+        setSaveToast(`❌ Connection error for ${platform.name}`);
+        setTimeout(() => setSaveToast(null), 4000);
+      }
+    } else {
+      // ── Disconnect: optimistic UI + auto-persist ───────────────
+      setPlatforms((prev) => {
+        const updated = prev.map((p) => (p.id === id ? { ...p, connected: false } : p));
+        saveLS(updated);
+        return updated;
+      });
+    }
   };
   const handleToggleReply = (id: string) => {
     setReplyEnabled((prev) => ({ ...prev, [id]: !prev[id] }));
-    setHasUnsaved(true);
   };
 
-  const handleSaveConnections = async () => {
-    setSaving(true);
-    try {
-      const now = new Date().toISOString();
-      const connected = platforms.filter((p) => p.connected);
-      const disconnected = platforms.filter((p) => !p.connected);
-      for (const p of connected) {
-        await supabase.from("social_connections").upsert(
-          {
-            brand_id:            DEMO_BRAND_ID,
-            platform:            p.id,
-            platform_account_id: p.handle ? p.handle : `demo_${p.id}_user`,
-            platform_username:   p.handle || `geovera_${p.id}`,
-            status:              "active",
-            connected_at:        now,
-            updated_at:          now,
-          },
-          { onConflict: "brand_id,platform" }
-        );
-      }
-      for (const p of disconnected) {
-        await supabase
-          .from("social_connections")
-          .update({ status: "disconnected", updated_at: now })
-          .eq("brand_id", DEMO_BRAND_ID)
-          .eq("platform", p.id);
-      }
-      setHasUnsaved(false);
-      const names = connected.map((p) => p.name).join(", ") || "connections";
-      setSaveToast(`✅ Saved: ${names}`);
-      setTimeout(() => setSaveToast(null), 4000);
-    } catch {
-      setSaveToast("❌ Failed to save. Try again.");
-      setTimeout(() => setSaveToast(null), 4000);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const left = (
     <NavColumn>
@@ -381,7 +633,7 @@ export default function HomePage() {
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
         <button
           onClick={() => { toggleSection("profile"); if (openSection !== "profile") setRightMode("brand"); }}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-500/10 flex-shrink-0">
@@ -391,14 +643,14 @@ export default function HomePage() {
             </div>
             <div className="text-left">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Profile</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">GeoVera · Jakarta, ID</p>
+              <p className="text-xs text-gray-400 mt-0.5">GeoVera · Jakarta, ID</p>
             </div>
           </div>
           <ChevronIcon open={openSection === "profile"} />
         </button>
 
         {openSection === "profile" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 px-4 pb-4 pt-3 space-y-4">
+          <div className="border-t border-gray-100 dark:border-gray-800 p-2 space-y-3">
             {/* Brand Overview */}
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -450,307 +702,122 @@ export default function HomePage() {
       </div>
 
       {/* ── ASSETS ──────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-        <button
-          onClick={() => { toggleSection("assets"); if (openSection !== "assets") setRightMode("assets"); }}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600 dark:text-purple-400">
-                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Assets</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Colors · Logos · LoRA models</p>
-            </div>
+      <button
+        onClick={() => setRightMode("assets")}
+        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+          rightMode === "assets"
+            ? "border-purple-400 bg-purple-50/30 dark:border-purple-500/50 dark:bg-purple-500/5"
+            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "assets" ? "bg-purple-100 dark:bg-purple-500/20" : "bg-purple-100 dark:bg-purple-500/10"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600 dark:text-purple-400">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
+            </svg>
           </div>
-          <ChevronIcon open={openSection === "assets"} />
-        </button>
-
-        {openSection === "assets" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 px-4 pb-4 pt-3 space-y-4">
-
-            {/* Logos */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Logos</p>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { name: "logo-primary.svg", size: "12 KB" },
-                  { name: "logo-white.png", size: "48 KB" },
-                  { name: "favicon.ico", size: "4 KB" },
-                ].map((f) => (
-                  <div key={f.name} className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
-                    </svg>
-                    <div>
-                      <p className="text-[11px] text-gray-700 dark:text-gray-300">{f.name}</p>
-                      <p className="text-[9px] text-gray-400">{f.size}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Palette */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Color Palette</p>
-              <div className="flex gap-2">
-                {[
-                  { color: "#16A34A", label: "Primary" },
-                  { color: "#0F172A", label: "Dark" },
-                  { color: "#F1F5F9", label: "Light" },
-                  { color: "#DCFCE7", label: "Accent" },
-                  { color: "#DC2626", label: "Alert" },
-                ].map((c) => (
-                  <div key={c.color} className="flex flex-col items-center gap-1">
-                    <div className="h-8 w-8 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm" style={{ backgroundColor: c.color }} />
-                    <span className="text-[9px] text-gray-400">{c.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Trained Assets (LoRA) */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Trained Assets</p>
-              <div className="space-y-1.5">
-                {[
-                  { name: "Summer Collection", status: "Ready", date: "Feb 18" },
-                  { name: "Eco Line Products", status: "Ready", date: "Jan 30" },
-                ].map((model) => (
-                  <div key={model.name} className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
-                    <div>
-                      <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{model.name}</p>
-                      <p className="text-[9px] text-gray-400">Trained {model.date}</p>
-                    </div>
-                    <span className="rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                      {model.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-gray-400">Models used</span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">2 / 10</span>
-              </div>
-              <div className="mt-1 h-1 w-full rounded-full bg-gray-100 dark:bg-gray-800">
-                <div className="h-1 rounded-full bg-brand-500" style={{ width: "20%" }} />
-              </div>
-            </div>
-
-            {/* Upload for Training */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Upload for Training</p>
-              <div className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 p-3 text-center">
-                <svg className="mx-auto mb-1.5 h-6 w-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-8m0 0l-3 3m3-3l3 3M3 16.5V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18v-1.5" />
-                </svg>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">Drop product photos here</p>
-                <p className="text-[9px] text-gray-400 mt-0.5">5–15 images per product · JPG, PNG</p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setRightMode("assets")}
-              className={`w-full rounded-lg border py-2 text-xs font-medium transition-colors ${
-                rightMode === "assets"
-                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-                  : "border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400"
-              }`}
-            >
-              Manage Assets
-            </button>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Assets</p>
+            <p className="text-xs text-gray-400 mt-0.5">Colors · Logos · LoRA models</p>
           </div>
-        )}
-      </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
 
       {/* ── SUBSCRIPTION ────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-        <button
-          onClick={() => toggleSection("subscription")}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 dark:text-amber-400">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Subscription</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Premium plan · Active</p>
-            </div>
+      <button
+        onClick={() => setRightMode("subscription")}
+        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+          rightMode === "subscription"
+            ? "border-amber-400 bg-amber-50/30 dark:border-amber-500/50 dark:bg-amber-500/5"
+            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "subscription" ? "bg-amber-100 dark:bg-amber-500/20" : "bg-amber-100 dark:bg-amber-500/10"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 dark:text-amber-400">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
           </div>
-          <ChevronIcon open={openSection === "subscription"} />
-        </button>
-
-        {openSection === "subscription" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 px-4 pb-4 pt-3 space-y-2">
-            {PLANS.map((plan) => (
-              <SubscriptionTierCard
-                key={plan.id}
-                plan={plan}
-                isCurrent={plan.id === CURRENT_PLAN}
-                isSelected={rightMode === "plan" && selectedPlanId === plan.id}
-                onClick={() => {
-                  setSelectedPlanId(plan.id);
-                  setRightMode("plan");
-                }}
-              />
-            ))}
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Subscription</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              <span className="font-semibold text-amber-600 dark:text-amber-400">Premium</span> · $499/mo
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
 
       {/* ── BILLING ─────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-        <button
-          onClick={() => toggleSection("billing")}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
-                <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Billing</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Next billing Mar 23, 2026</p>
-            </div>
+      <button
+        onClick={() => setRightMode("billing")}
+        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+          rightMode === "billing"
+            ? "border-blue-400 bg-blue-50/30 dark:border-blue-500/50 dark:bg-blue-500/5"
+            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "billing" ? "bg-blue-100 dark:bg-blue-500/20" : "bg-blue-100 dark:bg-blue-500/10"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
+              <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
           </div>
-          <ChevronIcon open={openSection === "billing"} />
-        </button>
-
-        {openSection === "billing" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 px-4 pb-4 pt-3 space-y-3">
-            {/* Current billing info */}
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Plan</span>
-                <span className="text-gray-700 dark:text-gray-300 font-medium">Premium · $79/mo</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Next billing</span>
-                <span className="text-gray-700 dark:text-gray-300 font-medium">Mar 23, 2026</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Payment method</span>
-                <span className="text-gray-700 dark:text-gray-300 font-medium">Visa ···· 4242</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Status</span>
-                <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                  Active
-                </span>
-              </div>
-            </div>
-
-            {/* Invoice history placeholder */}
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Recent Invoices</p>
-              {[
-                { date: "Feb 23, 2026", amount: "$79.00", status: "Paid" },
-                { date: "Jan 23, 2026", amount: "$79.00", status: "Paid" },
-                { date: "Dec 23, 2025", amount: "$79.00", status: "Paid" },
-              ].map((inv) => (
-                <div key={inv.date} className="flex justify-between items-center py-1.5 border-b border-gray-200 dark:border-gray-700 last:border-0">
-                  <span className="text-xs text-gray-500">{inv.date}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-700 dark:text-gray-300">{inv.amount}</span>
-                    <span className="text-[10px] text-green-600 dark:text-green-400">{inv.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-600 hover:border-gray-300 hover:text-gray-800 dark:border-gray-700 dark:text-gray-400 transition-colors">
-              Update Payment Method
-            </button>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Billing</p>
+            <p className="text-xs text-gray-400 mt-0.5">Next billing Mar 23, 2026</p>
           </div>
-        )}
-      </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
 
       {/* ── CONNECT ─────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-        <button
-          onClick={() => toggleSection("connect")}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
-                <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Connect</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{connectedCount} connected · {platforms.length} platforms</p>
-            </div>
+      <button
+        onClick={() => setRightMode("connect")}
+        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+          rightMode === "connect"
+            ? "border-brand-400 bg-brand-50/30 dark:border-brand-500/50 dark:bg-brand-500/5"
+            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "connect" ? "bg-brand-100 dark:bg-brand-500/20" : "bg-blue-100 dark:bg-blue-500/10"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={rightMode === "connect" ? "text-brand-600 dark:text-brand-400" : "text-blue-600 dark:text-blue-400"}>
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
           </div>
-          <ChevronIcon open={openSection === "connect"} />
-        </button>
-
-        {openSection === "connect" && (
-          <div className="border-t border-gray-100 dark:border-gray-800">
-            {/* Platform rows — click to open right panel with toggles */}
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {platforms.map((platform) => {
-                const accessible = isAccessible(platform);
-                const isConnected = platform.connected;
-                const isSelected = selectedPlatformId === platform.id && rightMode === "connect";
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => { setSelectedPlatformId(platform.id); setRightMode("connect"); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${
-                      isSelected ? "bg-brand-50/40 dark:bg-brand-500/5" :
-                      accessible ? "hover:bg-gray-50 dark:hover:bg-gray-800/40" : "opacity-50"
-                    }`}
-                  >
-                    <span className={`text-base flex-shrink-0 ${!accessible ? "grayscale" : ""}`}>{platform.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className={`text-xs font-medium ${accessible ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>{platform.name}</p>
-                        {!accessible && (
-                          <span className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[9px] font-medium text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">{planLabel[platform.plan]}+</span>
-                        )}
-                        {isConnected && accessible && (
-                          <span className="rounded-full bg-brand-50 px-1.5 py-0.5 text-[9px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">Connected</span>
-                        )}
-                      </div>
-                      {platform.handle && accessible && (
-                        <p className="text-[10px] text-gray-400">@{platform.handle}</p>
-                      )}
-                    </div>
-                    {/* Small status indicator */}
-                    <div className="flex-shrink-0">
-                      {isConnected && accessible ? (
-                        <div className="h-2 w-2 rounded-full bg-brand-500" />
-                      ) : accessible ? (
-                        <div className="h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-700" />
-                      ) : (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 dark:text-gray-600">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Connect</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              <span className="font-semibold text-brand-600 dark:text-brand-400">{connectedCount}</span> connected · {platforms.length} platforms
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Mini platform icons */}
+          <div className="flex gap-1">
+            {platforms.filter(p => p.connected).slice(0, 4).map((p) => (
+              <PlatformIcon key={p.id} id={p.id} size={18} />
+            ))}
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </div>
+      </button>
 
       {/* ── AI AGENTS ───────────────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
         <button
           onClick={() => toggleSection("agents")}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-500/10 flex-shrink-0">
@@ -760,14 +827,14 @@ export default function HomePage() {
             </div>
             <div className="text-left">
               <p className="text-sm font-medium text-gray-900 dark:text-white">AI Agents</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">CEO · CMO · 2 active</p>
+              <p className="text-xs text-gray-400 mt-0.5">CEO · CMO · 2 active</p>
             </div>
           </div>
           <ChevronIcon open={openSection === "agents"} />
         </button>
 
         {openSection === "agents" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 px-4 pb-4 pt-3 space-y-2">
+          <div className="border-t border-gray-100 dark:border-gray-800 p-2 space-y-2">
             {agents.map((agent) => {
               const isSelected = rightMode === "agent" && selectedAgentId === agent.id;
               return (
@@ -813,8 +880,6 @@ export default function HomePage() {
     </div>
   );
 
-  const selectedPlatform = platforms.find((p) => p.id === selectedPlatformId)!;
-
   const right = (
     <>
       {rightMode === "brand" && <BrandEditPanel />}
@@ -823,17 +888,20 @@ export default function HomePage() {
       {rightMode === "plan" && (
         <PlanDetailPanel plan={selectedPlan} currentPlan={CURRENT_PLAN} />
       )}
+      {rightMode === "subscription" && (
+        <SubscriptionPanel
+          selectedPlanId={selectedPlanId}
+          onSelectPlan={(id) => { setSelectedPlanId(id); setRightMode("plan"); }}
+        />
+      )}
+      {rightMode === "billing" && <BillingPanel />}
       {rightMode === "connect" && (
-        <ConnectDetailPanel
-          platform={selectedPlatform}
-          isAccessible={isAccessible(selectedPlatform)}
-          isConnected={selectedPlatform.connected}
-          replyOn={replyEnabled[selectedPlatformId] ?? false}
-          onToggleConnect={() => handleToggleConnect(selectedPlatformId)}
-          onToggleReply={() => handleToggleReply(selectedPlatformId)}
-          hasUnsaved={hasUnsaved}
-          saving={saving}
-          onSave={handleSaveConnections}
+        <ConnectAllPanel
+          platforms={platforms}
+          replyEnabled={replyEnabled}
+          isAccessible={isAccessible}
+          onToggleConnect={handleToggleConnect}
+          onToggleReply={handleToggleReply}
         />
       )}
     </>
