@@ -756,25 +756,21 @@ export default function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reusable: fetch Late API status and sync to state + localStorage
+  // Reusable: fetch connection status from Supabase DB (no edge function cold start)
   const refreshStatus = async () => {
     try {
-      const res = await fetch(
-        `${SUPABASE_FN_URL}/social-connect/status?brand_id=${brandId}`
-      );
-      if (!res.ok) return;
-      const data = await res.json() as { accounts?: { platform?: string; accountId?: string; username?: string }[] };
-      if (!data.accounts) return;
-      const connectedPlatforms = new Set(
-        data.accounts.map((a) => {
-          return Object.entries(LATE_PLATFORM).find(([, v]) => v === a.platform)?.[0];
-        }).filter(Boolean)
-      );
+      const { data: conns, error } = await supabase
+        .from("social_connections")
+        .select("platform, platform_username")
+        .eq("brand_id", brandId)
+        .eq("status", "active");
+      if (error || !conns) return;
+      const connectedPlatforms = new Set(conns.map((c) => c.platform as string));
       setPlatforms((prev) => {
         const updated = prev.map((p) => ({
           ...p,
           connected: connectedPlatforms.has(p.id),
-          handle: data.accounts?.find((a) => LATE_PLATFORM[p.id] === a.platform)?.username || p.handle,
+          handle: conns.find((c) => c.platform === p.id)?.platform_username || p.handle,
         }));
         saveLS(updated);
         return updated;
