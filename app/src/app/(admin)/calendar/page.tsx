@@ -1,11 +1,14 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 import PrioritySection from "@/components/calendar/PrioritySection";
 import TaskDetailPanel from "@/components/calendar/TaskDetailPanel";
-import type { Task } from "@/components/calendar/TaskCard";
+import type { Task, ReplyComment } from "@/components/calendar/TaskCard";
+import { supabase } from "@/lib/supabase";
+
+const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // Premium plan daily tasks:
 //   2 long articles (Medium, Quora/Reddit) + 2 short articles (LinkedIn, X)
@@ -679,6 +682,47 @@ export default function CalendarPage() {
   const [subTab, setSubTab] = useState<SubTab>("content");
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
 
+  // Connected platforms from Supabase
+  const [connectedPlatforms, setConnectedPlatforms] = useState<{ platform: string; handle?: string; auto_reply_enabled: boolean }[]>([]);
+  const [autoReplyCount, setAutoReplyCount] = useState(0);
+
+  useEffect(() => {
+    supabase
+      .from("social_connections")
+      .select("platform, platform_username, auto_reply_enabled")
+      .eq("brand_id", DEMO_BRAND_ID)
+      .eq("status", "active")
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setConnectedPlatforms(data.map((c) => ({
+            platform: c.platform,
+            handle: c.platform_username || undefined,
+            auto_reply_enabled: c.auto_reply_enabled ?? false,
+          })));
+          setAutoReplyCount(data.filter((c) => c.auto_reply_enabled).length);
+        }
+      });
+  }, []);
+
+  // Save approved replies to reply_queue table
+  const handlePublishReplies = useCallback(async (taskId: string, replies: ReplyComment[]): Promise<{ queued: number }> => {
+    const rows = replies.map((r) => ({
+      brand_id: DEMO_BRAND_ID,
+      task_id: taskId,
+      platform: r.platform,
+      platform_icon: r.platformIcon,
+      author: r.author,
+      author_score: r.authorScore,
+      original_comment: r.comment,
+      draft_reply: r.draftReply,
+      status: "queued",
+    }));
+
+    const { error, data } = await supabase.from("reply_queue").insert(rows).select("id");
+    if (error) throw new Error(error.message);
+    return { queued: data?.length ?? rows.length };
+  }, []);
+
   // Mobile: open right panel when task selected
   const handleTaskSelect = (task: Task) => {
     setSelectedTask(task);
@@ -849,17 +893,36 @@ export default function CalendarPage() {
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-1">
 
-        {/* Comments tab — placeholder until Late API connected */}
+        {/* Comments tab */}
         {subTab === "comments" && (
           <div className="py-6 space-y-2">
             <div className="rounded-xl border border-teal-200 bg-teal-50/60 dark:border-teal-500/20 dark:bg-teal-500/5 p-3 mb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">🛡️</span>
-                <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">FeedGuardian Auto-Reply</p>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🛡️</span>
+                  <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">FeedGuardian Auto-Reply</p>
+                </div>
+                {connectedPlatforms.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+                    {connectedPlatforms.length} connected
+                  </span>
+                )}
               </div>
-              <p className="text-[10px] text-teal-600 dark:text-teal-500">
-                Connect your social accounts to see live comment queues here. FeedGuardian ranks comments by author score and drafts personalized replies via OpenAI.
-              </p>
+              {connectedPlatforms.length > 0 ? (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {connectedPlatforms.map((p) => (
+                    <span key={p.platform} className="inline-flex items-center gap-1 rounded-full bg-white border border-teal-200 px-2 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:border-teal-500/20 dark:text-teal-400">
+                      {p.handle ? `@${p.handle}` : p.platform}
+                      {p.auto_reply_enabled && <span className="h-1 w-1 rounded-full bg-teal-500 inline-block" />}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-teal-600 dark:text-teal-500 mt-1">
+                  Connect your social accounts to see live comment queues here. FeedGuardian ranks comments by author score and drafts personalized replies via OpenAI.
+                </p>
+              )}
             </div>
             {commentTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1183,7 +1246,15 @@ export default function CalendarPage() {
     </div>
   );
 
-  const right = <TaskDetailPanel task={selectedTask} onPublish={handlePublish} onReject={handleReject} isRejected={selectedTask ? rejectedTaskIds.has(selectedTask.id) : false} />;
+  const right = (
+    <TaskDetailPanel
+      task={selectedTask}
+      onPublish={handlePublish}
+      onReject={handleReject}
+      isRejected={selectedTask ? rejectedTaskIds.has(selectedTask.id) : false}
+      onPublishReplies={handlePublishReplies}
+    />
+  );
 
   return (
     <ThreeColumnLayout

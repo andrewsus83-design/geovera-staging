@@ -69,14 +69,28 @@ interface TaskDetailPanelProps {
   onPublish?: (taskId: string) => void;
   onReject?: (taskId: string, reason: string) => void;
   isRejected?: boolean;
+  onPublishReplies?: (taskId: string, replies: ReplyComment[]) => Promise<{ queued: number }>;
 }
 
 // ── FeedGuardian Reply Queue UI ──────────────────────────────────
-function ReplyQueuePanel({ queue, onPublish }: { queue: ReplyComment[]; onPublish?: () => void }) {
+function ReplyQueuePanel({
+  queue,
+  onPublish,
+  onPublishReplies,
+  taskId,
+}: {
+  queue: ReplyComment[];
+  onPublish?: () => void;
+  onPublishReplies?: (taskId: string, replies: ReplyComment[]) => Promise<{ queued: number }>;
+  taskId?: string;
+}) {
   const [replies, setReplies] = useState<ReplyComment[]>(queue);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [publishedAll, setPublishedAll] = useState(false);
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [queuedCount, setQueuedCount] = useState(0);
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
 
@@ -295,23 +309,55 @@ function ReplyQueuePanel({ queue, onPublish }: { queue: ReplyComment[]; onPublis
       {/* Publish approved */}
       <div className="pt-3 border-t border-gray-200 dark:border-gray-800 mt-3">
         {publishedAll ? (
-          <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-2.5 text-center">
-            <p className="text-sm font-medium text-green-700 dark:text-green-400">✓ {approved} replies published</p>
-            <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">Auto-posted to all platforms</p>
+          <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-3 text-center">
+            <p className="text-sm font-semibold text-green-700 dark:text-green-400">🛡️ {queuedCount} {queuedCount === 1 ? "reply" : "replies"} queued</p>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">FeedGuardian will auto-send based on your delay settings</p>
           </div>
         ) : (
-          <button
-            onClick={() => {
-              if (approved > 0) {
-                setPublishedAll(true);
-                onPublish?.();
-              }
-            }}
-            disabled={approved === 0}
-            className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Publish {approved} Approved {approved === 1 ? "Reply" : "Replies"}
-          </button>
+          <>
+            {publishError && (
+              <p className="text-xs text-red-500 mb-2 text-center">{publishError}</p>
+            )}
+            <button
+              onClick={async () => {
+                if (approved === 0) return;
+                const approvedReplies = replies.filter((r) => r.status === "approved");
+                if (onPublishReplies && taskId) {
+                  setPublishLoading(true);
+                  setPublishError(null);
+                  try {
+                    const result = await onPublishReplies(taskId, approvedReplies);
+                    setQueuedCount(result.queued);
+                    setPublishedAll(true);
+                    onPublish?.();
+                  } catch (e) {
+                    setPublishError("Failed to queue replies. Try again.");
+                  } finally {
+                    setPublishLoading(false);
+                  }
+                } else {
+                  // fallback demo
+                  setQueuedCount(approved);
+                  setPublishedAll(true);
+                  onPublish?.();
+                }
+              }}
+              disabled={approved === 0 || publishLoading}
+              className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {publishLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  Queueing...
+                </>
+              ) : (
+                `Queue ${approved} Approved ${approved === 1 ? "Reply" : "Replies"}`
+              )}
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -327,7 +373,7 @@ const REJECT_REASONS = [
 ];
 
 // ── Main TaskDetailPanel ─────────────────────────────────────────
-export default function TaskDetailPanel({ task, onPublish, onReject, isRejected }: TaskDetailPanelProps) {
+export default function TaskDetailPanel({ task, onPublish, onReject, isRejected, onPublishReplies }: TaskDetailPanelProps) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -425,7 +471,12 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected 
         </div>
         {/* Reply queue */}
         <div className="flex-1 overflow-hidden p-4">
-          <ReplyQueuePanel queue={task.replyQueue} onPublish={() => onPublish?.(task.id)} />
+          <ReplyQueuePanel
+            queue={task.replyQueue}
+            onPublish={() => onPublish?.(task.id)}
+            onPublishReplies={onPublishReplies}
+            taskId={task.id}
+          />
         </div>
       </div>
     );
