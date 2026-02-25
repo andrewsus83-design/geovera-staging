@@ -1089,12 +1089,10 @@ export default function CalendarPage() {
 
   const handlePostPublish = useCallback(async () => {
     if (!selectedPost) return;
-    if (!tiktokConnected) { redirectToTikTokLogin(); return; }
     runDemoPublish();
-  }, [selectedPost, tiktokConnected, redirectToTikTokLogin, runDemoPublish]);
+  }, [selectedPost, runDemoPublish]);
 
   const publishBtnLabel = () => {
-    if (!tiktokConnected) return <><TikTokIcon size={16} /> Login TikTok &amp; Publish</>;
     if (publishStep === "connecting") return <>🔗 Connecting to TikTok…</>;
     if (publishStep === "uploading")  return <>⬆ Uploading video…</>;
     if (publishStep === "success")    return <>✅ Published!</>;
@@ -1670,9 +1668,7 @@ export default function CalendarPage() {
                 ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
                 : publishing
                 ? "bg-[#FE2C55]/70 text-white cursor-wait"
-                : tiktokConnected
-                ? "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
-                : "bg-black text-white hover:bg-gray-900 shadow-md"
+                : "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
             }`}
           >
             {publishBtnLabel()}
@@ -1687,16 +1683,10 @@ export default function CalendarPage() {
             </div>
           )}
 
-          {tiktokConnected && selectedPost.status !== "published" && (
+          {selectedPost.status !== "published" && (
             <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors flex items-center justify-center gap-2">
               📅 Schedule · {selectedPost.date} {selectedPost.time}
             </button>
-          )}
-
-          {!tiktokConnected && (
-            <p className="text-center text-[10px] text-gray-400 dark:text-gray-500">
-              Kamu akan diarahkan ke halaman login TikTok
-            </p>
           )}
         </div>
 

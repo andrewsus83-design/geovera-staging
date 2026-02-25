@@ -787,32 +787,25 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
               <p className="text-xs text-red-500 text-center">{publishError}</p>
             )}
             <div className="flex gap-2">
-              {isTikTok ? (
-                <button
-                  onClick={handleTikTokPublish}
-                  disabled={tiktokLoading || publishLoading}
-                  className="flex-1 rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
-                >
-                  <TikTokSVG size={14} />
-                  {tiktokLoading ? "Redirecting…" : "Publish to TikTok"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => doPublish({ publishNow: true })}
-                  disabled={publishLoading}
-                  className="flex-1 rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {publishLoading ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                      </svg>
-                      Publishing…
-                    </>
-                  ) : "Publish Now"}
-                </button>
-              )}
+              <button
+                onClick={() => doPublish({ publishNow: true })}
+                disabled={publishLoading}
+                className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2 ${
+                  isTikTok ? "bg-[#FE2C55] hover:bg-[#e0264c]" : "bg-brand-500 hover:bg-brand-600"
+                }`}
+              >
+                {publishLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    Publishing…
+                  </>
+                ) : isTikTok ? (
+                  <><TikTokSVG size={14} /> Publish to TikTok</>
+                ) : "Publish Now"}
+              </button>
               <button
                 onClick={() => doPublish({ publishNow: false })}
                 disabled={publishLoading}
