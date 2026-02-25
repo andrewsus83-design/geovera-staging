@@ -10,6 +10,115 @@ import { supabase } from "@/lib/supabase";
 
 const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
+// ── TikTok config ─────────────────────────────────────────────────────────────
+const TIKTOK_CLIENT_KEY = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || "";
+const TIKTOK_REDIRECT_URI =
+  process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI ||
+  "https://report.geovera.xyz/api/tiktok/callback";
+
+// ── TikTok types ──────────────────────────────────────────────────────────────
+type PostStatus = "draft" | "scheduled" | "published" | "failed";
+type TikTokPost = {
+  id: string; date: string; time: string; title: string;
+  caption: string; hashtags: string[]; status: PostStatus;
+  duration: string; videoUrl?: string; accentColor: string;
+  views?: string; likes?: string;
+};
+
+// ── TikTok demo posts ─────────────────────────────────────────────────────────
+const DEMO_TIKTOK_POSTS: TikTokPost[] = [
+  {
+    id: "tt1",
+    date: "2026-02-18",
+    time: "09:00",
+    title: "Rahasia Brand Lokal Tembus 1 Juta Followers",
+    caption: "Tahukah kamu? Brand lokal Indonesia ini berhasil menembus 1 juta TikTok followers dalam 6 bulan — tanpa budget iklan besar. Rahasianya ada di strategi konten yang tepat! 🔥💡\n\nGeoVera AI menganalisis ribuan konten viral untuk membantumu menemukan formula yang sama.",
+    hashtags: ["#BrandIndonesia", "#TikTokMarketing", "#ViralStrategy", "#GeoVera", "#UMKM", "#ContentCreator"],
+    status: "published",
+    duration: "45s",
+    accentColor: "#FE2C55",
+    views: "284K",
+    likes: "31.2K",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt2",
+    date: "2026-02-20",
+    time: "11:00",
+    title: "AI vs Human: Siapa yang Lebih Paham Konsumen?",
+    caption: "Banyak yang takut AI akan gantikan marketer. Tapi kenyataannya? AI + Human = kombinasi yang tak terkalahkan. 🤖🤝\n\nGeoVera tidak menggantikan timmu — kami memperkuat mereka dengan data dan analisis real-time.",
+    hashtags: ["#AIMarketing", "#DigitalMarketing", "#MarketingIndonesia", "#GeoVera", "#TechStartup"],
+    status: "published",
+    duration: "38s",
+    accentColor: "#25F4EE",
+    views: "156K",
+    likes: "18.7K",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt3",
+    date: "2026-02-23",
+    time: "14:00",
+    title: "3 Kesalahan Fatal Brand di TikTok (dan Cara Hindarinya)",
+    caption: "95% brand baru melakukan 3 kesalahan ini di TikTok dan akhirnya menyerah. Apakah brandmu juga melakukannya? ❌\n\n1. Posting tanpa strategi\n2. Mengabaikan analytics\n3. Tidak konsisten\n\nGeoVera hadir untuk memastikan kamu tidak melakukan kesalahan yang sama! ✅",
+    hashtags: ["#TikTokTips", "#BrandMistakes", "#ContentStrategy", "#GeoVera", "#MarketingTips"],
+    status: "published",
+    duration: "52s",
+    accentColor: "#FF6B6B",
+    views: "412K",
+    likes: "47.3K",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt4",
+    date: "2026-02-25",
+    time: "10:00",
+    title: "Behind the Scenes: Cara GeoVera Generate Konten",
+    caption: "Dari riset tren → AI analysis → konten siap publish — semua dalam hitungan menit! ⚡\n\nIni dia proses di balik layar bagaimana GeoVera membantu brand Indonesia menciptakan konten TikTok yang relevan, engaging, dan konsisten setiap hari.",
+    hashtags: ["#BehindTheScenes", "#AIContent", "#ContentCreation", "#GeoVera", "#ProductDemo", "#TechIndonesia"],
+    status: "scheduled",
+    duration: "60s",
+    accentColor: "#6C63FF",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt5",
+    date: "2026-02-26",
+    time: "16:00",
+    title: "Tren Konten TikTok Indonesia Maret 2026",
+    caption: "GeoVera AI sudah analisis 50.000+ konten TikTok Indonesia untuk Maret 2026. Hasilnya? Ada 5 format konten yang akan MELEDAK bulan depan! 📊🚀\n\nBrand mana yang paling siap memanfaatkan tren ini?",
+    hashtags: ["#TrendAnalysis", "#TikTokTrends", "#MarketingIntelligence", "#GeoVera", "#Indonesia2026"],
+    status: "scheduled",
+    duration: "47s",
+    accentColor: "#F7B731",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt6",
+    date: "2026-02-27",
+    time: "09:00",
+    title: "Case Study: Brand F&B Jakarta +340% Engagement",
+    caption: "Dalam 30 hari menggunakan GeoVera, brand F&B ini berhasil:\n✅ Engagement naik 340%\n✅ Followers baru: +12.400\n✅ 3 konten masuk FYP organik\n\nApa yang berbeda? Strategi konten berbasis data, bukan feeling. 📈",
+    hashtags: ["#CaseStudy", "#FoodBeverage", "#TikTokSuccess", "#GeoVera", "#DataDriven", "#UMKM"],
+    status: "scheduled",
+    duration: "55s",
+    accentColor: "#FF9A3C",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+  {
+    id: "tt7",
+    date: "2026-02-28",
+    time: "13:00",
+    title: "GeoVera x TikTok: Publish Langsung dari Dashboard",
+    caption: "Bayangkan: buat konten, preview di TikTok mockup, edit caption & hashtag, lalu publish — semua dari satu dashboard tanpa berpindah aplikasi. 🎯\n\nItulah yang bisa kamu lakukan di GeoVera. Coba gratis sekarang!",
+    hashtags: ["#GeoVera", "#TikTokPublish", "#SocialMediaManagement", "#ProductFeature", "#DigitalMarketing"],
+    status: "draft",
+    duration: "42s",
+    accentColor: "#1DB954",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+  },
+];
+
 // Premium plan daily tasks:
 //   2 long articles (Medium, Quora/Reddit) + 2 short articles (LinkedIn, X)
 //   + 2 Instagram posts + 1 Reels/TikTok/Shorts + 2 CEO tasks
@@ -658,6 +767,94 @@ const demoTasks: Task[] = [
   },
 ];
 
+// ── TikTok helpers ────────────────────────────────────────────────────────────
+async function generatePKCE(): Promise<{ verifier: string; challenge: string }> {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const verifier = btoa(String.fromCharCode(...arr))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  return { verifier, challenge };
+}
+
+const TikTokIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.74a4.85 4.85 0 0 1-1.01-.05z" />
+  </svg>
+);
+
+function StatusBadge({ status }: { status: PostStatus }) {
+  const map: Record<PostStatus, { cls: string; label: string }> = {
+    published: { cls: "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400", label: "✓ Published" },
+    scheduled: { cls: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",   label: "⏰ Scheduled" },
+    draft:     { cls: "bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-gray-400", label: "Draft" },
+    failed:    { cls: "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400",       label: "⚠ Failed" },
+  };
+  const { cls, label } = map[status];
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function TikTokPhoneMockup({ post, caption, hashtags }: {
+  post: TikTokPost; caption: string; hashtags: string[];
+}) {
+  return (
+    <div className="flex justify-center py-3">
+      <div className="relative w-[160px] h-[284px] rounded-[20px] overflow-hidden shadow-2xl border-[3px] border-gray-800" style={{ background: "#000" }}>
+        <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${post.accentColor}bb 0%, #111 65%)` }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+            <span className="text-white/60 text-lg ml-0.5">▶</span>
+          </div>
+        </div>
+        <div className="absolute top-0 inset-x-0 flex justify-between items-start px-2 pt-2">
+          <span className="text-white/70 text-[7px] font-medium">Following &nbsp;|&nbsp; For You</span>
+          <span className="text-white/70 text-[9px]">🔍</span>
+        </div>
+        <div className="absolute top-7 right-2 bg-black/50 rounded px-1 py-0.5">
+          <span className="text-white text-[7px]">{post.duration}</span>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 px-2 pb-8">
+          <div className="flex items-center gap-1 mb-1">
+            <div className="w-4 h-4 rounded-full bg-gray-500 border border-gray-400 flex-shrink-0" />
+            <span className="text-white text-[8px] font-bold">@geovera.id</span>
+          </div>
+          <p className="text-white text-[7px] leading-tight line-clamp-3 mb-1">{caption}</p>
+          <p className="text-[#25F4EE] text-[7px] leading-tight truncate">{hashtags.slice(0,3).join(" ")}</p>
+        </div>
+        <div className="absolute right-1.5 bottom-10 flex flex-col items-center gap-2.5">
+          {[
+            { icon: "♥", val: post.likes || "24.1K" },
+            { icon: "💬", val: "1.8K" },
+            { icon: "↗",  val: "Share" },
+          ].map(({ icon, val }) => (
+            <div key={val} className="flex flex-col items-center">
+              <span className="text-white text-[11px]">{icon}</span>
+              <span className="text-white/70 text-[6px] mt-0.5">{val}</span>
+            </div>
+          ))}
+        </div>
+        <div className="absolute bottom-0 inset-x-0 h-7 bg-black/70 flex items-center justify-around px-3">
+          {["🏠","🔍","＋","📬","👤"].map((ic, i) => (
+            <span key={i} className={`text-[10px] ${i === 2 ? "text-white" : "text-white/50"}`}>{ic}</span>
+          ))}
+        </div>
+        {post.views && (
+          <div className="absolute top-7 left-2 bg-black/50 rounded px-1 py-0.5 flex items-center gap-0.5">
+            <span className="text-white/80 text-[6px]">▶</span>
+            <span className="text-white text-[7px] font-medium">{post.views}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type TaskFilter = "inprogress" | "done" | "rejected";
 type SubTab = "content" | "comments" | "others";
 
@@ -681,6 +878,16 @@ export default function CalendarPage() {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("inprogress");
   const [subTab, setSubTab] = useState<SubTab>("content");
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+
+  // TikTok post state
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [posts, setPosts] = useState<TikTokPost[]>(DEMO_TIKTOK_POSTS);
+  const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishStep, setPublishStep] = useState<"idle"|"connecting"|"uploading"|"success">("idle");
+  const [postToast, setPostToast] = useState<{ type: "success"|"error"; msg: string }|null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editHashtags, setEditHashtags] = useState("");
 
   // Connected platforms from Supabase
   const [connectedPlatforms, setConnectedPlatforms] = useState<{ platform: string; handle?: string; auto_reply_enabled: boolean }[]>([]);
@@ -726,11 +933,13 @@ export default function CalendarPage() {
   // Mobile: open right panel when task selected
   const handleTaskSelect = (task: Task) => {
     setSelectedTask(task);
+    setSelectedPostId(null);
     setMobileRightOpen(true);
   };
   const handleMobileBack = () => {
     setMobileRightOpen(false);
     setSelectedTask(null);
+    setSelectedPostId(null);
   };
 
   const maxDateStr = useMemo(() => getMaxDateStr(), []);
@@ -773,6 +982,7 @@ export default function CalendarPage() {
   const handleDateSelect = (date: string) => {
     setSelectedDate(selectedDate === date ? null : date);
     setSelectedTask(null);
+    setSelectedPostId(null);
   };
 
   const handlePublish = useCallback(async (
@@ -816,6 +1026,86 @@ export default function CalendarPage() {
     setSelectedTask(null);
     // In production: POST to Supabase training_data table with task + reason
     console.log("[GeoVera] Rejected task:", taskId, "reason:", reason, "→ training data");
+  };
+
+  // ── TikTok post handlers ─────────────────────────────────────────────────
+  const selectedPost = posts.find(p => p.id === selectedPostId) ?? null;
+
+  useEffect(() => {
+    if (selectedPost) {
+      setEditCaption(selectedPost.caption);
+      setEditHashtags(selectedPost.hashtags.join(" "));
+    }
+  }, [selectedPostId]); // eslint-disable-line
+
+  // Check OAuth callback on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const tk = params.get("tiktok_connected");
+    if (tk === "true") {
+      setTiktokConnected(true);
+      setPostToast({ type: "success", msg: "TikTok account connected! Ready to publish." });
+      setTimeout(() => setPostToast(null), 4500);
+      window.history.replaceState({}, "", "/calendar");
+    }
+  }, []);
+
+  const showPostToast = (type: "success"|"error", msg: string) => {
+    setPostToast({ type, msg });
+    setTimeout(() => setPostToast(null), 4500);
+  };
+
+  const redirectToTikTokLogin = useCallback(async () => {
+    const { verifier, challenge } = await generatePKCE();
+    const params = new URLSearchParams({
+      client_key:            TIKTOK_CLIENT_KEY || "aw_demo_key",
+      response_type:         "code",
+      scope:                 "user.info.basic,video.publish,video.upload",
+      redirect_uri:          TIKTOK_REDIRECT_URI,
+      state:                 `${DEMO_BRAND_ID}:calendar:${verifier}`,
+      code_challenge:        challenge,
+      code_challenge_method: "S256",
+    });
+    window.location.href = `https://www.tiktok.com/v2/auth/authorize/?${params}`;
+  }, []);
+
+  const runDemoPublish = useCallback(async () => {
+    if (!selectedPost) return;
+    setPublishing(true);
+    setPublishStep("connecting");
+    await new Promise(r => setTimeout(r, 900));
+    setPublishStep("uploading");
+    await new Promise(r => setTimeout(r, 1400));
+    setPublishStep("success");
+    await new Promise(r => setTimeout(r, 800));
+    setPosts(prev => prev.map(p =>
+      p.id === selectedPost.id ? { ...p, status: "published" as PostStatus } : p
+    ));
+    showPostToast("success", "✅ Post berhasil dikirim ke TikTok!");
+    setPublishing(false);
+    setPublishStep("idle");
+  }, [selectedPost]); // eslint-disable-line
+
+  const handlePostPublish = useCallback(async () => {
+    if (!selectedPost) return;
+    if (!tiktokConnected) { redirectToTikTokLogin(); return; }
+    runDemoPublish();
+  }, [selectedPost, tiktokConnected, redirectToTikTokLogin, runDemoPublish]);
+
+  const publishBtnLabel = () => {
+    if (!tiktokConnected) return <><TikTokIcon size={16} /> Login TikTok &amp; Publish</>;
+    if (publishStep === "connecting") return <>🔗 Connecting to TikTok…</>;
+    if (publishStep === "uploading")  return <>⬆ Uploading video…</>;
+    if (publishStep === "success")    return <>✅ Published!</>;
+    if (selectedPost?.status === "published") return <>✓ Published to TikTok</>;
+    return <><TikTokIcon size={16} /> Publish to TikTok</>;
+  };
+
+  const handlePostSelect = (post: TikTokPost) => {
+    setSelectedPostId(post.id);
+    setSelectedTask(null);
+    setMobileRightOpen(true);
   };
 
   const left = (
@@ -1049,6 +1339,50 @@ export default function CalendarPage() {
                   <PrioritySection priority="high" tasks={highTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
                   <PrioritySection priority="medium" tasks={mediumTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
                   <PrioritySection priority="low" tasks={lowTasks} selectedTaskId={selectedTask?.id || null} onTaskSelect={handleTaskSelect} />
+                  {/* TikTok posts section */}
+                  {(() => {
+                    const tikPosts = posts.filter(p =>
+                      (!selectedDate || p.date === selectedDate) && p.status !== "published"
+                    );
+                    if (tikPosts.length === 0) return null;
+                    return (
+                      <div className="mt-4 first:mt-0">
+                        <div className="flex items-center gap-2 mb-1 px-0.5">
+                          <TikTokIcon size={10} className="text-[#FE2C55]" />
+                          <h3 className="text-xs font-semibold uppercase text-[#FE2C55]">TikTok Posts</h3>
+                          <span className="text-[10px] text-gray-400 ml-auto">{tikPosts.length}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {tikPosts.map(post => (
+                            <button
+                              key={post.id}
+                              onClick={() => handlePostSelect(post)}
+                              className={`w-full text-left rounded-xl border p-2.5 transition-all ${
+                                selectedPostId === post.id
+                                  ? "border-[#FE2C55] bg-red-50/50 shadow-sm dark:border-[#FE2C55]/40 dark:bg-[#FE2C55]/5"
+                                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-[#FE2C55] dark:bg-[#FE2C55]/10 dark:text-[#FE2C55]">
+                                      <TikTokIcon size={8} />
+                                      TikTok
+                                    </span>
+                                    <StatusBadge status={post.status} />
+                                  </div>
+                                  <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{post.title}</h4>
+                                </div>
+                                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full mt-1.5" style={{ background: post.accentColor }} />
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{post.caption}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </>
               )
             )}
@@ -1261,7 +1595,7 @@ export default function CalendarPage() {
           ]).map(({ key, icon, label }) => (
             <button
               key={key}
-              onClick={() => { setSubTab(key); setSelectedTask(null); }}
+              onClick={() => { setSubTab(key); setSelectedTask(null); setSelectedPostId(null); }}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-[11px] font-medium transition-colors border-r last:border-r-0 border-gray-200 dark:border-gray-800 ${
                 subTab === key
                   ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
@@ -1277,7 +1611,103 @@ export default function CalendarPage() {
     </div>
   );
 
-  const right = (
+  const right = selectedPost ? (
+    <div className="h-full overflow-y-auto custom-scrollbar">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <StatusBadge status={selectedPost.status} />
+            <h2 className="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white leading-snug">{selectedPost.title}</h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">{selectedPost.date} · {selectedPost.time} WIB · {selectedPost.duration}</p>
+            {selectedPost.views && (
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.views}</span> views ·{" "}
+                <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.likes}</span> likes
+              </p>
+            )}
+          </div>
+          <span className="flex-shrink-0 w-3 h-3 rounded-full mt-1.5" style={{ background: selectedPost.accentColor }} />
+        </div>
+      </div>
+
+      {/* Phone preview */}
+      <TikTokPhoneMockup post={selectedPost} caption={editCaption} hashtags={editHashtags.split(/\s+/)} />
+
+      {/* Edit fields */}
+      <div className="px-4 pb-6 space-y-3">
+        <div>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Caption</label>
+          <textarea value={editCaption} onChange={e => setEditCaption(e.target.value)} rows={5}
+            className="w-full text-[12px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30" />
+          <span className="text-[10px] text-gray-400 float-right">{editCaption.length}/2200</span>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Hashtags</label>
+          <input value={editHashtags} onChange={e => setEditHashtags(e.target.value)}
+            className="w-full text-[12px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FE2C55]/30"
+            placeholder="#hashtag1 #hashtag2 ..." />
+        </div>
+
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.04] rounded-xl p-3">
+          <span className="text-sm">📅</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{selectedPost.date}</p>
+            <p className="text-[10px] text-gray-400">at {selectedPost.time} WIB</p>
+          </div>
+          <button className="text-[11px] text-brand-500 hover:underline font-medium">Edit</button>
+        </div>
+
+        <div className="space-y-2 pt-1">
+          <button
+            onClick={handlePostPublish}
+            disabled={publishing || selectedPost.status === "published"}
+            className={`w-full rounded-xl font-semibold py-3.5 text-sm flex items-center justify-center gap-2 transition-all ${
+              selectedPost.status === "published"
+                ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
+                : publishing
+                ? "bg-[#FE2C55]/70 text-white cursor-wait"
+                : tiktokConnected
+                ? "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
+                : "bg-black text-white hover:bg-gray-900 shadow-md"
+            }`}
+          >
+            {publishBtnLabel()}
+          </button>
+
+          {publishing && (
+            <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#FE2C55] rounded-full transition-all duration-500"
+                style={{ width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
+              />
+            </div>
+          )}
+
+          {tiktokConnected && selectedPost.status !== "published" && (
+            <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
+              📅 Schedule · {selectedPost.date} {selectedPost.time}
+            </button>
+          )}
+
+          {!tiktokConnected && (
+            <p className="text-center text-[10px] text-gray-400 dark:text-gray-500">
+              Kamu akan diarahkan ke halaman login TikTok
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 p-3">
+          <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-400">📡 TikTok Content Posting API v2</p>
+          <p className="text-[10px] text-blue-600 dark:text-blue-300 mt-0.5 leading-relaxed">
+            Scopes: <code className="font-mono">video.publish</code> · <code className="font-mono">video.upload</code><br/>
+            Mode: <code className="font-mono">SEND_TO_USER_INBOX</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  ) : (
     <TaskDetailPanel
       task={selectedTask}
       onPublish={handlePublish}
@@ -1288,13 +1718,22 @@ export default function CalendarPage() {
   );
 
   return (
-    <ThreeColumnLayout
-      left={left}
-      center={center}
-      right={right}
-      mobileRightOpen={mobileRightOpen}
-      onMobileBack={handleMobileBack}
-      mobileBackLabel="Tasks"
-    />
+    <div className="relative">
+      <ThreeColumnLayout
+        left={left}
+        center={center}
+        right={right}
+        mobileRightOpen={mobileRightOpen}
+        onMobileBack={handleMobileBack}
+        mobileBackLabel="Tasks"
+      />
+      {postToast && (
+        <div className={`fixed bottom-6 right-6 z-50 rounded-xl px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 max-w-sm ${
+          postToast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+        }`}>
+          {postToast.msg}
+        </div>
+      )}
+    </div>
   );
 }
