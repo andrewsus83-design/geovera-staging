@@ -879,6 +879,29 @@ export default function CalendarPage() {
   const [subTab, setSubTab] = useState<SubTab>("content");
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
 
+  // Connected platforms from localStorage (set by Home page toggles)
+  const [lsConnectedIds, setLsConnectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const load = () => {
+      try {
+        const ids: string[] = JSON.parse(localStorage.getItem("gv_connections") || "[]");
+        setLsConnectedIds(new Set(ids));
+      } catch { setLsConnectedIds(new Set()); }
+    };
+    load();
+    window.addEventListener("storage", load);
+    return () => window.removeEventListener("storage", load);
+  }, []);
+
+  // Non-OAuth platforms never need a social connection
+  const OAUTH_PLATFORMS = new Set(["tiktok", "instagram", "facebook", "youtube", "linkedin", "x", "threads"]);
+  const isPlatformConnected = (platform: string) => {
+    const key = platform.toLowerCase().replace(/\s.*/, ""); // "X (Twitter)" → "x"
+    if (!OAUTH_PLATFORMS.has(key)) return true; // Blog, Quora, Reddit etc. always OK
+    return lsConnectedIds.has(key);
+  };
+
   // TikTok post state
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [posts, setPosts] = useState<TikTokPost[]>(DEMO_TIKTOK_POSTS);
@@ -1660,33 +1683,45 @@ export default function CalendarPage() {
         </div>
 
         <div className="space-y-2 pt-1">
-          <button
-            onClick={handlePostPublish}
-            disabled={publishing || selectedPost.status === "published"}
-            className={`w-full rounded-xl font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all ${
-              selectedPost.status === "published"
-                ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
-                : publishing
-                ? "bg-[#FE2C55]/70 text-white cursor-wait"
-                : "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
-            }`}
-          >
-            {publishBtnLabel()}
-          </button>
-
-          {publishing && (
-            <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#FE2C55] rounded-full transition-all duration-500"
-                style={{ width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
-              />
+          {!lsConnectedIds.has("tiktok") ? (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TikTok belum terhubung</p>
+              <p className="text-xs text-gray-400 mb-3">Hubungkan TikTok di halaman Home terlebih dahulu</p>
+              <a href="/" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+                → Ke Halaman Home
+              </a>
             </div>
-          )}
+          ) : (
+            <>
+              <button
+                onClick={handlePostPublish}
+                disabled={publishing || selectedPost.status === "published"}
+                className={`w-full rounded-xl font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all ${
+                  selectedPost.status === "published"
+                    ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
+                    : publishing
+                    ? "bg-[#FE2C55]/70 text-white cursor-wait"
+                    : "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
+                }`}
+              >
+                {publishBtnLabel()}
+              </button>
 
-          {selectedPost.status !== "published" && (
-            <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors flex items-center justify-center gap-2">
-              📅 Schedule · {selectedPost.date} {selectedPost.time}
-            </button>
+              {publishing && (
+                <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#FE2C55] rounded-full transition-all duration-500"
+                    style={{ width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
+                  />
+                </div>
+              )}
+
+              {selectedPost.status !== "published" && (
+                <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors flex items-center justify-center gap-2">
+                  📅 Schedule · {selectedPost.date} {selectedPost.time}
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -1702,6 +1737,7 @@ export default function CalendarPage() {
   ) : (
     <TaskDetailPanel
       task={selectedTask}
+      isConnected={selectedTask ? isPlatformConnected(selectedTask.platform || "") : true}
       onPublish={handlePublish}
       onReject={handleReject}
       isRejected={selectedTask ? rejectedTaskIds.has(selectedTask.id) : false}

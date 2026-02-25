@@ -71,6 +71,7 @@ interface PublishOptions {
 
 interface TaskDetailPanelProps {
   task: Task | null;
+  isConnected?: boolean;
   onPublish?: (taskId: string, options?: PublishOptions) => Promise<void>;
   onReject?: (taskId: string, reason: string) => void;
   isRejected?: boolean;
@@ -378,7 +379,7 @@ const REJECT_REASONS = [
 ];
 
 // ── Main TaskDetailPanel ─────────────────────────────────────────
-export default function TaskDetailPanel({ task, onPublish, onReject, isRejected, onPublishReplies }: TaskDetailPanelProps) {
+export default function TaskDetailPanel({ task, isConnected = true, onPublish, onReject, isRejected, onPublishReplies }: TaskDetailPanelProps) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -780,6 +781,16 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
           <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-2.5 text-center">
             <p className="text-sm font-medium text-green-700 dark:text-green-400">✓ Published successfully</p>
             <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">Moved to Done section</p>
+          </div>
+        ) : !isConnected ? (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {task.platform} belum terhubung
+            </p>
+            <p className="text-xs text-gray-400 mb-3">Hubungkan di halaman Home terlebih dahulu</p>
+            <a href="/" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+              → Ke Halaman Home
+            </a>
           </div>
         ) : (
           <div className="space-y-2">
