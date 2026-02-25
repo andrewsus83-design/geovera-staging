@@ -1158,7 +1158,7 @@ export default function CalendarPage() {
   const center = (
     <div className="flex flex-col h-full">
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 px-2 pt-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 pl-3 pr-2 pt-2 pb-2 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <h2
