@@ -13,9 +13,9 @@ import PlanDetailPanel from "@/components/home/PlanDetailPanel";
 import PlatformIcon from "@/components/shared/PlatformIcon";
 import { supabase } from "@/lib/supabase";
 
-const DEMO_BRAND_ID   = process.env.NEXT_PUBLIC_DEMO_BRAND_ID   || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
-const LATE_PROFILE_ID = process.env.NEXT_PUBLIC_LATE_PROFILE_ID || "699e53896106e38879670023";
 const SUPABASE_FN_URL = "https://vozjwptzutolvkvfpknk.supabase.co/functions/v1";
+// Fallback brand_id used only if user lookup fails (demo / local dev)
+const FALLBACK_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // Late platform id map (our id → Late's platform name)
 const LATE_PLATFORM: Record<string, string> = {
@@ -459,6 +459,8 @@ export default function HomePage() {
   const [rightMode, setRightMode] = useState<RightPanelMode>("brand");
   const [selectedAgentId, setSelectedAgentId] = useState("ceo");
   const [selectedPlanId, setSelectedPlanId] = useState<PlanId>(CURRENT_PLAN);
+  // Brand / auth state (production multi-tenant)
+  const [brandId, setBrandId] = useState<string>(FALLBACK_BRAND_ID);
   // Connect state
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [replyEnabled, setReplyEnabled] = useState<Record<string, boolean>>({ instagram: true });
@@ -481,6 +483,25 @@ export default function HomePage() {
       window.close();
       return;
     }
+
+    // 0a) Resolve brand_id for the logged-in user
+    const resolveBrandId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return; // not logged in — keep fallback
+        const { data: ub } = await supabase
+          .from("user_brands")
+          .select("brand_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        if (ub?.brand_id) setBrandId(ub.brand_id);
+      } catch {
+        // keep fallback brand_id
+      }
+    };
+    resolveBrandId();
 
     // 0b) Listen for popup postMessage from OAuth callback
     const handleOAuthMessage = (e: MessageEvent) => {
@@ -521,7 +542,7 @@ export default function HomePage() {
   const refreshStatus = async () => {
     try {
       const res = await fetch(
-        `${SUPABASE_FN_URL}/social-connect/status?profile_id=${LATE_PROFILE_ID}`
+        `${SUPABASE_FN_URL}/social-connect/status?brand_id=${brandId}`
       );
       if (!res.ok) return;
       const data = await res.json() as { accounts?: { platform?: string; accountId?: string; username?: string }[] };
@@ -554,7 +575,7 @@ export default function HomePage() {
       try {
         const latePlatform = LATE_PLATFORM[id] || id;
         const res = await fetch(
-          `${SUPABASE_FN_URL}/social-connect?platform=${latePlatform}&profile_id=${LATE_PROFILE_ID}`
+          `${SUPABASE_FN_URL}/social-connect?platform=${latePlatform}&brand_id=${brandId}`
         );
         const data = await res.json() as { auth_url?: string; error?: string };
         if (data.auth_url) {
