@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://vozjwptzutolvkvfpknk.supabase.co";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const WEBHOOK_SECRET = process.env.SOCIOMONIALS_WEBHOOK_SECRET || "";
+const WEBHOOK_SECRET = process.env.LATE_WEBHOOK_SECRET || "";
 
 function verifySignature(body: string, header: string | null): boolean {
   if (!WEBHOOK_SECRET) return true;
@@ -24,7 +24,7 @@ function extractSlugFromUrl(url: string | undefined): string | null {
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const signature = request.headers.get("x-sociomonials-signature");
+  const signature = request.headers.get("x-late-signature");
 
   if (!verifySignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
       article_id: articleId,
       brand_id: articleInfo?.brand_id || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a",
       platform: payload.network,
-      sociomonials_post_id: payload.post_id,
-      sociomonials_status: status,
+      late_post_id: payload.post_id,
+      late_status: status,
       post_url: payload.post_url || null,
       raw_payload: payload,
       updated_at: new Date().toISOString(),
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
 
     await supabase
       .from("gv_rss_publish_log")
-      .upsert(logEntry, { onConflict: "sociomonials_post_id, platform" });
+      .upsert(logEntry, { onConflict: "late_post_id, platform" });
   } else {
     await supabase.from("gv_rss_publish_log").insert({
       brand_id: "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a",
       platform: payload.network,
-      sociomonials_post_id: payload.post_id,
-      sociomonials_status: status,
+      late_post_id: payload.post_id,
+      late_status: status,
       post_url: payload.post_url || null,
       raw_payload: payload,
     });

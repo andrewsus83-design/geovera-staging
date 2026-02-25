@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/report/:slug", destination: "/api/report/:slug" },
       { source: "/rss/:brandId", destination: "/api/rss/:brandId" },
-      { source: "/webhooks/:path*", destination: "/api/webhooks/:path*" },
+      { source: "/webhooks/late", destination: "/api/webhooks/late" },
     ];
   },
 };

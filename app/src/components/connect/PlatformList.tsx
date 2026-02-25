@@ -59,7 +59,7 @@ export default function PlatformList({ platforms, selectedId, onSelect, onToggle
         })}
       </div>
       <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-        <p className="text-[10px] text-gray-400 text-center">Powered by Sociomonials</p>
+        <p className="text-[10px] text-gray-400 text-center">Powered by Late</p>
       </div>
     </div>
   );
