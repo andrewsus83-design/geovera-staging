@@ -5,7 +5,7 @@ const SUPABASE_URL      = process.env.SUPABASE_URL      || "https://vozjwptzutol
 const SUPABASE_KEY      = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const TIKTOK_CLIENT_KEY    = process.env.TIKTOK_CLIENT_KEY    || "";
 const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || "";
-const REDIRECT_URI         = "https://report.geovera.xyz/api/tiktok/callback";
+const REDIRECT_URI         = "https://getlate.dev/api/tiktok/callback";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
