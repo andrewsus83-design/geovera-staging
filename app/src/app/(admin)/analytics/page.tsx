@@ -1,7 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
+
+const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // ── Tier gating ───────────────────────────────────────────────────
 // Analytics dashboard is Partner-only.
@@ -1455,10 +1457,120 @@ function ScoreCard({
 }
 
 // ── Main Page ────────────────────────────────────────────────────
+// ── DB row type (from gv_social_analytics) ───────────────────────────────────
+interface DbAnalyticsRow {
+  id: string;
+  late_post_id: string | null;
+  platform: string;
+  platform_icon: string | null;
+  post_type: string;
+  title: string | null;
+  caption: string | null;
+  hashtags: string[] | null;
+  post_url: string | null;
+  image_url: string | null;
+  published_at: string | null;
+  timestamp_label: string | null;
+  image_bg: string | null;
+  image_emoji: string | null;
+  reach: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  watch_retention: number;
+  ctr: number;
+  trend: "up" | "down" | "flat";
+  trend_pct: number;
+  factor_scores: number[];
+  overall_score: number | null;
+  synced_at: string | null;
+}
+
+function dbRowToSocialItem(row: DbAnalyticsRow): SocialItem {
+  const pubDate = row.published_at ? new Date(row.published_at) : new Date();
+  const pubLabel = row.timestamp_label ||
+    `${pubDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${pubDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const publishedDate = pubDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return {
+    id:             row.id,
+    title:          row.title || row.caption?.slice(0, 80) || "Post",
+    caption:        row.caption || "",
+    hashtags:       row.hashtags || [],
+    platform:       row.platform.charAt(0).toUpperCase() + row.platform.slice(1),
+    platformIcon:   row.platform_icon || "📱",
+    type:           (row.post_type as SocialItem["type"]) || "post",
+    publishedDate,
+    timestamp:      pubLabel,
+    imageBg:        row.image_bg || "from-gray-500 to-gray-700",
+    imageEmoji:     row.image_emoji || "📱",
+    reach:          row.reach,
+    likes:          row.likes,
+    comments:       row.comments,
+    shares:         row.shares,
+    saves:          row.saves,
+    watchRetention: row.watch_retention,
+    ctr:            Number(row.ctr),
+    trend:          row.trend || "flat",
+    trendPct:       row.trend_pct || 0,
+    factorScores:   row.factor_scores?.length === 10 ? row.factor_scores : [0, 70, 65, 72, 68, 71, 75, 65, 67, 70],
+  };
+}
+
 export default function AnalyticsPage() {
   const [activeSection, setActiveSection] = useState<AnalyticsSection>("seo");
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
+
+  // ── Live analytics from Late API + Claude ──────────────────────────────────
+  const [liveSocialItems, setLiveSocialItems] = useState<SocialItem[] | null>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "success" | "error">("idle");
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+
+  // Load from Supabase on mount
+  useEffect(() => {
+    fetch(`/api/analytics/sync?brand_id=${DEMO_BRAND_ID}`)
+      .then((r) => r.json())
+      .then((res: { success: boolean; data?: DbAnalyticsRow[] }) => {
+        if (res.success && res.data && res.data.length > 0) {
+          setLiveSocialItems(res.data.map(dbRowToSocialItem));
+          setLastSyncAt(res.data[0].synced_at || null);
+        }
+      })
+      .catch(() => {/* fall back to demo data */});
+  }, []);
+
+  // Trigger sync from Late API
+  const handleSyncAnalytics = useCallback(async () => {
+    setSyncLoading(true);
+    setSyncStatus("idle");
+    try {
+      const res = await fetch("/api/analytics/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand_id: DEMO_BRAND_ID }),
+      });
+      const data = await res.json() as { success: boolean; synced?: number; error?: string };
+      if (data.success) {
+        setSyncStatus("success");
+        // Reload from DB
+        const getRes = await fetch(`/api/analytics/sync?brand_id=${DEMO_BRAND_ID}`);
+        const getData = await getRes.json() as { success: boolean; data?: DbAnalyticsRow[] };
+        if (getData.success && getData.data && getData.data.length > 0) {
+          setLiveSocialItems(getData.data.map(dbRowToSocialItem));
+          setLastSyncAt(new Date().toISOString());
+        }
+      } else {
+        setSyncStatus("error");
+      }
+    } catch {
+      setSyncStatus("error");
+    } finally {
+      setSyncLoading(false);
+      setTimeout(() => setSyncStatus("idle"), 4000);
+    }
+  }, []);
 
   // Mobile: open right panel when item selected
   const handleSelect = (item: SelectedItem) => {
@@ -1559,8 +1671,9 @@ export default function AnalyticsPage() {
   }
 
   const filteredContent = contentItems;
-  const filteredSocial = socialItems;
+  const filteredSocial = liveSocialItems && liveSocialItems.length > 0 ? liveSocialItems : socialItems;
   const filteredGeo = geoItems;
+  const isLiveData = liveSocialItems !== null && liveSocialItems.length > 0;
 
   const handleSectionChange = (s: AnalyticsSection) => {
     setActiveSection(s);
@@ -1596,6 +1709,45 @@ export default function AnalyticsPage() {
           >
             {activeSection === "seo" ? "SEO" : activeSection === "geo" ? "GEO · AI Platform" : "Social Search"}
           </h2>
+          {/* Sync button — Social section only */}
+          {activeSection === "social" && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isLiveData && (
+                <span className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400 font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+                  Live
+                </span>
+              )}
+              {lastSyncAt && (
+                <span className="text-[10px] text-gray-400 hidden sm:block">
+                  {new Date(lastSyncAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+              <button
+                onClick={handleSyncAnalytics}
+                disabled={syncLoading}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  syncStatus === "success"
+                    ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                    : syncStatus === "error"
+                    ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                    : "bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
+                } disabled:opacity-50`}
+              >
+                {syncLoading ? (
+                  <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.25"/>
+                    <path d="M21 12a9 9 0 00-9-9" strokeLinecap="round"/>
+                  </svg>
+                ) : syncStatus === "success" ? (
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                ) : (
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                )}
+                {syncLoading ? "Syncing…" : syncStatus === "success" ? "Synced!" : syncStatus === "error" ? "Failed" : "Sync Late"}
+              </button>
+            </div>
+          )}
           </div>
       </div>
 
