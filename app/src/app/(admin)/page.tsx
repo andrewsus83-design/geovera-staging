@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import BrandEditPanel from "@/components/home/BrandEditPanel";
@@ -13,31 +13,6 @@ import PlanDetailPanel from "@/components/home/PlanDetailPanel";
 import { supabase } from "@/lib/supabase";
 
 const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
-const TIKTOK_CLIENT_KEY = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || "";
-const TIKTOK_REDIRECT_URI = process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI || "https://report.geovera.xyz/api/tiktok/callback";
-
-async function buildTikTokOAuthUrl(brandId: string): Promise<string> {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const verifier = btoa(String.fromCharCode(...array)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-  const encoder = new TextEncoder();
-  const data = encoder.encode(verifier);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = new Uint8Array(hashBuffer);
-  const challenge = btoa(String.fromCharCode(...hashArray)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-  sessionStorage.setItem("tiktok_code_verifier", verifier);
-  const state = `${brandId}:home`;
-  const params = new URLSearchParams({
-    client_key: TIKTOK_CLIENT_KEY,
-    redirect_uri: TIKTOK_REDIRECT_URI,
-    response_type: "code",
-    scope: "user.info.basic,video.list,video.upload",
-    state,
-    code_challenge: challenge,
-    code_challenge_method: "S256",
-  });
-  return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
-}
 
 // ── Connect / Platform types ─────────────────────────────────────
 interface Platform {
@@ -319,21 +294,6 @@ export default function HomePage() {
   const [saving, setSaving] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
 
-  // Handle TikTok OAuth callback (?tiktok_connected=true)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("tiktok_connected") === "true") {
-      setPlatforms((prev) => prev.map((p) => p.id === "tiktok" ? { ...p, connected: true } : p));
-      setOpenSection("connect");
-      setRightMode("connect");
-      setSelectedPlatformId("tiktok");
-      setHasUnsaved(true);
-      setSaveToast("✅ TikTok connected! Click Save Changes.");
-      // Clean URL
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
   const selectedAgent = agents.find((a) => a.id === selectedAgentId)!;
   const selectedPlan = PLANS.find((p) => p.id === selectedPlanId)!;
   const connectedCount = platforms.filter((p) => p.connected).length;
@@ -343,14 +303,7 @@ export default function HomePage() {
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
-  const handleToggleConnect = async (id: string) => {
-    const platform = platforms.find((p) => p.id === id);
-    // TikTok: if disconnecting just toggle, if connecting trigger real OAuth
-    if (id === "tiktok" && TIKTOK_CLIENT_KEY && !platform?.connected) {
-      const url = await buildTikTokOAuthUrl(DEMO_BRAND_ID);
-      window.location.href = url;
-      return;
-    }
+  const handleToggleConnect = (id: string) => {
     setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, connected: !p.connected } : p)));
     setHasUnsaved(true);
   };
