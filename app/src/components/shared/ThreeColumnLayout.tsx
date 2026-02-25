@@ -65,7 +65,7 @@ export default function ThreeColumnLayout({
       <div
         className={`
           ${mobileRightOpen ? "hidden lg:flex" : "flex"}
-          flex-col flex-1 lg:w-[41%] lg:flex-none h-full
+          flex-col flex-1 lg:w-[47%] lg:flex-none h-full
           bg-white dark:bg-gray-900
           lg:rounded-xl lg:border lg:border-gray-200 lg:dark:border-gray-800
           overflow-hidden
