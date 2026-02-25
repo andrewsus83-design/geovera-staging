@@ -556,13 +556,13 @@ const demoTasks: Task[] = [
   },
 
   // ══════════════════════════════════════════════════════
-  // FEEDGUARDIAN — Daily Reply Queue (per day)
+  // LATE — Daily Reply Queue (per day)
   // Premium: top 100 comments, mix Instagram + TikTok + X
   // Replies drafted by Late, adapted by OpenAI
   // User reviews drafts → approve/edit/reject → publish
   // ══════════════════════════════════════════════════════
   {
-    id: "feb23-feedguardian",
+    id: "feb23-late-reply",
     title: "Late: Review & Publish Top 100 Reply Queue",
     description: "Late has pulled today's top 100 priority comments from Instagram, TikTok, and X — ranked by author influence score, comment sentiment, and engagement potential. Each reply has been drafted by Late and adapted by OpenAI to sound natural and on-brand. Review drafts, edit if needed, approve, and publish in one click.",
     agent: "CMO",
@@ -583,7 +583,7 @@ const demoTasks: Task[] = [
     ],
   },
   {
-    id: "feb24-feedguardian",
+    id: "feb24-late-reply",
     title: "Late: Review & Publish Top 100 Reply Queue",
     description: "Today's top 100 priority comments pulled from Instagram, TikTok, and X. Ranked by: author influence score (1–100), positive sentiment weight, and engagement velocity. Replies drafted by Late + adapted by OpenAI for natural brand voice. Review, approve, and publish.",
     agent: "CMO",
@@ -602,7 +602,7 @@ const demoTasks: Task[] = [
     ],
   },
   {
-    id: "feb25-feedguardian",
+    id: "feb25-late-reply",
     title: "Late: Review & Publish Top 100 Reply Queue",
     description: "Today's top 100 priority comments across connected platforms. Late ranks by: verified/high-follower accounts first, then sentiment score, then comment quality. Each draft reply adapted by OpenAI to match your brand DNA and sound naturally human. Review queue and publish approved replies.",
     agent: "CMO",
@@ -620,7 +620,7 @@ const demoTasks: Task[] = [
     ],
   },
   {
-    id: "feb26-feedguardian",
+    id: "feb26-late-reply",
     title: "Late: Review & Publish Top 100 Reply Queue",
     description: "End-of-week reply queue — today's top 100 priority comments from all connected platforms. Weekend comments tend to come from highly engaged followers and casual browsers. Late has prioritized warm, community-building tones. OpenAI has adapted each reply to feel conversational and genuine. Review and publish before EOD.",
     agent: "CMO",
@@ -638,7 +638,7 @@ const demoTasks: Task[] = [
     ],
   },
   {
-    id: "feb28-feedguardian",
+    id: "feb28-late-reply",
     title: "Late: End-of-Month Review — Top 150 Reply Queue",
     description: "End-of-month special: top 150 priority comments pulled from all platforms including the YouTube Video published today. February's most important community interactions — including comments on the monthly video, high-value DM mentions, and verified account replies. Late + OpenAI adapted replies for warm, brand-authentic tone. This queue has the highest potential impact of the month.",
     agent: "CMO",
