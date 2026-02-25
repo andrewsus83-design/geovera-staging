@@ -1663,7 +1663,7 @@ export default function CalendarPage() {
           <button
             onClick={handlePostPublish}
             disabled={publishing || selectedPost.status === "published"}
-            className={`w-full rounded-xl font-semibold py-3.5 text-sm flex items-center justify-center gap-2 transition-all ${
+            className={`w-full rounded-xl font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all ${
               selectedPost.status === "published"
                 ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
                 : publishing
@@ -1686,7 +1686,7 @@ export default function CalendarPage() {
           )}
 
           {tiktokConnected && selectedPost.status !== "published" && (
-            <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
+            <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors flex items-center justify-center gap-2">
               📅 Schedule · {selectedPost.date} {selectedPost.time}
             </button>
           )}

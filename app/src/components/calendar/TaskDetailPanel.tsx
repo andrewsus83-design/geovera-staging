@@ -791,7 +791,7 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
                 <button
                   onClick={handleTikTokPublish}
                   disabled={tiktokLoading || publishLoading}
-                  className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   <TikTokSVG size={14} />
                   {tiktokLoading ? "Redirecting…" : "Publish to TikTok"}
@@ -800,7 +800,7 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
                 <button
                   onClick={() => doPublish({ publishNow: true })}
                   disabled={publishLoading}
-                  className="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {publishLoading ? (
                     <>
@@ -816,14 +816,14 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
               <button
                 onClick={() => doPublish({ publishNow: false })}
                 disabled={publishLoading}
-                className="rounded-lg border border-brand-200 px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400 disabled:opacity-50"
+                className="rounded-xl border border-brand-200 px-3 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400 disabled:opacity-50"
                 title={`Auto publish at best time on ${task.dueDate}`}
               >
                 Auto
               </button>
               <button
                 onClick={() => setShowScheduler(!showScheduler)}
-                className="rounded-lg border border-gray-200 px-3 py-2.5 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                className="rounded-xl border border-gray-200 px-3 py-3 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -833,7 +833,7 @@ export default function TaskDetailPanel({ task, onPublish, onReject, isRejected,
             {/* Reject button */}
             <button
               onClick={() => setShowRejectDialog(!showRejectDialog)}
-              className={`w-full rounded-lg border py-2 text-xs font-medium transition-colors ${
+              className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
                 showRejectDialog
                   ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-400"
                   : "border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 dark:border-gray-700 dark:hover:border-red-500/30"
