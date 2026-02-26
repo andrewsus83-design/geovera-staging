@@ -1725,13 +1725,6 @@ export default function CalendarPage() {
           )}
         </div>
 
-        <div className="pt-1">
-          <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">📡 TikTok Content Posting API v2</p>
-          <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5 leading-relaxed">
-            Scopes: <code className="font-mono">video.publish</code> · <code className="font-mono">video.upload</code><br/>
-            Mode: <code className="font-mono">SEND_TO_USER_INBOX</code>
-          </p>
-        </div>
       </div>
     </div>
   ) : (
