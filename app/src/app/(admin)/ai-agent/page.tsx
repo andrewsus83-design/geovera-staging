@@ -154,9 +154,9 @@ export default function AIAgentPage() {
     </NavColumn>
   );
 
-  const center = <AgentDetailCard agent={selectedAgent} />;
+  const center = <HireAgentPanel brandId={brandId} onHired={handleHired} />;
 
-  const right = <HireAgentPanel brandId={brandId} onHired={handleHired} />;
+  const right = <AgentDetailCard agent={selectedAgent} />;
 
   return <ThreeColumnLayout left={left} center={center} right={right} />;
 }
