@@ -66,7 +66,7 @@ const initialPlatforms: Platform[] = [
   { id: "gbp",       name: "Google Business Profile", icon: "📍", connected: false, plan: "enterprise" },
 ];
 
-const CURRENT_PLAN: PlanId = "enterprise";
+// CURRENT_PLAN is now dynamic state in HomePage
 
 const agents: Agent[] = [
   {
@@ -160,8 +160,7 @@ const agents: Agent[] = [
 ];
 
 // ── Billing toggle (monthly / yearly) ───────────────────────────
-function BillingToggle() {
-  const [yearly, setYearly] = useState(false);
+function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5">
       <div>
@@ -175,7 +174,7 @@ function BillingToggle() {
       <div className="flex items-center gap-2">
         <span className={`text-[10px] font-medium ${!yearly ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}`}>Monthly</span>
         <button
-          onClick={() => setYearly((v) => !v)}
+          onClick={() => onChange(!yearly)}
           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${yearly ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-600"}`}
         >
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${yearly ? "translate-x-4.5" : "translate-x-0.5"}`} />
@@ -191,10 +190,13 @@ function BillingToggle() {
 
 // ── Subscription Panel (right column) ───────────────────────────
 function SubscriptionPanel({
-  selectedPlanId, onSelectPlan,
+  selectedPlanId, onSelectPlan, currentPlan, billingYearly, onBillingChange,
 }: {
   selectedPlanId: PlanId;
   onSelectPlan: (id: PlanId) => void;
+  currentPlan: PlanId;
+  billingYearly: boolean;
+  onBillingChange: (v: boolean) => void;
 }) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -205,12 +207,12 @@ function SubscriptionPanel({
         <p className="text-xs text-gray-400 mt-0.5">Click a plan to see details</p>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
-        <BillingToggle />
+        <BillingToggle yearly={billingYearly} onChange={onBillingChange} />
         {PLANS.map((plan) => (
           <SubscriptionTierCard
             key={plan.id}
             plan={plan}
-            isCurrent={plan.id === CURRENT_PLAN}
+            isCurrent={plan.id === currentPlan}
             isSelected={selectedPlanId === plan.id}
             onClick={() => onSelectPlan(plan.id)}
           />
@@ -220,103 +222,186 @@ function SubscriptionPanel({
   );
 }
 
-// ── Billing Panel (right column) — Xendit-standard ──────────────
-function BillingPanel() {
+// Plan label / price maps for billing display
+const PLAN_LABEL: Record<string, string> = { BASIC: "Basic", PREMIUM: "Premium", PARTNER: "Partner" };
+const PLAN_PRICE_IDR: Record<string, Record<string, string>> = {
+  BASIC:   { monthly: "Rp 5.990.000", yearly: "Rp 65.835.000" },
+  PREMIUM: { monthly: "Rp 10.485.000", yearly: "Rp 115.335.000" },
+  PARTNER: { monthly: "Rp 16.485.000", yearly: "Rp 181.335.000" },
+};
+
+interface InvoiceRow { id: string; external_id: string; created_at: string; amount: number; currency: string; status: string; }
+interface SubData {
+  plan: string; billing_cycle: string; status: string;
+  current_period_end: string; amount_paid: number; currency: string; payment_method: string;
+}
+
+// ── Billing Panel (right column) — live Xendit data ──────────────
+function BillingPanel({ brandId }: { brandId: string }) {
+  const [sub, setSub] = useState<SubData | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFree, setIsFree] = useState(false);
+
+  useEffect(() => {
+    if (!brandId) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [subRes, invRes] = await Promise.all([
+          fetch("/api/payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get_subscription", brand_id: brandId }),
+          }),
+          supabase.from("gv_invoices").select("id, external_id, created_at, amount, currency, status").eq("brand_id", brandId).order("created_at", { ascending: false }).limit(10),
+        ]);
+        const subData = await subRes.json();
+        if (subData.success && subData.subscription) setSub(subData.subscription as SubData);
+        if (subData.brand_payment?.is_free_tier) setIsFree(true);
+        if (invRes.data) setInvoices(invRes.data as InvoiceRow[]);
+      } catch { /* keep empty */ }
+      setLoading(false);
+    };
+    load();
+  }, [brandId]);
+
+  const planKey = sub?.plan?.toUpperCase() ?? "";
+  const planLabel = PLAN_LABEL[planKey] ?? planKey;
+  const cycle = sub?.billing_cycle ?? "monthly";
+  const idrPrice = PLAN_PRICE_IDR[planKey]?.[cycle] ?? "—";
+  const nextBilling = sub?.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—";
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const fmtAmt = (amt: number, cur: string) =>
+    `${cur} ${amt.toLocaleString()}`;
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="border-b border-gray-200 dark:border-gray-800 p-2">
         <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
           Billing
         </h3>
-        <p className="text-xs text-gray-400 mt-0.5">Next billing: Mar 23, 2026</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {sub ? `Next billing: ${nextBilling}` : loading ? "Loading…" : "No active subscription"}
+        </p>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
-        {/* Current billing summary */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Current Subscription</p>
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
           </div>
-          <table className="w-full text-xs">
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {[
-                { label: "Plan", value: <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">Premium</span> },
-                { label: "Price", value: "$499 / month" },
-                { label: "Billing Cycle", value: "Monthly" },
-                { label: "Next Billing", value: "Mar 23, 2026" },
-                { label: "Status", value: <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">Active</span> },
-              ].map(({ label, value }) => (
-                <tr key={label}>
-                  <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
-                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        )}
 
-        {/* Payment Method (Xendit) */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Payment Method</p>
-          </div>
-          <table className="w-full text-xs">
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {[
-                { label: "Gateway", value: "Xendit" },
-                { label: "Method", value: "Virtual Account (BCA)" },
-                { label: "Account No.", value: "··· 8842" },
-                { label: "Currency", value: "IDR (Indonesian Rupiah)" },
-                { label: "Equivalent", value: "Rp 8.100.000 / bln" },
-              ].map(({ label, value }) => (
-                <tr key={label}>
-                  <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
-                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800">
-            <button className="w-full rounded-lg border border-brand-300 px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/50 dark:text-brand-400 dark:hover:bg-brand-500/10">
-              Update Payment Method
-            </button>
-          </div>
-        </div>
+        {!loading && (
+          <>
+            {/* Current billing summary */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Current Subscription</p>
+              </div>
+              <table className="w-full text-xs">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {[
+                    {
+                      label: "Plan",
+                      value: sub ? (
+                        <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                          {planLabel}{isFree ? " (Free)" : ""}
+                        </span>
+                      ) : "—",
+                    },
+                    { label: "Price", value: sub ? idrPrice + (cycle === "yearly" ? " / yr" : " / bln") : "—" },
+                    { label: "Billing Cycle", value: sub ? (cycle === "yearly" ? "Yearly" : "Monthly") : "—" },
+                    { label: "Next Billing", value: nextBilling },
+                    {
+                      label: "Status",
+                      value: sub ? (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          sub.status === "active"
+                            ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                        }`}>
+                          {sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
+                        </span>
+                      ) : <span className="text-gray-400">No subscription</span>,
+                    },
+                  ].map(({ label, value }) => (
+                    <tr key={label}>
+                      <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Invoice History */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoice History</p>
-          </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="px-3 py-2 text-left font-semibold text-gray-400">Date</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-400">Invoice ID</th>
-                <th className="px-3 py-2 text-right font-semibold text-gray-400">Amount</th>
-                <th className="px-3 py-2 text-right font-semibold text-gray-400">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {[
-                { date: "Feb 23, 2026", id: "INV-2026-02", amount: "Rp 8.100.000", status: "Paid" },
-                { date: "Jan 23, 2026", id: "INV-2026-01", amount: "Rp 8.100.000", status: "Paid" },
-                { date: "Dec 23, 2025", id: "INV-2025-12", amount: "Rp 8.100.000", status: "Paid" },
-                { date: "Nov 23, 2025", id: "INV-2025-11", amount: "Rp 8.100.000", status: "Paid" },
-              ].map((inv) => (
-                <tr key={inv.id}>
-                  <td className="px-3 py-2 text-gray-500">{inv.date}</td>
-                  <td className="px-3 py-2 text-gray-500 font-mono text-[10px]">{inv.id}</td>
-                  <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{inv.amount}</td>
-                  <td className="px-3 py-2 text-right">
-                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                      {inv.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            {/* Payment Method (Xendit) */}
+            {sub && (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Payment Method</p>
+                </div>
+                <table className="w-full text-xs">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {[
+                      { label: "Gateway", value: isFree ? "Free Tier" : "Xendit" },
+                      { label: "Method", value: sub.payment_method || "—" },
+                      { label: "Currency", value: "IDR (Indonesian Rupiah)" },
+                    ].map(({ label, value }) => (
+                      <tr key={label}>
+                        <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Invoice History */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoice History</p>
+              </div>
+              {invoices.length === 0 ? (
+                <p className="px-3 py-4 text-xs text-gray-400 text-center">No invoices yet</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-800">
+                      <th className="px-3 py-2 text-left font-semibold text-gray-400">Date</th>
+                      <th className="px-3 py-2 text-right font-semibold text-gray-400">Amount</th>
+                      <th className="px-3 py-2 text-right font-semibold text-gray-400">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {invoices.map((inv) => (
+                      <tr key={inv.id}>
+                        <td className="px-3 py-2 text-gray-500">{fmtDate(inv.created_at)}</td>
+                        <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{fmtAmt(inv.amount, inv.currency)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            inv.status === "PAID" || inv.status === "SETTLED"
+                              ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                              : inv.status === "PENDING"
+                              ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                          }`}>
+                            {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -670,9 +755,15 @@ export default function HomePage() {
   const [rightMode, setRightMode] = useState<RightPanelMode>("brand");
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState("ceo");
-  const [selectedPlanId, setSelectedPlanId] = useState<PlanId>(CURRENT_PLAN);
+  const [selectedPlanId, setSelectedPlanId] = useState<PlanId>("basic");
   // Brand / auth state (production multi-tenant)
   const [brandId, setBrandId] = useState<string>(FALLBACK_BRAND_ID);
+  const [userId, setUserId] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [currentPlan, setCurrentPlan] = useState<PlanId>("basic");
+  const [billingYearly, setBillingYearly] = useState(false);
+  const [isFree, setIsFree] = useState(false);
   // Connect state
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [replyEnabled, setReplyEnabled] = useState<Record<string, boolean>>({ instagram: true });
@@ -688,6 +779,7 @@ export default function HomePage() {
   const selectedPlan = PLANS.find((p) => p.id === selectedPlanId)!;
   const connectedCount = platforms.filter((p) => p.connected).length;
   const isAccessible = (p: Platform) => planOrder[p.plan] <= planOrder[CONNECT_PLAN];
+  const billingCycle: "monthly" | "yearly" = billingYearly ? "yearly" : "monthly";
 
   const toggleSection = (section: Section) => {
     setOpenSection((prev) => (prev === section ? null : section));
@@ -702,11 +794,14 @@ export default function HomePage() {
       return;
     }
 
-    // 0a) Resolve brand_id for the logged-in user
+    // 0a) Resolve brand_id for the logged-in user + load subscription
     const resolveBrandId = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return; // not logged in — keep fallback
+        if (!user) return;
+        setUserId(user.id);
+        setUserEmail(user.email ?? "");
+        setUserName(user.user_metadata?.full_name ?? user.email ?? "");
         const { data: ub } = await supabase
           .from("user_brands")
           .select("brand_id")
@@ -714,7 +809,26 @@ export default function HomePage() {
           .order("created_at", { ascending: true })
           .limit(1)
           .single();
-        if (ub?.brand_id) setBrandId(ub.brand_id);
+        if (ub?.brand_id) {
+          setBrandId(ub.brand_id);
+          // Load subscription data
+          try {
+            const res = await fetch("/api/payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "get_subscription", brand_id: ub.brand_id }),
+            });
+            const subData = await res.json();
+            if (subData.success) {
+              const tier = subData.brand_payment?.subscription_tier as string | undefined;
+              // Map DB tier to PlanId (partner → enterprise)
+              const planId: PlanId = tier === "partner" ? "enterprise" : (tier as PlanId) ?? "basic";
+              setCurrentPlan(planId);
+              setSelectedPlanId(planId);
+              setIsFree(subData.brand_payment?.is_free_tier ?? false);
+            }
+          } catch { /* keep defaults */ }
+        }
       } catch {
         // keep fallback brand_id
       }
@@ -904,7 +1018,8 @@ export default function HomePage() {
                 <div>
                   <span className="text-gray-400">Plan</span>
                   <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 mt-0.5">
-                    Premium
+                    {currentPlan === "enterprise" ? "Partner" : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
+                    {isFree ? " (Free)" : ""}
                   </span>
                 </div>
               </div>
@@ -968,7 +1083,11 @@ export default function HomePage() {
           <div className="text-left">
             <p className="text-sm font-medium text-gray-900 dark:text-white">Subscription</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              <span className="font-semibold text-amber-600 dark:text-amber-400">Premium</span> · $499/mo
+              <span className="font-semibold text-amber-600 dark:text-amber-400">
+                {currentPlan === "enterprise" ? "Partner" : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
+              </span>
+              {" · "}
+              {currentPlan === "basic" ? "$299" : currentPlan === "premium" ? "$499" : "$999"}/mo
             </p>
           </div>
         </div>
@@ -994,7 +1113,7 @@ export default function HomePage() {
           </div>
           <div className="text-left">
             <p className="text-sm font-medium text-gray-900 dark:text-white">Billing</p>
-            <p className="text-xs text-gray-400 mt-0.5">Next billing Mar 23, 2026</p>
+            <p className="text-xs text-gray-400 mt-0.5">Payment · Xendit · IDR</p>
           </div>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
@@ -1135,15 +1254,27 @@ export default function HomePage() {
       {rightMode === "assets" && <DesignAssetsEditPanel />}
       {rightMode === "agent" && <AgentDetailCard agent={selectedAgent} />}
       {rightMode === "plan" && (
-        <PlanDetailPanel plan={selectedPlan} currentPlan={CURRENT_PLAN} />
+        <PlanDetailPanel
+          plan={selectedPlan}
+          currentPlan={currentPlan}
+          brandId={brandId}
+          userId={userId}
+          userEmail={userEmail}
+          userName={userName}
+          billingCycle={billingCycle}
+          isFree={isFree}
+        />
       )}
       {rightMode === "subscription" && (
         <SubscriptionPanel
           selectedPlanId={selectedPlanId}
           onSelectPlan={(id) => { setSelectedPlanId(id); openRightMode("plan"); }}
+          currentPlan={currentPlan}
+          billingYearly={billingYearly}
+          onBillingChange={setBillingYearly}
         />
       )}
-      {rightMode === "billing" && <BillingPanel />}
+      {rightMode === "billing" && <BillingPanel brandId={brandId} />}
       {rightMode === "security" && <SecurityPanel />}
       {rightMode === "connect" && (
         <ConnectAllPanel

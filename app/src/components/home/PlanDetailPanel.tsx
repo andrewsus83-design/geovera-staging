@@ -5,6 +5,12 @@ import type { Plan, PlanId } from "./SubscriptionTierCard";
 interface PlanDetailPanelProps {
   plan: Plan;
   currentPlan: PlanId;
+  brandId: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  billingCycle: "monthly" | "yearly";
+  isFree?: boolean;
 }
 
 const colorMap = {
@@ -31,11 +37,29 @@ const colorMap = {
   },
 };
 
+// IDR pricing to display (matches edge function)
+const IDR_PRICE: Record<string, Record<string, string>> = {
+  basic:      { monthly: "Rp 5.990.000", yearly: "Rp 65.835.000" },
+  premium:    { monthly: "Rp 10.485.000", yearly: "Rp 115.335.000" },
+  enterprise: { monthly: "Rp 16.485.000", yearly: "Rp 181.335.000" },
+};
+
 const planOrder: PlanId[] = ["basic", "premium", "enterprise"];
 
-export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelProps) {
+export default function PlanDetailPanel({
+  plan,
+  currentPlan,
+  brandId,
+  userId,
+  userEmail,
+  userName,
+  billingCycle,
+  isFree = false,
+}: PlanDetailPanelProps) {
   const [showConfirm, setShowConfirm] = useState<"upgrade" | "downgrade" | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const colors = colorMap[plan.color as keyof typeof colorMap];
   const isCurrent = plan.id === currentPlan;
@@ -44,9 +68,60 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
   const isUpgrade = planIdx > currentIdx;
   const isDowngrade = planIdx < currentIdx;
 
-  const handleConfirm = () => {
-    setConfirmed(true);
-    setShowConfirm(null);
+  const idrPrice = IDR_PRICE[plan.id]?.[billingCycle] ?? "";
+  // Map "enterprise" UI id → "PARTNER" for Xendit (DB enum: basic, premium, partner)
+  const xenditPlan = plan.id === "enterprise" ? "PARTNER" : plan.id.toUpperCase() as string;
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (isFree) {
+        // First 30 clients: activate free tier, skip Xendit
+        const res = await fetch("/api/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "activate_free_tier",
+            brand_id: brandId,
+            user_id: userId,
+            plan: xenditPlan,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setConfirmed(true);
+          setShowConfirm(null);
+        } else {
+          setError(data.error || "Activation failed");
+        }
+      } else {
+        // Paid flow: create Xendit invoice → redirect to checkout
+        const res = await fetch("/api/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create_invoice",
+            brand_id: brandId,
+            user_id: userId,
+            plan: xenditPlan,
+            billing_cycle: billingCycle,
+            customer_email: userEmail,
+            customer_name: userName,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.invoice?.invoice_url) {
+          window.location.href = data.invoice.invoice_url;
+        } else {
+          setError(data.error || "Failed to create payment");
+        }
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,10 +141,16 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
             </span>
           )}
         </div>
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-baseline gap-1.5">
           <span className="text-2xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
           {plan.priceNote && <span className="text-sm text-gray-400">{plan.priceNote}</span>}
+          {idrPrice && (
+            <span className="text-xs text-gray-400 ml-1">· {idrPrice}</span>
+          )}
         </div>
+        {billingCycle === "yearly" && (
+          <p className="text-[10px] text-brand-600 dark:text-brand-400 mt-0.5">1 month free with yearly billing</p>
+        )}
       </div>
 
       {/* Content */}
@@ -80,21 +161,29 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
             <p className="text-xs font-medium text-brand-700 dark:text-brand-400">
               You are on this plan
             </p>
-            <p className="text-xs text-brand-600/70 dark:text-brand-400/70 mt-0.5">
-              Next billing: March 23, 2026
+            {isFree && (
+              <p className="text-xs text-brand-600/70 dark:text-brand-400/70 mt-0.5">
+                Free tier — first 30 clients
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Success state */}
+        {confirmed && (
+          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 dark:bg-green-500/10 dark:border-green-500/30">
+            <p className="text-xs font-medium text-green-700 dark:text-green-400">
+              {isFree ? "Free tier activated!" : "Redirecting to payment…"}
+            </p>
+            <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">
+              {isFree ? "Your account is now active." : "Complete payment to activate your plan."}
             </p>
           </div>
         )}
 
-        {/* Confirmed action */}
-        {confirmed && (
-          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 dark:bg-green-500/10 dark:border-green-500/30">
-            <p className="text-xs font-medium text-green-700 dark:text-green-400">
-              Change requested successfully!
-            </p>
-            <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">
-              Our team will contact you shortly.
-            </p>
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 dark:bg-red-500/10 dark:border-red-500/30">
+            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
@@ -146,6 +235,15 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
             Custom AI-generated product images using your brand's style
           </p>
         </div>
+
+        {/* Payment gateway note */}
+        {!isFree && (
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
+            <p className="text-[10px] text-gray-400">
+              Payments processed by <span className="font-medium text-gray-600 dark:text-gray-300">Xendit</span> · IDR · VA / E-wallet / QRIS / Credit Card
+            </p>
+          </div>
+        )}
       </div>
 
       {/* CTA */}
@@ -158,20 +256,23 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
                   ? `Upgrade to ${plan.name}?`
                   : `Downgrade to ${plan.name}?`}
               </p>
-              <p className="text-[10px] text-gray-400 text-center">
-                {showConfirm === "upgrade"
-                  ? "You'll be charged the new rate from your next billing cycle."
-                  : "Features will be limited from your next billing cycle."}
-              </p>
+              {!isFree && (
+                <p className="text-[10px] text-gray-400 text-center">
+                  {idrPrice} / {billingCycle} — you'll be redirected to Xendit checkout
+                </p>
+              )}
+              {error && <p className="text-[10px] text-red-500 text-center">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirm}
-                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${colors.button}`}
+                  disabled={loading}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${colors.button}`}
                 >
-                  Confirm
+                  {loading ? "Processing…" : isFree ? "Activate Free" : "Pay Now"}
                 </button>
                 <button
-                  onClick={() => setShowConfirm(null)}
+                  onClick={() => { setShowConfirm(null); setError(null); }}
+                  disabled={loading}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
                 >
                   Cancel
@@ -185,7 +286,7 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
                   onClick={() => setShowConfirm("upgrade")}
                   className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors shadow-sm ${colors.button}`}
                 >
-                  Upgrade to {plan.name}
+                  {isFree ? `Activate ${plan.name} Free` : `Upgrade to ${plan.name}`}
                 </button>
               )}
               {isDowngrade && (
@@ -196,9 +297,11 @@ export default function PlanDetailPanel({ plan, currentPlan }: PlanDetailPanelPr
                   Downgrade to {plan.name}
                 </button>
               )}
-              <p className="text-center text-[10px] text-gray-400">
-                Changes take effect next billing cycle
-              </p>
+              {!isFree && (
+                <p className="text-center text-[10px] text-gray-400">
+                  Powered by Xendit · Secure payment
+                </p>
+              )}
             </>
           )}
         </div>

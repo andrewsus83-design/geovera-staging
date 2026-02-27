@@ -1,13 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import AgentList from "@/components/ai-agent/AgentList";
 import type { Agent } from "@/components/ai-agent/AgentList";
 import AgentDetailCard from "@/components/ai-agent/AgentDetailCard";
-import PlanTiers from "@/components/ai-agent/PlanTiers";
+import HireAgentPanel from "@/components/ai-agent/HireAgentPanel";
+import type { HiredAgent } from "@/components/ai-agent/HireAgentPanel";
+import { supabase } from "@/lib/supabase";
 
-const agents: Agent[] = [
+const FALLBACK_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
+
+const DEFAULT_AGENTS: Agent[] = [
   {
     id: "ceo",
     name: "CEO Agent",
@@ -66,7 +70,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI CTO handles technical strategy including website optimization, analytics setup, automation workflows, and integration management. Available on Enterprise plan.",
+      "Your AI CTO handles technical strategy including website optimization, analytics setup, automation workflows, and integration management. Available on Partner plan.",
     dailyTasks: [
       "Monitor website performance and uptime",
       "Optimize page speed and Core Web Vitals",
@@ -85,7 +89,7 @@ const agents: Agent[] = [
     active: false,
     locked: true,
     description:
-      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using Late API. Available on Enterprise plan.",
+      "Your AI Customer Support agent handles comment replies, DM responses, and customer inquiries across all connected platforms using Late API. Available on Partner plan.",
     dailyTasks: [
       "Reply to top-priority comments (by score)",
       "Respond to customer DMs and inquiries",
@@ -98,8 +102,49 @@ const agents: Agent[] = [
   },
 ];
 
+// Merge hired persona into default agent list
+function mergeWithHired(defaults: Agent[], hired: HiredAgent[]): Agent[] {
+  return defaults.map((agent) => {
+    const persona = hired.find((h) => h.role === agent.id.toUpperCase());
+    if (!persona) return agent;
+    return {
+      ...agent,
+      name: `${persona.persona_name} (${persona.role})`,
+      title: persona.persona_title ?? agent.title,
+      description: persona.persona_description ?? agent.description,
+    };
+  });
+}
+
 export default function AIAgentPage() {
   const [selectedId, setSelectedId] = useState("ceo");
+  const [brandId, setBrandId] = useState(FALLBACK_BRAND_ID);
+  const [agents, setAgents] = useState<Agent[]>(DEFAULT_AGENTS);
+  const [hiredAgents, setHiredAgents] = useState<HiredAgent[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: ub } = await supabase
+          .from("user_brands")
+          .select("brand_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        if (ub?.brand_id) setBrandId(ub.brand_id);
+      } catch { /* keep fallback */ }
+    };
+    load();
+  }, []);
+
+  const handleHired = (agent: HiredAgent) => {
+    const updated = [...hiredAgents, agent];
+    setHiredAgents(updated);
+    setAgents(mergeWithHired(DEFAULT_AGENTS, updated));
+  };
 
   const selectedAgent = agents.find((a) => a.id === selectedId)!;
 
@@ -111,7 +156,7 @@ export default function AIAgentPage() {
 
   const center = <AgentDetailCard agent={selectedAgent} />;
 
-  const right = <PlanTiers currentPlan="premium" />;
+  const right = <HireAgentPanel brandId={brandId} onHired={handleHired} />;
 
   return <ThreeColumnLayout left={left} center={center} right={right} />;
 }
