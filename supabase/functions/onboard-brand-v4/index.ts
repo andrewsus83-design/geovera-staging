@@ -230,10 +230,65 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // Free tier: first 30 clients get activated immediately
+      try {
+        const { count } = await supabase.from('brands').select('id', { count: 'exact', head: true });
+        if ((count ?? 99) <= 30) {
+          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await supabase.from('brands').update({
+            is_free_tier: true,
+            subscription_status: 'active',
+            subscription_tier: 'basic',
+            subscription_activated_at: new Date().toISOString(),
+            subscription_expires_at: periodEnd,
+          }).eq('id', brand.id);
+          console.log(`[onboard] Free tier activated for brand ${brand.id} (client #${count})`);
+        }
+      } catch (ftErr) {
+        console.error('[onboard] Free tier check failed (non-fatal):', ftErr);
+      }
+
+      // Create a Late profile for this brand (for social media connections)
+      let lateProfileId: string | null = null;
+      try {
+        const lateApiKey = Deno.env.get("LATE_API_KEY") || "";
+        if (lateApiKey) {
+          const lateRes = await fetch("https://getlate.dev/api/v1/profiles", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lateApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: brand_name.trim(),
+              description: `GeoVera brand profile for ${brand_name.trim()}`,
+            }),
+          });
+          if (lateRes.ok) {
+            const lateData = await lateRes.json() as { id?: string; profileId?: string };
+            lateProfileId = lateData.id || lateData.profileId || null;
+            if (lateProfileId) {
+              await supabase
+                .from('brands')
+                .update({ late_profile_id: lateProfileId })
+                .eq('id', brand.id);
+              console.log(`[onboard] Late profile created: ${lateProfileId} for brand: ${brand.id}`);
+            }
+          } else {
+            const errData = await lateRes.json().catch(() => ({}));
+            console.error("[onboard] Late profile creation failed:", JSON.stringify(errData));
+          }
+        }
+      } catch (lateErr) {
+        // Non-fatal — brand is still created, Late profile can be created later
+        console.error("[onboard] Late profile creation error:", lateErr);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         brand_id: brand.id,
-        brand: brand,
+        brand: { ...brand, late_profile_id: lateProfileId },
+        late_profile_id: lateProfileId,
         next_step: 3,
         message: "Brand created! Please connect your social media.",
       }), {
@@ -410,7 +465,7 @@ Deno.serve(async (req: Request) => {
         }
 
         // Queue onboarding email
-        const { error: emailError } = await supabase
+        const { data: emailQueue1, error: emailError } = await supabase
           .from('gv_onboarding_email_queue')
           .insert({
             brand_id: body.brand_id,
@@ -420,10 +475,19 @@ Deno.serve(async (req: Request) => {
             status: 'pending',
             cta_text: '🚀 Mulai Campaign Pertama Anda',
             cta_url: `${Deno.env.get('FRONTEND_URL') || 'https://geovera.vercel.app'}/dashboard?brand_id=${body.brand_id}`,
-          });
+          })
+          .select('id')
+          .single();
 
         if (emailError) {
           console.error("Email queue error:", emailError);
+        } else if (emailQueue1?.id) {
+          // Fire-and-forget: trigger email processor
+          fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/email-processor`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ queue_id: emailQueue1.id }),
+          }).catch((e) => console.error("Email processor trigger failed:", e));
         }
 
         return new Response(JSON.stringify({
@@ -478,7 +542,7 @@ Deno.serve(async (req: Request) => {
       }
 
       // Queue onboarding email
-      const { error: emailError } = await supabase
+      const { data: emailQueue2, error: emailError } = await supabase
         .from('gv_onboarding_email_queue')
         .insert({
           brand_id: body.brand_id,
@@ -488,10 +552,19 @@ Deno.serve(async (req: Request) => {
           status: 'pending',
           cta_text: '🚀 Mulai Campaign Pertama Anda',
           cta_url: `${Deno.env.get('FRONTEND_URL') || 'https://geovera.vercel.app'}/dashboard?brand_id=${body.brand_id}`,
-        });
+        })
+        .select('id')
+        .single();
 
       if (emailError) {
         console.error("Email queue error:", emailError);
+      } else if (emailQueue2?.id) {
+        // Fire-and-forget: trigger email processor
+        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/email-processor`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queue_id: emailQueue2.id }),
+        }).catch((e) => console.error("Email processor trigger failed:", e));
       }
 
       // Calculate pricing
