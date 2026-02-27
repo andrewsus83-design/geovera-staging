@@ -147,6 +147,7 @@ export default function AIAgentPage() {
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedId)!;
+  const selectedHiredAgent = hiredAgents.find((h) => h.role === selectedId.toUpperCase()) ?? null;
 
   const left = (
     <NavColumn>
@@ -156,7 +157,13 @@ export default function AIAgentPage() {
 
   const center = <HireAgentPanel brandId={brandId} onHired={handleHired} />;
 
-  const right = <AgentDetailCard agent={selectedAgent} />;
+  const right = (
+    <AgentDetailCard
+      agent={selectedAgent}
+      hiredAgent={selectedHiredAgent}
+      brandId={brandId}
+    />
+  );
 
   return <ThreeColumnLayout left={left} center={center} right={right} />;
 }
