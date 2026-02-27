@@ -3,8 +3,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const CF_ACCOUNT_ID = Deno.env.get("CF_ACCOUNT_ID")!;
-const CF_API_TOKEN = Deno.env.get("CF_API_TOKEN")!;
+const CF_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID")!;
+const CF_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN")!;
 
 // Cloudflare Workers AI model — change to llama-3.3-70b for higher quality
 const CF_MODEL = "@cf/meta/llama-3.1-8b-instruct";
