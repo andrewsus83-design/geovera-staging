@@ -230,24 +230,6 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Free tier: first 30 clients get activated immediately
-      try {
-        const { count } = await supabase.from('brands').select('id', { count: 'exact', head: true });
-        if ((count ?? 99) <= 30) {
-          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await supabase.from('brands').update({
-            is_free_tier: true,
-            subscription_status: 'active',
-            subscription_tier: 'basic',
-            subscription_activated_at: new Date().toISOString(),
-            subscription_expires_at: periodEnd,
-          }).eq('id', brand.id);
-          console.log(`[onboard] Free tier activated for brand ${brand.id} (client #${count})`);
-        }
-      } catch (ftErr) {
-        console.error('[onboard] Free tier check failed (non-fatal):', ftErr);
-      }
-
       // Create a Late profile for this brand (for social media connections)
       let lateProfileId: string | null = null;
       try {

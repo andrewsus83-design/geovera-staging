@@ -241,8 +241,6 @@ function BillingPanel({ brandId }: { brandId: string }) {
   const [sub, setSub] = useState<SubData | null>(null);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFree, setIsFree] = useState(false);
-
   useEffect(() => {
     if (!brandId) return;
     const load = async () => {
@@ -258,7 +256,6 @@ function BillingPanel({ brandId }: { brandId: string }) {
         ]);
         const subData = await subRes.json();
         if (subData.success && subData.subscription) setSub(subData.subscription as SubData);
-        if (subData.brand_payment?.is_free_tier) setIsFree(true);
         if (invRes.data) setInvoices(invRes.data as InvoiceRow[]);
       } catch { /* keep empty */ }
       setLoading(false);
@@ -310,7 +307,7 @@ function BillingPanel({ brandId }: { brandId: string }) {
                       label: "Plan",
                       value: sub ? (
                         <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
-                          {planLabel}{isFree ? " (Free)" : ""}
+                          {planLabel}
                         </span>
                       ) : "—",
                     },
@@ -348,7 +345,7 @@ function BillingPanel({ brandId }: { brandId: string }) {
                 <table className="w-full text-xs">
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {[
-                      { label: "Gateway", value: isFree ? "Free Tier" : "Xendit" },
+                      { label: "Gateway", value: "Xendit" },
                       { label: "Method", value: sub.payment_method || "—" },
                       { label: "Currency", value: "IDR (Indonesian Rupiah)" },
                     ].map(({ label, value }) => (
@@ -763,7 +760,6 @@ export default function HomePage() {
   const [userName, setUserName] = useState<string>("");
   const [currentPlan, setCurrentPlan] = useState<PlanId>("basic");
   const [billingYearly, setBillingYearly] = useState(false);
-  const [isFree, setIsFree] = useState(false);
   // Connect state
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [replyEnabled, setReplyEnabled] = useState<Record<string, boolean>>({ instagram: true });
@@ -825,7 +821,6 @@ export default function HomePage() {
               const planId: PlanId = tier === "partner" ? "enterprise" : (tier as PlanId) ?? "basic";
               setCurrentPlan(planId);
               setSelectedPlanId(planId);
-              setIsFree(subData.brand_payment?.is_free_tier ?? false);
             }
           } catch { /* keep defaults */ }
         }
@@ -1019,7 +1014,6 @@ export default function HomePage() {
                   <span className="text-gray-400">Plan</span>
                   <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 mt-0.5">
                     {currentPlan === "enterprise" ? "Partner" : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
-                    {isFree ? " (Free)" : ""}
                   </span>
                 </div>
               </div>
@@ -1262,7 +1256,6 @@ export default function HomePage() {
           userEmail={userEmail}
           userName={userName}
           billingCycle={billingCycle}
-          isFree={isFree}
         />
       )}
       {rightMode === "subscription" && (

@@ -10,7 +10,6 @@ interface PlanDetailPanelProps {
   userEmail: string;
   userName: string;
   billingCycle: "monthly" | "yearly";
-  isFree?: boolean;
 }
 
 const colorMap = {
@@ -54,7 +53,6 @@ export default function PlanDetailPanel({
   userEmail,
   userName,
   billingCycle,
-  isFree = false,
 }: PlanDetailPanelProps) {
   const [showConfirm, setShowConfirm] = useState<"upgrade" | "downgrade" | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -76,46 +74,24 @@ export default function PlanDetailPanel({
     setLoading(true);
     setError(null);
     try {
-      if (isFree) {
-        // First 30 clients: activate free tier, skip Xendit
-        const res = await fetch("/api/payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "activate_free_tier",
-            brand_id: brandId,
-            user_id: userId,
-            plan: xenditPlan,
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setConfirmed(true);
-          setShowConfirm(null);
-        } else {
-          setError(data.error || "Activation failed");
-        }
+      const res = await fetch("/api/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create_invoice",
+          brand_id: brandId,
+          user_id: userId,
+          plan: xenditPlan,
+          billing_cycle: billingCycle,
+          customer_email: userEmail,
+          customer_name: userName,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.invoice?.invoice_url) {
+        window.location.href = data.invoice.invoice_url;
       } else {
-        // Paid flow: create Xendit invoice → redirect to checkout
-        const res = await fetch("/api/payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "create_invoice",
-            brand_id: brandId,
-            user_id: userId,
-            plan: xenditPlan,
-            billing_cycle: billingCycle,
-            customer_email: userEmail,
-            customer_name: userName,
-          }),
-        });
-        const data = await res.json();
-        if (data.success && data.invoice?.invoice_url) {
-          window.location.href = data.invoice.invoice_url;
-        } else {
-          setError(data.error || "Failed to create payment");
-        }
+        setError(data.error || "Failed to create payment");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -161,11 +137,6 @@ export default function PlanDetailPanel({
             <p className="text-xs font-medium text-brand-700 dark:text-brand-400">
               You are on this plan
             </p>
-            {isFree && (
-              <p className="text-xs text-brand-600/70 dark:text-brand-400/70 mt-0.5">
-                Free tier — first 30 clients
-              </p>
-            )}
           </div>
         )}
 
@@ -173,10 +144,10 @@ export default function PlanDetailPanel({
         {confirmed && (
           <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 dark:bg-green-500/10 dark:border-green-500/30">
             <p className="text-xs font-medium text-green-700 dark:text-green-400">
-              {isFree ? "Free tier activated!" : "Redirecting to payment…"}
+              Redirecting to payment…
             </p>
             <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">
-              {isFree ? "Your account is now active." : "Complete payment to activate your plan."}
+              Complete payment to activate your plan.
             </p>
           </div>
         )}
@@ -237,13 +208,11 @@ export default function PlanDetailPanel({
         </div>
 
         {/* Payment gateway note */}
-        {!isFree && (
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
-            <p className="text-[10px] text-gray-400">
-              Payments processed by <span className="font-medium text-gray-600 dark:text-gray-300">Xendit</span> · IDR · VA / E-wallet / QRIS / Credit Card
-            </p>
-          </div>
-        )}
+        <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
+          <p className="text-[10px] text-gray-400">
+            Payments processed by <span className="font-medium text-gray-600 dark:text-gray-300">Xendit</span> · IDR · VA / E-wallet / QRIS / Credit Card
+          </p>
+        </div>
       </div>
 
       {/* CTA */}
@@ -256,11 +225,9 @@ export default function PlanDetailPanel({
                   ? `Upgrade to ${plan.name}?`
                   : `Downgrade to ${plan.name}?`}
               </p>
-              {!isFree && (
-                <p className="text-[10px] text-gray-400 text-center">
-                  {idrPrice} / {billingCycle} — you'll be redirected to Xendit checkout
-                </p>
-              )}
+              <p className="text-[10px] text-gray-400 text-center">
+                {idrPrice} / {billingCycle} — you'll be redirected to Xendit checkout
+              </p>
               {error && <p className="text-[10px] text-red-500 text-center">{error}</p>}
               <div className="flex gap-2">
                 <button
@@ -268,7 +235,7 @@ export default function PlanDetailPanel({
                   disabled={loading}
                   className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${colors.button}`}
                 >
-                  {loading ? "Processing…" : isFree ? "Activate Free" : "Pay Now"}
+                  {loading ? "Processing…" : "Pay Now"}
                 </button>
                 <button
                   onClick={() => { setShowConfirm(null); setError(null); }}
@@ -286,7 +253,7 @@ export default function PlanDetailPanel({
                   onClick={() => setShowConfirm("upgrade")}
                   className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors shadow-sm ${colors.button}`}
                 >
-                  {isFree ? `Activate ${plan.name} Free` : `Upgrade to ${plan.name}`}
+                  Upgrade to {plan.name}
                 </button>
               )}
               {isDowngrade && (
@@ -297,11 +264,9 @@ export default function PlanDetailPanel({
                   Downgrade to {plan.name}
                 </button>
               )}
-              {!isFree && (
-                <p className="text-center text-[10px] text-gray-400">
-                  Powered by Xendit · Secure payment
-                </p>
-              )}
+              <p className="text-center text-[10px] text-gray-400">
+                Powered by Xendit · Secure payment
+              </p>
             </>
           )}
         </div>

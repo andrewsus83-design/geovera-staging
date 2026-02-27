@@ -16,8 +16,7 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     if (!invoiceId) {
-      // No invoice_id means free tier activation — show confirmed directly
-      setStatus("confirmed");
+      setStatus("failed");
       return;
     }
 
