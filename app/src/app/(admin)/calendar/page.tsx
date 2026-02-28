@@ -1134,8 +1134,8 @@ export default function CalendarPage() {
       {/* Calendar widget — desktop only (mobile uses floating FAB) */}
       <div className="hidden lg:block">
         <h3
-          className="text-sm font-semibold text-gray-900 dark:text-white px-1"
-          style={{ fontFamily: "Georgia, serif" }}
+          className="text-sm font-semibold px-1"
+          style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}
         >
           Calendar
         </h3>
@@ -1143,25 +1143,26 @@ export default function CalendarPage() {
         {/* Show selected date info below heading */}
         {selectedDate ? (
           <div className="px-1 mt-1 mb-3">
-            <p className="text-xs font-medium text-brand-600 dark:text-brand-400">
+            <p className="text-xs font-medium" style={{ color: "var(--gv-color-primary-600)" }}>
               {new Date(selectedDate + "T00:00:00").toLocaleDateString("en", {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
               })}
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>
               {baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""}
             </p>
             <button
               onClick={() => { setSelectedDate(null); setSelectedTask(null); }}
-              className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mt-1 underline"
+              className="text-[10px] mt-1 underline transition-colors"
+              style={{ color: "var(--gv-color-neutral-400)" }}
             >
               Clear selection
             </button>
           </div>
         ) : (
-          <p className="text-xs text-gray-400 px-1 mt-1 mb-3">
+          <p className="text-xs px-1 mt-1 mb-3" style={{ color: "var(--gv-color-neutral-400)" }}>
             Showing today + 2 days ahead. Tap a date to see history.
           </p>
         )}
@@ -1199,108 +1200,228 @@ export default function CalendarPage() {
           borderBottom: "1px solid var(--gv-color-neutral-200)",
         }}
       >
-        {/* Title row */}
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-[22px] font-bold leading-tight" style={{ color: "var(--gv-color-neutral-900)" }}>
-            Tasks
-          </h2>
-          <span
-            className="gv-badge"
-            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-700)" }}
-          >
-            {activeTasks.length}/{activeBucket.length}
-          </span>
-        </div>
+        {/* Title row + 7D date strip — side by side */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <h2 className="text-[22px] font-bold leading-tight" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "var(--gv-font-heading)" }}>
+              Tasks
+            </h2>
+            <span
+              className="gv-badge"
+              style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-700)" }}
+            >
+              {activeTasks.length}/{activeBucket.length}
+            </span>
+          </div>
 
-        {/* 7-day date strip */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {sevenDays.map((dateStr) => {
-            const d = new Date(dateStr + "T00:00:00");
-            const isToday = dateStr === todayStr;
-            const isSelected = dateStr === selectedDate;
-            const dayName = d.toLocaleDateString("en", { weekday: "short" });
-            const dayNum = d.getDate();
-            const hasTasks = taskDates.some((td) => td === dateStr);
-            return (
-              <button
-                key={dateStr}
-                onClick={() => handleDateSelect(dateStr)}
-                className="flex-shrink-0 flex flex-col items-center min-w-[48px] transition-all duration-200"
-                style={{
-                  borderRadius: "var(--gv-radius-md)",
-                  padding: "8px 12px",
-                  background: isSelected
-                    ? "var(--gv-color-primary-50)"
-                    : isToday
-                    ? "var(--gv-color-neutral-900)"
-                    : "transparent",
-                  color: isSelected
-                    ? "var(--gv-color-primary-500)"
-                    : isToday
-                    ? "#ffffff"
-                    : "var(--gv-color-neutral-700)",
-                  border: isSelected
-                    ? "1px solid var(--gv-color-primary-200)"
-                    : "1px solid transparent",
-                  boxShadow: isSelected ? "var(--gv-shadow-focus)" : "none",
-                }}
-              >
-                <span className="text-[10px] font-medium uppercase tracking-wide" style={{ opacity: 0.7 }}>{dayName}</span>
-                <span className="text-[16px] font-bold leading-tight">{dayNum}</span>
-                {hasTasks && (
-                  <span
-                    className="w-1 h-1 rounded-full mt-0.5"
+          {/* 7D gv-date mini calendar strip */}
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+            {sevenDays.map((dateStr) => {
+              const d = new Date(dateStr + "T00:00:00");
+              const isToday = dateStr === todayStr;
+              const isSelected = dateStr === selectedDate;
+              const dayName = d.toLocaleDateString("en", { weekday: "short" });
+              const dayNum = d.getDate();
+              const monthShort = d.toLocaleDateString("en", { month: "short" }).toUpperCase();
+              const hasTasks = taskDates.some((td) => td === dateStr);
+
+              /* Variant styles matching gv-date-component.html */
+              const headerBg = isSelected
+                ? "linear-gradient(135deg, #3D6562 0%, #5F8F8B 100%)"
+                : isToday
+                ? "var(--gv-gradient-primary)"
+                : "var(--gv-color-neutral-200)";
+              const monthColor = isSelected
+                ? "rgba(255,255,255,0.95)"
+                : isToday
+                ? "rgba(255,255,255,0.95)"
+                : "var(--gv-color-neutral-500)";
+              const bodyBg = isSelected
+                ? "var(--gv-color-primary-100)"
+                : isToday
+                ? "var(--gv-color-primary-50)"
+                : "var(--gv-color-bg-surface)";
+              const dayColor = isSelected
+                ? "var(--gv-color-primary-900)"
+                : isToday
+                ? "var(--gv-color-primary-700)"
+                : "var(--gv-color-neutral-400)";
+              const cardShadow = isSelected
+                ? "0 1px 3px rgba(31,36,40,0.08), 0 8px 24px rgba(63,101,98,0.14), 0 2px 8px rgba(63,101,98,0.08)"
+                : isToday
+                ? "0 1px 3px rgba(31,36,40,0.08), 0 8px 24px rgba(63,101,98,0.14), 0 2px 8px rgba(63,101,98,0.08)"
+                : "0 1px 3px rgba(31,36,40,0.05), 0 4px 12px rgba(31,36,40,0.06)";
+              const spiralBg = (isSelected || isToday)
+                ? "var(--gv-color-neutral-700)"
+                : "var(--gv-color-neutral-400)";
+
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => handleDateSelect(dateStr)}
+                  className="flex-shrink-0 flex flex-col items-center gap-0.5 transition-all duration-200"
+                  style={{ cursor: "pointer", background: "none", border: "none", padding: 0 }}
+                >
+                  {/* Mini gv-date card */}
+                  <div
                     style={{
-                      background: isSelected
-                        ? "var(--gv-color-primary-500)"
-                        : isToday
-                        ? "#ffffff"
-                        : "var(--gv-color-neutral-300)",
+                      position: "relative",
+                      display: "inline-flex",
+                      flexDirection: "column",
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      boxShadow: cardShadow,
+                      width: 40,
+                      userSelect: "none",
                     }}
-                  />
-                )}
-              </button>
-            );
-          })}
+                  >
+                    {/* Spiral holes */}
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                      {[0, 1].map((i) => (
+                        <div
+                          key={i}
+                          style={{
+                            width: 6,
+                            height: 10,
+                            background: spiralBg,
+                            borderRadius: "0 0 5px 5px",
+                            position: "relative",
+                          }}
+                        >
+                          <div style={{
+                            position: "absolute",
+                            top: 2,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 3,
+                            height: 3,
+                            background: "var(--gv-color-bg-base)",
+                            borderRadius: "50%",
+                          }} />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Header — month */}
+                    <div
+                      style={{
+                        background: headerBg,
+                        padding: "8px 4px 4px",
+                        textAlign: "center",
+                        minHeight: 22,
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: "var(--gv-font-heading)",
+                        fontWeight: 700,
+                        fontSize: 6,
+                        color: monthColor,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase" as const,
+                      }}>
+                        {monthShort}
+                      </span>
+                    </div>
+
+                    {/* Body — day number + weekday */}
+                    <div
+                      style={{
+                        background: bodyBg,
+                        padding: "3px 4px 4px",
+                        textAlign: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 0,
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: "var(--gv-font-heading)",
+                        fontWeight: 800,
+                        fontSize: 18,
+                        lineHeight: 1,
+                        color: dayColor,
+                        letterSpacing: "-0.03em",
+                      }}>
+                        {dayNum}
+                      </span>
+                      <span style={{
+                        fontFamily: "var(--gv-font-body)",
+                        fontWeight: 500,
+                        fontSize: 6,
+                        color: "var(--gv-color-neutral-400)",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase" as const,
+                      }}>
+                        {dayName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Task indicator dot */}
+                  {hasTasks && (
+                    <span
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: "50%",
+                        background: isSelected
+                          ? "var(--gv-color-primary-600)"
+                          : isToday
+                          ? "var(--gv-color-primary-500)"
+                          : "var(--gv-color-neutral-300)",
+                      }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-24">
-        {/* Filter pills — On Progress / Done / Rejected */}
-        <div className="flex items-center gap-1.5 pt-3 pb-2">
+        {/* Status Tabs (Segmented) — On Progress / Done / Rejected */}
+        <div
+          className="flex items-center pt-3 pb-2"
+          style={{
+            background: "var(--gv-color-neutral-100)",
+            borderRadius: "var(--gv-radius-md)",
+            padding: 4,
+          }}
+        >
           {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => {
             const isActive = taskFilter === f;
-            const bgColor = isActive
-              ? f === "rejected"
-                ? "var(--gv-color-danger-50)"
+            const count =
+              f === "inprogress"
+                ? activeTasks.length
                 : f === "done"
-                ? "var(--gv-color-success-50)"
-                : "var(--gv-color-primary-50)"
-              : "var(--gv-color-neutral-100)";
-            const txtColor = isActive
-              ? f === "rejected"
-                ? "var(--gv-color-danger-700)"
-                : f === "done"
-                ? "var(--gv-color-success-700)"
-                : "var(--gv-color-primary-700)"
-              : "var(--gv-color-neutral-400)";
+                ? doneTasks.length
+                : rejectedTasks.length;
             const label =
               f === "inprogress"
-                ? `On Progress${isActive ? ` (${activeTasks.length})` : ""}`
+                ? `On Progress (${count})`
                 : f === "done"
-                ? `Done${isActive ? ` (${doneTasks.length})` : ""}`
-                : `Rejected${isActive ? ` (${rejectedTasks.length})` : ""}`;
+                ? `Done (${count})`
+                : `Rejected (${count})`;
             return (
               <button
                 key={f}
                 onClick={() => setTaskFilter(f)}
-                className="flex-1 text-[11px] font-semibold transition-all duration-200"
+                className="flex-1 text-[13px] font-semibold transition-all duration-200"
                 style={{
                   borderRadius: "var(--gv-radius-sm)",
-                  padding: "6px 8px",
-                  background: bgColor,
-                  color: txtColor,
+                  padding: "10px 12px",
+                  background: isActive ? "var(--gv-color-bg-surface)" : "transparent",
+                  color: isActive ? "var(--gv-color-neutral-900)" : "var(--gv-color-neutral-400)",
+                  boxShadow: isActive
+                    ? "0 1px 3px rgba(31,36,40,0.08), 0 1px 2px rgba(31,36,40,0.06)"
+                    : "none",
+                  fontFamily: "var(--gv-font-body)",
                 }}
               >
                 {label}
@@ -1530,34 +1651,40 @@ export default function CalendarPage() {
                       <div className="mt-4 first:mt-0">
                         <div className="flex items-center gap-2 mb-1 px-0.5">
                           <TikTokIcon size={10} className="text-[#FE2C55]" />
-                          <h3 className="text-xs font-semibold uppercase text-[#FE2C55]">TikTok Posts</h3>
-                          <span className="text-[10px] text-gray-400 ml-auto">{tikPosts.length}</span>
+                          <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#FE2C55" }}>TikTok Posts</h3>
+                          <span className="text-[11px] ml-auto tabular-nums" style={{ color: "var(--gv-color-neutral-400)" }}>{tikPosts.length}</span>
                         </div>
                         <div className="space-y-1">
                           {tikPosts.map(post => (
                             <button
                               key={post.id}
                               onClick={() => handlePostSelect(post)}
-                              className={`w-full text-left rounded-xl border p-2.5 transition-all ${
-                                selectedPostId === post.id
-                                  ? "border-[#FE2C55] bg-red-50/50 shadow-sm dark:border-[#FE2C55]/40 dark:bg-[#FE2C55]/5"
-                                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
-                              }`}
+                              className="w-full text-left transition-all duration-200"
+                              style={{
+                                borderRadius: "var(--gv-radius-md)",
+                                padding: "10px 12px",
+                                border: `1px solid ${selectedPostId === post.id ? "#FE2C55" : "var(--gv-color-neutral-200)"}`,
+                                background: selectedPostId === post.id ? "rgba(254,44,85,0.04)" : "var(--gv-color-bg-surface)",
+                                boxShadow: selectedPostId === post.id ? "0 0 0 3px rgba(254,44,85,0.10)" : "var(--gv-shadow-card)",
+                              }}
                             >
                               <div className="flex items-start justify-between gap-2 mb-1">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1 mb-0.5">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-[#FE2C55] dark:bg-[#FE2C55]/10 dark:text-[#FE2C55]">
+                                    <span
+                                      className="gv-badge"
+                                      style={{ background: "rgba(254,44,85,0.08)", color: "#FE2C55", fontSize: "10px", height: "20px", padding: "0 6px" }}
+                                    >
                                       <TikTokIcon size={8} />
                                       TikTok
                                     </span>
                                     <StatusBadge status={post.status} />
                                   </div>
-                                  <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{post.title}</h4>
+                                  <h4 className="text-sm font-medium leading-tight" style={{ color: "var(--gv-color-neutral-900)" }}>{post.title}</h4>
                                 </div>
                                 <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full mt-1.5" style={{ background: post.accentColor }} />
                               </div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{post.caption}</p>
+                              <p className="text-xs line-clamp-2" style={{ color: "var(--gv-color-neutral-500)" }}>{post.caption}</p>
                             </button>
                           ))}
                         </div>
@@ -1772,16 +1899,16 @@ export default function CalendarPage() {
   const right = selectedPost ? (
     <div className="h-full overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <StatusBadge status={selectedPost.status} />
-            <h2 className="mt-1.5 text-base font-semibold text-gray-900 dark:text-white leading-snug">{selectedPost.title}</h2>
-            <p className="text-sm text-gray-400 mt-0.5">{selectedPost.date} · {selectedPost.time} WIB · {selectedPost.duration}</p>
+            <h2 className="mt-1.5 text-base font-semibold leading-snug" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "var(--gv-font-heading)" }}>{selectedPost.title}</h2>
+            <p className="text-sm mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{selectedPost.date} · {selectedPost.time} WIB · {selectedPost.duration}</p>
             {selectedPost.views && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.views}</span> views ·{" "}
-                <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedPost.likes}</span> likes
+              <p className="text-sm mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>
+                <span className="font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.views}</span> views ·{" "}
+                <span className="font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.likes}</span> likes
               </p>
             )}
           </div>
@@ -1795,15 +1922,15 @@ export default function CalendarPage() {
       {/* Fields */}
       <div className="px-4 pb-6 space-y-4">
         <div>
-          <h4 className="text-sm font-medium text-gray-400 mb-1.5">Caption</h4>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedPost.caption}</p>
+          <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Caption</h4>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.caption}</p>
         </div>
 
         <div>
-          <h4 className="text-sm font-medium text-gray-400 mb-1.5">Hashtags</h4>
+          <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Hashtags</h4>
           <div className="flex flex-wrap gap-1.5">
             {selectedPost.hashtags.map((tag, i) => (
-              <span key={i} className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-sm text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+              <span key={i} className="gv-badge gv-badge-primary" style={{ fontSize: "12px" }}>
                 {tag}
               </span>
             ))}
@@ -1813,18 +1940,18 @@ export default function CalendarPage() {
         <div className="flex items-center gap-2 py-1">
           <span className="text-sm">📅</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedPost.date}</p>
-            <p className="text-xs text-gray-400">at {selectedPost.time} WIB</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.date}</p>
+            <p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>at {selectedPost.time} WIB</p>
           </div>
-          <button className="text-sm text-brand-500 hover:underline font-medium">Edit</button>
+          <button className="text-sm font-medium hover:underline" style={{ color: "var(--gv-color-primary-500)" }}>Edit</button>
         </div>
 
         <div className="space-y-2 pt-1">
           {!lsConnectedIds.has("tiktok") ? (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TikTok belum terhubung</p>
-              <p className="text-xs text-gray-400 mb-3">Hubungkan TikTok di halaman Home terlebih dahulu</p>
-              <a href="/" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+            <div className="p-4 text-center" style={{ borderRadius: "var(--gv-radius-md)", border: "1px solid var(--gv-color-neutral-200)" }}>
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--gv-color-neutral-700)" }}>TikTok belum terhubung</p>
+              <p className="text-xs mb-3" style={{ color: "var(--gv-color-neutral-400)" }}>Hubungkan TikTok di halaman Home terlebih dahulu</p>
+              <a href="/" className="gv-btn-sm" style={{ display: "inline-flex" }}>
                 → Ke Halaman Home
               </a>
             </div>
@@ -1833,28 +1960,42 @@ export default function CalendarPage() {
               <button
                 onClick={handlePostPublish}
                 disabled={publishing || selectedPost.status === "published"}
-                className={`w-full rounded-xl font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all ${
-                  selectedPost.status === "published"
-                    ? "bg-green-100 text-green-700 cursor-default dark:bg-green-500/10 dark:text-green-400"
-                    : publishing
-                    ? "bg-[#FE2C55]/70 text-white cursor-wait"
-                    : "bg-[#FE2C55] text-white hover:bg-[#e0264c] shadow-md hover:shadow-lg"
-                }`}
+                className="w-full font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all"
+                style={{
+                  borderRadius: "var(--gv-radius-md)",
+                  background: selectedPost.status === "published"
+                    ? "var(--gv-color-success-50)"
+                    : publishing ? "rgba(254,44,85,0.7)" : "#FE2C55",
+                  color: selectedPost.status === "published"
+                    ? "var(--gv-color-success-700)"
+                    : "#ffffff",
+                  cursor: selectedPost.status === "published" ? "default" : publishing ? "wait" : "pointer",
+                  boxShadow: selectedPost.status !== "published" && !publishing ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  opacity: (publishing || selectedPost.status === "published") ? undefined : 1,
+                }}
               >
                 {publishBtnLabel()}
               </button>
 
               {publishing && (
-                <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="w-full h-1 overflow-hidden" style={{ background: "var(--gv-color-neutral-100)", borderRadius: "var(--gv-radius-full)" }}>
                   <div
-                    className="h-full bg-[#FE2C55] rounded-full transition-all duration-500"
-                    style={{ width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
+                    className="h-full transition-all duration-500"
+                    style={{ background: "#FE2C55", borderRadius: "var(--gv-radius-full)", width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
                   />
                 </div>
               )}
 
               {selectedPost.status !== "published" && (
-                <button className="w-full rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors flex items-center justify-center gap-2">
+                <button
+                  className="w-full font-medium py-2.5 text-sm flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    borderRadius: "var(--gv-radius-md)",
+                    border: "1px solid var(--gv-color-neutral-200)",
+                    color: "var(--gv-color-neutral-700)",
+                    background: "var(--gv-color-bg-surface)",
+                  }}
+                >
                   📅 Schedule · {selectedPost.date} {selectedPost.time}
                 </button>
               )}
@@ -1888,12 +2029,14 @@ export default function CalendarPage() {
 
       {/* ── Floating bottom tab — Content / Comments / Others — same pill style as NavColumn ── */}
       <nav
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-[48px] border border-white/60 overflow-hidden"
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 overflow-hidden"
         style={{
-          background: "rgba(255, 255, 255, 0.88)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(31,36,40,0.06)",
+          borderRadius: "var(--gv-radius-2xl)",
+          border: "1px solid var(--gv-color-glass-border)",
+          background: "var(--gv-color-glass-bg)",
+          backdropFilter: "blur(var(--gv-blur-lg))",
+          WebkitBackdropFilter: "blur(var(--gv-blur-lg))",
+          boxShadow: "var(--gv-shadow-card)",
         }}
       >
         <div className="flex items-center px-3 py-2 gap-1">
@@ -1934,16 +2077,14 @@ export default function CalendarPage() {
               <button
                 key={key}
                 onClick={() => { setSubTab(key); setSelectedTask(null); setSelectedPostId(null); }}
-                className={[
-                  "flex items-center gap-2 h-10 px-4 rounded-[36px] transition-all duration-200",
-                  isActive
-                    ? "bg-[#EDF5F4] text-[#5F8F8B]"
-                    : "text-[#4A545B] hover:bg-[#F3F4F6] hover:text-[#1F2428]",
-                ].join(" ")}
-                style={isActive ? {
-                  border: "1px solid rgba(95,143,139,0.3)",
-                  boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
-                } : {}}
+                className="flex items-center gap-2 h-10 px-4 transition-all duration-200"
+                style={{
+                  borderRadius: "var(--gv-radius-full)",
+                  background: isActive ? "var(--gv-color-primary-50)" : "transparent",
+                  color: isActive ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-500)",
+                  border: isActive ? "1px solid rgba(95,143,139,0.3)" : "1px solid transparent",
+                  boxShadow: isActive ? "var(--gv-shadow-focus)" : "none",
+                }}
               >
                 <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{icon}</span>
                 <span className="text-[13px] font-[550] whitespace-nowrap leading-none">{label}</span>
@@ -1954,9 +2095,14 @@ export default function CalendarPage() {
       </nav>
 
       {postToast && (
-        <div className={`fixed bottom-20 right-6 z-50 rounded-[16px] px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 max-w-sm ${
-          postToast.type === "success" ? "bg-[#3D6562] text-white" : "bg-[#B91C1C] text-white"
-        }`}>
+        <div
+          className="fixed bottom-20 right-6 z-50 px-4 py-3 text-sm font-medium flex items-center gap-2 max-w-sm text-white"
+          style={{
+            borderRadius: "var(--gv-radius-md)",
+            background: postToast.type === "success" ? "var(--gv-color-primary-700)" : "var(--gv-color-danger-700)",
+            boxShadow: "var(--gv-shadow-card)",
+          }}
+        >
           {postToast.msg}
         </div>
       )}
