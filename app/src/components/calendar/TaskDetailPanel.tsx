@@ -556,7 +556,7 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {(task.content?.imageUrl || task.imageUrl) && (
           <div className="rounded-lg overflow-hidden">
             <img
@@ -814,8 +814,8 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="p-4" style={{ borderTop: "1px solid var(--gv-color-neutral-200)" }}>
+      {/* Action buttons — sticky bottom */}
+      <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
         {rejected || isRejected ? (
           <div className="py-2.5 text-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-danger-50)" }}>
             <p className="text-sm font-medium" style={{ color: "var(--gv-color-danger-700)" }}>✕ Content Rejected</p>
