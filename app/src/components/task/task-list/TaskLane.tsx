@@ -33,21 +33,19 @@ const TaskLane: React.FC<TaskLaneProps> = ({
   return (
     <div onDragOver={onDragOver} onDrop={onDrop}>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="flex items-center gap-3 text-base font-medium text-gray-800 capitalize dark:text-white/90">
+        <h3 className="flex items-center gap-3 text-base font-medium capitalize dark:text-white/90" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>
           {lane}
           <span
-            className={`
-    inline-flex rounded-full px-2 py-0.5 text-theme-xs font-medium 
-    ${
+            className={`gv-badge ${
       lane === "todo"
-        ? "bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80 "
+        ? ""
         : lane === "in-progress"
-        ? "text-warning-700 bg-warning-50 dark:bg-warning-500/15 dark:text-orange-400"
+        ? "gv-badge-warning"
         : lane === "completed"
-        ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500"
+        ? "gv-badge-success"
         : ""
-    }
-  `}
+    }`}
+            style={lane === "todo" ? { background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-700)" } : undefined}
           >
             {tasks.length}
           </span>
@@ -60,7 +58,7 @@ const TaskLane: React.FC<TaskLaneProps> = ({
           <Dropdown
             isOpen={isOpen}
             onClose={closeDropdown}
-            className="absolute right-0 top-full z-40 w-[140px] space-y-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-theme-md dark:border-gray-800 dark:bg-gray-dark"
+            className="absolute right-0 top-full z-40 w-[140px] space-y-1 rounded-xl border border-gray-200 bg-white p-2 shadow-theme-md dark:border-gray-800 dark:bg-gray-dark"
           >
             <DropdownItem
               onItemClick={closeDropdown}
