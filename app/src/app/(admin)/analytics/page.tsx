@@ -2,16 +2,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
+import { supabase } from "@/lib/supabase";
 
-const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
+const FALLBACK_BRAND_ID = process.env.NEXT_PUBLIC_brandId || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // ── Tier gating ───────────────────────────────────────────────────
-// Analytics dashboard is Partner-only.
-// Change CURRENT_TIER to "partner" to unlock (when auth is implemented, read from user profile).
-const CURRENT_TIER: "basic" | "premium" | "partner" = "partner";
 const ANALYTICS_REQUIRES_TIER = "partner";
 const TIER_ORDER: Record<string, number> = { basic: 0, premium: 1, partner: 2 };
-const hasAccess = TIER_ORDER[CURRENT_TIER] >= TIER_ORDER[ANALYTICS_REQUIRES_TIER];
 
 // ── Types ────────────────────────────────────────────────────────
 type AnalyticsSection = "seo" | "geo" | "social";
@@ -1522,6 +1519,42 @@ export default function AnalyticsPage() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
 
+  // ── Auth & subscription ──────────────────────────────────────────
+  const [brandId, setBrandId] = useState(FALLBACK_BRAND_ID);
+  const [currentTier, setCurrentTier] = useState<"basic" | "premium" | "partner">("basic");
+  const hasAccess = TIER_ORDER[currentTier] >= TIER_ORDER[ANALYTICS_REQUIRES_TIER];
+
+  useEffect(() => {
+    const loadAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: ub } = await supabase
+          .from("user_brands")
+          .select("brand_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        if (ub?.brand_id) {
+          setBrandId(ub.brand_id);
+          const res = await fetch("/api/payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get_subscription", brand_id: ub.brand_id }),
+          });
+          const sub = await res.json();
+          if (sub.success) {
+            const tier = sub.brand_payment?.subscription_tier as string | undefined;
+            const mapped = tier === "partner" ? "partner" : tier === "premium" ? "premium" : "basic";
+            setCurrentTier(mapped as "basic" | "premium" | "partner");
+          }
+        }
+      } catch { /* keep defaults */ }
+    };
+    loadAuth();
+  }, []);
+
   // ── Live analytics from Late API + Claude ──────────────────────────────────
   const [liveSocialItems, setLiveSocialItems] = useState<SocialItem[] | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -1530,7 +1563,7 @@ export default function AnalyticsPage() {
 
   // Load from Supabase on mount
   useEffect(() => {
-    fetch(`/api/analytics/sync?brand_id=${DEMO_BRAND_ID}`)
+    fetch(`/api/analytics/sync?brand_id=${brandId}`)
       .then((r) => r.json())
       .then((res: { success: boolean; data?: DbAnalyticsRow[] }) => {
         if (res.success && res.data && res.data.length > 0) {
@@ -1549,13 +1582,13 @@ export default function AnalyticsPage() {
       const res = await fetch("/api/analytics/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand_id: DEMO_BRAND_ID }),
+        body: JSON.stringify({ brand_id: brandId }),
       });
       const data = await res.json() as { success: boolean; synced?: number; error?: string };
       if (data.success) {
         setSyncStatus("success");
         // Reload from DB
-        const getRes = await fetch(`/api/analytics/sync?brand_id=${DEMO_BRAND_ID}`);
+        const getRes = await fetch(`/api/analytics/sync?brand_id=${brandId}`);
         const getData = await getRes.json() as { success: boolean; data?: DbAnalyticsRow[] };
         if (getData.success && getData.data && getData.data.length > 0) {
           setLiveSocialItems(getData.data.map(dbRowToSocialItem));
@@ -1661,7 +1694,7 @@ export default function AnalyticsPage() {
 
             {/* Current plan note */}
             <p className="mt-4 text-center text-xs text-gray-400">
-              Current plan: <span className="font-medium text-gray-600 dark:text-gray-300 capitalize">{CURRENT_TIER}</span> ·{" "}
+              Current plan: <span className="font-medium text-gray-600 dark:text-gray-300 capitalize">{currentTier}</span> ·{" "}
               Analytics requires <span className="font-medium text-amber-600 dark:text-amber-400 capitalize">{ANALYTICS_REQUIRES_TIER}</span>
             </p>
           </div>
