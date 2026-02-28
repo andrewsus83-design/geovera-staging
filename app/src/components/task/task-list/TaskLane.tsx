@@ -14,6 +14,24 @@ interface TaskLaneProps {
   onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
 }
 
+const laneConfig: Record<string, { label: string; badgeBg: string; badgeColor: string }> = {
+  todo: {
+    label: "To Do",
+    badgeBg: "var(--gv-color-neutral-100)",
+    badgeColor: "var(--gv-color-neutral-700)",
+  },
+  "in-progress": {
+    label: "In Progress",
+    badgeBg: "var(--gv-color-warning-50)",
+    badgeColor: "var(--gv-color-warning-700)",
+  },
+  completed: {
+    label: "Completed",
+    badgeBg: "var(--gv-color-success-50)",
+    badgeColor: "var(--gv-color-success-700)",
+  },
+};
+
 const TaskLane: React.FC<TaskLaneProps> = ({
   lane,
   tasks,
@@ -22,6 +40,7 @@ const TaskLane: React.FC<TaskLaneProps> = ({
   onDragStart,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const config = laneConfig[lane] || { label: lane, badgeBg: "var(--gv-color-neutral-100)", badgeColor: "var(--gv-color-neutral-700)" };
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -30,32 +49,58 @@ const TaskLane: React.FC<TaskLaneProps> = ({
   function closeDropdown() {
     setIsOpen(false);
   }
+
   return (
     <div onDragOver={onDragOver} onDrop={onDrop}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="flex items-center gap-3 text-base font-medium text-gray-800 capitalize dark:text-white/90">
-          {lane}
+      {/* Lane header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "12px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h3
+            style={{
+              fontFamily: "var(--gv-font-heading)",
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "var(--gv-color-neutral-900)",
+            }}
+          >
+            {config.label}
+          </h3>
           <span
-            className={`
-    inline-flex rounded-full px-2 py-0.5 text-theme-xs font-medium 
-    ${
-      lane === "todo"
-        ? "bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80 "
-        : lane === "in-progress"
-        ? "text-warning-700 bg-warning-50 dark:bg-warning-500/15 dark:text-orange-400"
-        : lane === "completed"
-        ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500"
-        : ""
-    }
-  `}
+            className="gv-badge"
+            style={{
+              background: config.badgeBg,
+              color: config.badgeColor,
+            }}
           >
             {tasks.length}
           </span>
-        </h3>
+        </div>
 
         <div className="relative">
-          <button onClick={toggleDropdown} className="dropdown-toggle">
-            <HorizontaLDots className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
+          <button
+            onClick={toggleDropdown}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "32px",
+              height: "32px",
+              borderRadius: "var(--gv-radius-xs)",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "var(--gv-color-neutral-400)",
+              transition: "all var(--gv-duration-fast)",
+            }}
+          >
+            <HorizontaLDots />
           </button>
           <Dropdown
             isOpen={isOpen}
@@ -83,13 +128,17 @@ const TaskLane: React.FC<TaskLaneProps> = ({
           </Dropdown>
         </div>
       </div>
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          {...task}
-          onDragStart={(e) => onDragStart(e, task.id)}
-        />
-      ))}
+
+      {/* Task items */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {tasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            {...task}
+            onDragStart={(e) => onDragStart(e, task.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 };
