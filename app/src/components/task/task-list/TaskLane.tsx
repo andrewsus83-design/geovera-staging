@@ -58,7 +58,7 @@ const TaskLane: React.FC<TaskLaneProps> = ({
           <Dropdown
             isOpen={isOpen}
             onClose={closeDropdown}
-            className="absolute right-0 top-full z-40 w-[140px] space-y-1 border bg-white p-2 shadow-theme-md dark:border-gray-800 dark:bg-gray-dark" style={{ borderRadius: "var(--gv-radius-md)", borderColor: "var(--gv-color-neutral-200)" }}
+            className="absolute right-0 top-full z-40 w-[140px] space-y-1 rounded-xl border border-gray-200 bg-white p-2 shadow-theme-md dark:border-gray-800 dark:bg-gray-dark"
           >
             <DropdownItem
               onItemClick={closeDropdown}
