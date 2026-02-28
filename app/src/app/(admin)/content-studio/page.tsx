@@ -8,9 +8,9 @@ const FALLBACK_BRAND_ID =
   process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const IMAGE_DAILY_LIMITS: Record<string, number> = { basic: 3, premium: 6, partner: 10 };
+const IMAGE_DAILY_LIMITS: Record<string, number> = { basic: 10, premium: 20, partner: 30 };
 const VIDEO_DAILY_LIMITS: Record<string, number> = { basic: 1, premium: 2, partner: 3 };
-const VIDEO_MAX_DURATION: Record<string, number> = { basic: 8, premium: 15, partner: 25 };
+const VIDEO_MAX_DURATION: Record<string, number> = { basic: 8, premium: 15, partner: 30 };
 const TRAINING_LIMITS: Record<string, number> = { basic: 5, premium: 10, partner: 15 };
 
 const VIDEO_TOPICS = [
@@ -39,12 +39,12 @@ interface TrainedModel {
 interface GeneratedImage {
   id: string; prompt_text: string; image_url: string | null; thumbnail_url: string | null;
   status: string; ai_model: string | null; target_platform: string | null;
-  style_preset: string | null; created_at: string;
+  style_preset: string | null; created_at: string; feedback?: string | null;
 }
 interface GeneratedVideo {
   id: string; hook: string; video_url: string | null; video_thumbnail_url: string | null;
   video_status: string | null; ai_model: string | null; target_platform: string | null;
-  video_aspect_ratio: string | null; created_at: string;
+  video_aspect_ratio: string | null; created_at: string; feedback?: string | null;
 }
 interface TodayTask { id: string; title: string; description: string | null; target_platforms: string[] | null; }
 interface SideImage { side: "front" | "left" | "back" | "right"; label: string; file: File | null; preview: string | null; storageUrl: string | null; }
@@ -55,6 +55,10 @@ async function studioFetch(payload: Record<string, unknown>) {
   const res = await fetch("/api/content-studio", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    throw new Error(`Server error (${res.status}) — please try again`);
+  }
   return res.json();
 }
 
@@ -90,7 +94,7 @@ function StepBar({ steps, current }: { steps: string[]; current: number }) {
 function DailyQuota({ used, limit, label }: { used: number; limit: number; label: string }) {
   const remaining = Math.max(0, limit - used);
   const pct = Math.min(100, (used / limit) * 100);
-  const color = remaining === 0 ? "bg-red-500" : remaining <= 1 ? "bg-amber-500" : "bg-brand-500";
+  const color = remaining === 0 ? "bg-red-500" : remaining <= 2 ? "bg-amber-500" : "bg-brand-500";
   return (
     <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-3">
       <div className="flex-1 min-w-0">
@@ -184,10 +188,11 @@ function StudioNav({ active, onSelect }: { active: StudioSection; onSelect: (s: 
 // TRAINING WIZARD
 // ══════════════════════════════════════════════════════════════════════════════
 function TrainingWizard({
-  brandId, trainingType, currentTier, totalModelCount, onDone,
+  brandId, trainingType, currentTier, totalModelCount, pastDatasets, onDone,
 }: {
   brandId: string; trainingType: "product" | "character";
   currentTier: string; totalModelCount: number;
+  pastDatasets: TrainedModel[];
   onDone: (m: TrainedModel) => void;
 }) {
   const limit = TRAINING_LIMITS[currentTier] ?? 5;
@@ -222,6 +227,9 @@ function TrainingWizard({
     const file = files[0];
     const preview = URL.createObjectURL(file);
     setSides((prev) => {
+      // Revoke old blob URL to prevent memory leak
+      const old = prev.find((s) => s.side === side);
+      if (old?.preview?.startsWith("blob:")) URL.revokeObjectURL(old.preview);
       const updated = prev.map((s) => s.side === side ? { ...s, file, preview } : s);
       const total = updated.reduce((a, s) => a + (s.file?.size ?? 0), 0) / 1024 / 1024;
       setTotalSizeMB(parseFloat(total.toFixed(2)));
@@ -240,23 +248,23 @@ function TrainingWizard({
     setSynthUrls([]);
     setSynthCount(0);
 
-    // Upload 4 images to Supabase Storage
-    const uploadedUrls: string[] = [];
+    // Upload all 4 images to Supabase Storage in parallel
     const folder = `training-${trainingType}`;
     const safeName = datasetName.replace(/\s+/g, "-").toLowerCase();
-    for (const s of sides) {
-      try {
-        const url = await uploadImage(s.file!, brandId, folder, `${safeName}-${s.side}`);
-        uploadedUrls.push(url);
-      } catch (e) {
-        setError(`Upload failed (${s.label}): ${e instanceof Error ? e.message : "unknown"}`);
-        setStep(1);
-        setSynthLoading(false);
-        return;
-      }
+    let uploadedUrls: string[] = [];
+    try {
+      uploadedUrls = await Promise.all(
+        sides.map((s) => uploadImage(s.file!, brandId, folder, `${safeName}-${s.side}`))
+      );
+    } catch (e) {
+      setError(`Upload failed: ${e instanceof Error ? e.message : "unknown"}`);
+      setStep(1);
+      setSynthLoading(false);
+      return;
     }
 
-    // Generate 8 synthetic training images via OpenAI-guided prompts + KIE
+    // Generate 8 synthetic training images via Llama (prompt engineering) + KIE Flux-2 Pro
+    let syntheticUrls: string[] = [];
     try {
       const res = await studioFetch({
         action: "generate_synthetics",
@@ -264,10 +272,12 @@ function TrainingWizard({
         name: datasetName,
         training_type: trainingType,
         count: 8,
+        past_datasets: pastDatasets.map((d) => ({ dataset_name: d.dataset_name, theme: d.theme })),
       });
       if (res.success && Array.isArray(res.synthetic_urls)) {
-        setSynthUrls(res.synthetic_urls);
-        setSynthCount(res.count ?? res.synthetic_urls.length);
+        syntheticUrls = res.synthetic_urls;
+        setSynthUrls(syntheticUrls);
+        setSynthCount(res.count ?? syntheticUrls.length);
       }
     } catch {
       // Non-fatal — continue with originals only
@@ -275,8 +285,8 @@ function TrainingWizard({
 
     setSynthLoading(false);
 
-    // Start training with originals + synthetics
-    await startTraining(uploadedUrls, synthUrls);
+    // Start training — pass syntheticUrls directly (avoid stale React state)
+    await startTraining(uploadedUrls, syntheticUrls);
   };
 
   const startTraining = async (originalUrls: string[], synUrls: string[]) => {
@@ -297,13 +307,15 @@ function TrainingWizard({
       if (res.success) {
         setTrainingId(res.training_id);
         setTrainingStatus("training");
+        // Clear any existing interval before starting a new one
+        if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = setInterval(async () => {
           if (!res.training_id) return;
           const s = await studioFetch({ action: "check_training", brand_id: brandId, training_id: res.training_id });
           if (s.success) {
             setTrainingStatus(s.status ?? "training");
             setTrainingProgress(s.progress ?? 0);
-            if (["completed", "succeeded"].includes(s.status)) {
+            if (["completed", "succeeded", "success"].includes(s.status)) {
               if (pollRef.current) clearInterval(pollRef.current);
               onDone({
                 id: Date.now().toString(), dataset_name: datasetName, theme: trainingType,
@@ -344,7 +356,7 @@ function TrainingWizard({
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-      <StepBar steps={["Upload 4 Sides", "32 Synthetics", "Training"]} current={step} />
+      <StepBar steps={["Upload 4 Sides", "8 Synthetics", "Training"]} current={step} />
       <div className="p-4 space-y-4">
 
         {/* ── STEP 1: Upload ── */}
@@ -425,7 +437,7 @@ function TrainingWizard({
               Generate Synthetic Dataset →
             </button>
             <p className="text-[10px] text-gray-400 text-center">
-              GeoVera will generate 32 training variations using OpenAI + KIE Flux AI
+              GeoVera will generate 8 synthetic training variations using Llama + KIE Flux-2 Pro
             </p>
           </>
         )}
@@ -486,16 +498,16 @@ function TrainingWizard({
         {step === 3 && (
           <div className="text-center space-y-4 py-2">
             <div className="w-14 h-14 rounded-full bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center mx-auto">
-              {["completed", "succeeded"].includes(trainingStatus)
+              {["completed", "succeeded", "success"].includes(trainingStatus)
                 ? <span className="text-3xl">✅</span>
                 : <div className="w-7 h-7 rounded-full border-[3px] border-brand-500 border-t-transparent animate-spin" />}
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {["completed", "succeeded"].includes(trainingStatus) ? "Training Complete! 🎉" : "LoRA Training in Progress"}
+                {["completed", "succeeded", "success"].includes(trainingStatus) ? "Training Complete! 🎉" : "LoRA Training in Progress"}
               </h3>
               <p className="text-xs text-gray-500 mt-1">
-                {["completed", "succeeded"].includes(trainingStatus)
+                {["completed", "succeeded", "success"].includes(trainingStatus)
                   ? `"${datasetName}" is ready. Use it in Generate Image & Video.`
                   : "Training takes 10–30 mins. You can leave this page safely."}
               </p>
@@ -608,16 +620,34 @@ function GenerateImageWizard({
         ...(modelMode === "trained" && selectedModel?.metadata?.lora_model ? { lora_model: selectedModel.metadata.lora_model } : {}),
       });
       if (res.success) {
+        // Poll for image URL if KIE is processing asynchronously (task_id present but no image yet)
+        let finalImageUrl: string | null = res.image_url;
+        let finalStatus: string = res.status ?? "completed";
+        if (res.task_id && !finalImageUrl && !["failed", "error"].includes(finalStatus)) {
+          for (let i = 0; i < 12; i++) { // max 60s (12 × 5s)
+            await new Promise((r) => setTimeout(r, 5000));
+            try {
+              const poll = await studioFetch({
+                action: "check_task", brand_id: brandId,
+                task_id: res.task_id, db_id: res.db_id, task_type: "image",
+              });
+              finalStatus = poll.status ?? finalStatus;
+              if (poll.image_url) { finalImageUrl = poll.image_url; break; }
+              if (["failed", "error", "cancelled"].includes(finalStatus)) break;
+            } catch { break; }
+          }
+        }
         onResult({
           id: res.db_id ?? Date.now().toString(), prompt_text: prompt,
-          image_url: res.image_url, thumbnail_url: res.image_url,
-          status: res.status ?? "completed", ai_model: "kie-flux",
+          image_url: finalImageUrl, thumbnail_url: finalImageUrl,
+          status: finalStatus, ai_model: "kie-flux",
           target_platform: null, style_preset: selectedModel?.metadata?.lora_model ?? null,
           created_at: new Date().toISOString(),
         });
         onUsed();
+        // Task link: update cover image when generated from a task
         if (promptSource === "task" && selectedTask && res.image_url) {
-          await supabase.from("gv_task_board").update({ color_label: res.image_url }).eq("id", selectedTask.id);
+          await supabase.from("gv_task_board").update({ cover_image_url: res.image_url }).eq("id", selectedTask.id);
         }
         setStep(1); setCustomPrompt(""); setSelectedTask(null);
       } else { setError(res.error ?? "Generation failed"); }
@@ -1251,7 +1281,103 @@ const TOPIC_SOUNDS: Record<string, string[]> = {
   advertorial:    ["Viral trend audio", "TikTok trending sound", "Catchy hook"],
 };
 
-function DetailPanel({ item }: { item: DetailItem }) {
+function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
+  const [feedback, setFeedback] = useState<"liked" | "disliked" | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  // Restore feedback state from DB when item changes (handles history items)
+  useEffect(() => {
+    if (!item || item.type === "model") {
+      setFeedback(null);
+      setFeedbackSubmitted(false);
+      setFeedbackLoading(false);
+      return;
+    }
+    const existing = (item.data as GeneratedImage & GeneratedVideo).feedback;
+    if (existing === "liked" || existing === "disliked") {
+      setFeedback(existing);
+      setFeedbackSubmitted(true);
+    } else {
+      setFeedback(null);
+      setFeedbackSubmitted(false);
+    }
+    setFeedbackLoading(false);
+  }, [item?.data?.id, item?.type]);
+
+  const submitFeedback = async (type: "liked" | "disliked") => {
+    if (!item || item.type === "model" || feedbackLoading || feedbackSubmitted) return;
+    setFeedback(type);
+    setFeedbackLoading(true);
+    try {
+      await studioFetch({
+        action: "submit_feedback",
+        brand_id: brandId,
+        db_id: item.data.id,
+        content_type: item.type,
+        feedback: type,
+      });
+      setFeedbackSubmitted(true);
+    } catch (e) {
+      console.error("Feedback submit error:", e);
+      setFeedback(null);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const FeedbackSection = () => (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
+      <p className="text-[10px] font-semibold text-gray-500 mb-2">🧠 TRAIN THE AI — Rate this result</p>
+      {feedbackSubmitted ? (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-500/10 px-3 py-2">
+          <span className="text-base">{feedback === "liked" ? "👍" : "👎"}</span>
+          <p className="text-xs font-semibold text-green-700 dark:text-green-400">
+            Thanks! AI is learning from your feedback.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-2">
+            <button
+              onClick={() => submitFeedback("liked")}
+              disabled={feedbackLoading}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                feedback === "liked"
+                  ? "border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400 hover:text-green-600"
+              } disabled:opacity-50`}
+            >
+              {feedbackLoading && feedback === "liked"
+                ? <span className="w-3 h-3 rounded-full border-2 border-green-400 border-t-transparent animate-spin" />
+                : "👍"
+              }
+              <span>Like</span>
+            </button>
+            <button
+              onClick={() => submitFeedback("disliked")}
+              disabled={feedbackLoading}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                feedback === "disliked"
+                  ? "border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-400 hover:text-red-600"
+              } disabled:opacity-50`}
+            >
+              {feedbackLoading && feedback === "disliked"
+                ? <span className="w-3 h-3 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+                : "👎"
+              }
+              <span>Dislike</span>
+            </button>
+          </div>
+          <p className="text-[9px] text-gray-400 mt-1.5 text-center">
+            Your ratings train the AI to generate better content for your brand
+          </p>
+        </>
+      )}
+    </div>
+  );
+
   if (!item) {
     return (
       <div className="h-full min-h-64 flex flex-col items-center justify-center gap-3 text-center px-6 py-12">
@@ -1288,6 +1414,7 @@ function DetailPanel({ item }: { item: DetailItem }) {
             </a>
           )}
         </div>
+        <FeedbackSection />
       </div>
     );
   }
@@ -1324,6 +1451,7 @@ function DetailPanel({ item }: { item: DetailItem }) {
             </div>
           </div>
         </div>
+        <FeedbackSection />
       </div>
     );
   }
@@ -1392,7 +1520,8 @@ export default function ContentStudioPage() {
   const refreshUsage = useCallback(() => {
     if (!brandId) return;
     studioFetch({ action: "check_daily_usage", brand_id: brandId })
-      .then((r) => { if (r.success) { setImagesUsedToday(r.images_today ?? 0); setVideosUsedToday(r.videos_today ?? 0); } });
+      .then((r) => { if (r.success) { setImagesUsedToday(r.images_today ?? 0); setVideosUsedToday(r.videos_today ?? 0); } })
+      .catch(() => { /* quota display fails silently — non-critical */ });
   }, [brandId]);
 
   useEffect(() => { refreshUsage(); }, [refreshUsage]);
@@ -1401,14 +1530,16 @@ export default function ContentStudioPage() {
   useEffect(() => {
     if (!brandId) return;
     studioFetch({ action: "get_history", brand_id: brandId, type: "training", limit: 50 })
-      .then((r) => { if (r.success) setTrainedModels(r.trainings ?? []); });
+      .then((r) => { if (r.success) setTrainedModels(r.trainings ?? []); })
+      .catch(() => { /* non-critical */ });
   }, [brandId]);
 
   // History images (for video reference)
   useEffect(() => {
     if (!brandId) return;
     studioFetch({ action: "get_history", brand_id: brandId, type: "image", limit: 20 })
-      .then((r) => { if (r.success) setHistoryImages(r.images ?? []); });
+      .then((r) => { if (r.success) setHistoryImages(r.images ?? []); })
+      .catch(() => { /* non-critical */ });
   }, [brandId]);
 
   const completedModels = trainedModels.filter((m) => m.training_status === "completed");
@@ -1438,6 +1569,7 @@ export default function ContentStudioPage() {
         return (
           <TrainingWizard
             brandId={brandId} trainingType="product" currentTier={currentTier} totalModelCount={totalModelCount}
+            pastDatasets={trainedModels}
             onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
           />
         );
@@ -1445,6 +1577,7 @@ export default function ContentStudioPage() {
         return (
           <TrainingWizard
             brandId={brandId} trainingType="character" currentTier={currentTier} totalModelCount={totalModelCount}
+            pastDatasets={trainedModels}
             onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
           />
         );
@@ -1465,7 +1598,7 @@ export default function ContentStudioPage() {
       center={<div className="space-y-4">{centerContent()}</div>}
       right={
         <div className="sticky top-4">
-          <DetailPanel item={detailItem} />
+          <DetailPanel item={detailItem} brandId={brandId} />
         </div>
       }
     />

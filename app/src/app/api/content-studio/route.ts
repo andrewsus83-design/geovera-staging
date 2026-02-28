@@ -24,6 +24,7 @@ const ALLOWED_ACTIONS = new Set([
   "check_daily_usage",
   "generate_smart_prompt",
   "generate_synthetics",
+  "submit_feedback",
 ]);
 
 export async function POST(request: NextRequest) {
@@ -49,6 +50,13 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    const ct = response.headers.get("content-type") ?? "";
+    if (!ct.includes("application/json")) {
+      return NextResponse.json(
+        { success: false, error: `Upstream error (${response.status}) — edge function unavailable` },
+        { status: 502, headers: cors }
+      );
+    }
     const result = await response.json();
     return NextResponse.json(result, {
       status: response.ok ? 200 : response.status,

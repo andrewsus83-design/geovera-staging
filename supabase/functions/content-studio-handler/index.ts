@@ -10,6 +10,15 @@ const KIE_API_KEY = Deno.env.get("KIE_API_KEY") ?? "";
 const KIE_BASE = "https://api.kie.ai/v1";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 
+// Cloudflare Workers AI (Llama) — for training prompt engineering
+const CF_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
+const CF_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN") ?? "";
+const CF_AI_GATEWAY_BASE = Deno.env.get("CF_AI_GATEWAY_BASE") ?? "";
+const CF_WORKERS_AI = Deno.env.get("CF_AI_GATEWAY_WORKERS_AI")
+  || (CF_AI_GATEWAY_BASE ? `${CF_AI_GATEWAY_BASE}/workers-ai` : "");
+const LLAMA_FAST  = "@cf/meta/llama-3.1-8b-instruct";
+const LLAMA_HEAVY = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function kieHeaders() {
@@ -30,6 +39,7 @@ async function kieGet(path: string) {
   return res.json();
 }
 
+// OpenAI — for high-quality smart prompts in image/video wizard steps
 async function openAIChat(systemPrompt: string, userPrompt: string, maxTokens = 300): Promise<string> {
   if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -48,6 +58,35 @@ async function openAIChat(systemPrompt: string, userPrompt: string, maxTokens = 
   if (!res.ok) throw new Error(`OpenAI error ${res.status}`);
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+// Cloudflare Llama — for training prompt engineering + smart looping learning
+async function llamaChat(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens = 600,
+  heavy = false,
+): Promise<string> {
+  if (!CF_ACCOUNT_ID || !CF_API_TOKEN) throw new Error("Cloudflare AI not configured");
+  const model = heavy ? LLAMA_HEAVY : LLAMA_FAST;
+  const hasGateway = CF_WORKERS_AI.length > 0;
+  const url = hasGateway
+    ? `${CF_WORKERS_AI}/${model}`
+    : `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${model}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${CF_API_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) throw new Error(`Cloudflare AI error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data.result?.response?.trim() ?? "";
 }
 
 // ── today midnight UTC ────────────────────────────────────────────────────────
@@ -79,7 +118,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!KIE_API_KEY && !["check_daily_usage", "generate_smart_prompt"].includes(action)) {
+    const noKieActions = ["check_daily_usage", "generate_smart_prompt", "submit_feedback"];
+    if (!KIE_API_KEY && !noKieActions.includes(action)) {
       return new Response(JSON.stringify({ error: "KIE_API_KEY not configured" }), {
         status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -97,21 +137,29 @@ Deno.serve(async (req) => {
         supabase.from("gv_image_generations")
           .select("id", { count: "exact", head: true })
           .eq("brand_id", brand_id)
-          .gte("created_at", midnight),
+          .gte("created_at", midnight)
+          .not("status", "in", '("failed","error","cancelled")'),
         supabase.from("gv_video_generations")
           .select("id", { count: "exact", head: true })
           .eq("brand_id", brand_id)
-          .gte("created_at", midnight),
+          .gte("created_at", midnight)
+          .not("video_status", "in", '("failed","error","cancelled")'),
       ]);
       return json({ success: true, images_today: imgRes.count ?? 0, videos_today: vidRes.count ?? 0 });
     }
 
     // ── GENERATE SMART PROMPT (OpenAI + history learning) ────────────────────
     if (action === "generate_smart_prompt") {
-      const { prompt_type = "image", subject_type = "product", model_name = "", topic_style = "", task_context = "" } = data;
+      const { prompt_type = "image", subject_type = "product" } = data;
+      // Sanitize user-controlled fields — strip newlines/control chars, cap length (prevent prompt injection)
+      const sanitize = (v: unknown, max = 200) =>
+        String(v ?? "").replace(/[\n\r\t]/g, " ").replace(/[`${}]/g, "").trim().slice(0, max);
+      const model_name  = sanitize(data.model_name);
+      const topic_style = sanitize(data.topic_style);
+      const task_context = sanitize(data.task_context);
 
-      // Fetch recent successful generations for smart learning context
-      const [imgHistory, vidHistory] = await Promise.all([
+      // Fetch recent successful generations + RLHF feedback learning data
+      const [imgHistory, vidHistory, likedImgs, dislikedImgs] = await Promise.all([
         supabase.from("gv_image_generations")
           .select("prompt_text, status, target_platform, style_preset")
           .eq("brand_id", brand_id)
@@ -124,10 +172,46 @@ Deno.serve(async (req) => {
           .in("video_status", ["completed", "succeeded"])
           .order("created_at", { ascending: false })
           .limit(3),
+        supabase.from("gv_image_generations")
+          .select("prompt_text")
+          .eq("brand_id", brand_id)
+          .eq("feedback", "liked")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase.from("gv_image_generations")
+          .select("prompt_text")
+          .eq("brand_id", brand_id)
+          .eq("feedback", "disliked")
+          .order("created_at", { ascending: false })
+          .limit(3),
       ]);
 
       const recentImgPrompts = (imgHistory.data ?? []).map((r: { prompt_text: string }) => `  - ${r.prompt_text}`).join("\n");
       const recentVidHooks = (vidHistory.data ?? []).map((r: { hook: string }) => `  - ${r.hook}`).join("\n");
+      const likedList2 = (likedImgs.data ?? []).map((r: { prompt_text: string }) => r.prompt_text).filter(Boolean);
+      const dislikedList2 = (dislikedImgs.data ?? []).map((r: { prompt_text: string }) => r.prompt_text).filter(Boolean);
+
+      // ── Llama reverse engineering step (if feedback exists) ──────────────
+      // Llama analyzes liked/disliked patterns → extracts rules → OpenAI uses those rules
+      let llamaREInsights = "";
+      if (likedList2.length > 0 || dislikedList2.length > 0) {
+        try {
+          llamaREInsights = await llamaChat(
+            `You are an image quality pattern analyst. Reverse-engineer the quality signals from user-rated prompts.
+Analyze LIKED vs DISLIKED prompts and extract precise rules:
+- Lighting, composition, color, mood, style, background patterns
+Output ONLY the structured rules (max 120 words):
+✅ REPLICATE: [rules from liked]
+❌ AVOID: [rules from disliked]`,
+            `${likedList2.length > 0 ? `LIKED (${likedList2.length}): ${likedList2.join(" | ")}` : ""}
+${dislikedList2.length > 0 ? `DISLIKED (${dislikedList2.length}): ${dislikedList2.join(" | ")}` : ""}`,
+            250,
+            false,
+          );
+        } catch (e) {
+          console.error("Llama RE (smart prompt) failed:", e instanceof Error ? e.message : e);
+        }
+      }
 
       const subjectLabel = subject_type === "both" ? "character and product together" : subject_type;
       const isVideo = prompt_type === "video";
@@ -143,13 +227,13 @@ ${task_context ? `- Task context: ${task_context}` : ""}
 
 Learning from this brand's recent successful content:
 ${recentImgPrompts ? `Recent images that worked:\n${recentImgPrompts}` : ""}
-${recentVidHooks ? `Recent videos that worked:\n${recentVidHooks}` : ""}
+${recentVidHooks ? `Recent videos that worked:\n${recentVidHooks}` : ""}${llamaREInsights ? `\n\nRLHF Quality Rules (reverse-engineered by Llama from user ratings):\n${llamaREInsights}` : ""}
 
 Rules:
 1. Generate ONE highly detailed, specific prompt only — no explanation, no quotes, just the prompt
 2. Include lighting style, composition, mood, setting, technical quality descriptors
 3. Make it commercially optimized for social media (Instagram/TikTok)
-4. Learn from the patterns in the recent successful content above
+4. Apply the RLHF quality rules above — replicate liked patterns, eliminate disliked patterns
 5. Keep it under 150 words`;
 
       const userMsg = isVideo
@@ -160,33 +244,121 @@ Rules:
       return json({ success: true, prompt });
     }
 
-    // ── GENERATE SYNTHETICS (for training — bypasses daily quota) ─────────────
+    // ── GENERATE SYNTHETICS (for training — uses Llama + Flux-2 Pro, bypasses daily quota) ──
     if (action === "generate_synthetics") {
-      const { name, training_type = "product", count = 8 } = data;
+      const { name, training_type = "product", count = 8, past_datasets = [] } = data;
       if (!name) return json({ error: "name is required" }, 400);
 
       const typeLabel = training_type === "character" ? "person/character" : "product";
 
-      // Build varied prompts using OpenAI
+      // Smart looping learning context from past training datasets
+      const pastContext = Array.isArray(past_datasets) && past_datasets.length > 0
+        ? `\n\nLearning from ${past_datasets.length} previously trained datasets in this brand:\n${past_datasets.map((d: { dataset_name: string; theme: string }) => `- ${d.dataset_name} (${d.theme})`).join("\n")}\nApply pattern recognition from these to create better-optimized training data.`
+        : "";
+
+      // ── STEP 1: Fetch RLHF feedback data for Llama reverse engineering ────
+      const [likedRows, dislikedRows] = await Promise.all([
+        supabase.from("gv_image_generations")
+          .select("prompt_text")
+          .eq("brand_id", brand_id)
+          .eq("feedback", "liked")
+          .order("created_at", { ascending: false })
+          .limit(8),
+        supabase.from("gv_image_generations")
+          .select("prompt_text")
+          .eq("brand_id", brand_id)
+          .eq("feedback", "disliked")
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const likedList = (likedRows.data ?? []).map((r: { prompt_text: string }) => r.prompt_text).filter(Boolean);
+      const dislikedList = (dislikedRows.data ?? []).map((r: { prompt_text: string }) => r.prompt_text).filter(Boolean);
+
+      // ── STEP 2: Llama reverse engineering — extract quality rules from feedback ──
+      let reverseEngineeredRules = "";
+      if (likedList.length > 0 || dislikedList.length > 0) {
+        try {
+          reverseEngineeredRules = await llamaChat(
+            `You are an expert AI image quality analyst. Your job is to reverse-engineer patterns from user feedback to extract actionable quality rules for AI image prompt engineering.
+
+Analyze the LIKED vs DISLIKED image prompts, then extract precise, structured quality rules:
+- Examine lighting conditions, composition angles, background types, color tones, mood, style elements
+- For LIKED: identify what consistently works — replicate these
+- For DISLIKED: identify what consistently fails — eliminate these
+
+Return a structured rule set (max 200 words):
+✅ REPLICATE from liked:
+- [specific rule]
+❌ AVOID from disliked:
+- [specific rule]`,
+            `${likedList.length > 0 ? `LIKED prompts (${likedList.length}):\n${likedList.map((p, i) => `${i + 1}. ${p}`).join("\n")}` : "No liked examples yet."}
+
+${dislikedList.length > 0 ? `DISLIKED prompts (${dislikedList.length}):\n${dislikedList.map((p, i) => `${i + 1}. ${p}`).join("\n")}` : "No disliked examples yet."}
+
+Reverse-engineer the quality patterns. Be specific about technical elements (lighting, angles, backgrounds, style).`,
+            400,
+            true, // heavy Llama (70B) for RE — accuracy over speed for training quality
+          );
+        } catch (e) {
+          console.error("Llama reverse engineering failed:", e instanceof Error ? e.message : e);
+        }
+      }
+
+      const rlhfContext = reverseEngineeredRules
+        ? `\n\nRLHF Reverse-Engineered Quality Rules (derived from this brand's user ratings):\n${reverseEngineeredRules}\n\nApply these rules strictly to every prompt — replicate liked patterns, eliminate disliked patterns.`
+        : "";
+
+      // ── STEP 3: Main Llama prompt generation — uses reverse-engineered rules ──
       let prompts: string[] = [];
       try {
-        const systemMsg = `Generate ${count} varied, highly specific text-to-image prompts for AI training data of a ${typeLabel} named "${name}".
-Each prompt should show a different angle, lighting, setting, or style.
-Return ONLY a JSON array of prompt strings, nothing else.`;
-        const raw = await openAIChat(systemMsg, `Generate ${count} training image prompts for "${name}" (${typeLabel}). Vary angles, lighting, backgrounds, styles.`, 600);
-        const parsed = JSON.parse(raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
-        if (Array.isArray(parsed)) prompts = parsed.slice(0, count);
-      } catch {
-        // Fallback prompts
+        const systemMsg = `You are an expert AI training data engineer specializing in Flux-2 Pro image generation model fine-tuning.
+
+Your task: Generate exactly ${count} highly varied, technically optimized training image prompts for a LoRA fine-tuning dataset.
+
+Subject: ${typeLabel} named "${name}"
+Base model: Flux-2 Pro (requires specific prompt format for best results)${pastContext}${rlhfContext}
+
+Requirements for each prompt:
+- Different angle/perspective (front, 3/4, side, back, overhead, close-up, environmental)
+- Different lighting scenario (studio strobe, natural window, golden hour, dramatic, soft box, ring light)
+- Different background context (white studio, gradient, lifestyle, dark, outdoor, textured)
+- Include technical photography terms (f-stop, focal length hints, exposure)
+- Optimized for Flux-2 Pro: use descriptive, detailed language; avoid vague terms
+- Each prompt: 30-60 words, highly specific and distinct
+${rlhfContext ? "- Strictly apply the RLHF quality rules above — this is mandatory" : ""}
+
+Return ONLY a valid JSON array of ${count} prompt strings. No explanation, no markdown, just the array.`;
+
+        const raw = await llamaChat(
+          systemMsg,
+          `Generate ${count} Flux-2 Pro training prompts for "${name}" (${typeLabel}). Make each unique in angle, lighting, and setting.${rlhfContext ? " Apply the RLHF quality rules strictly." : ""}`,
+          900,
+          true, // heavy Llama (70B) for best JSON reliability and prompt quality
+        );
+
+        // Parse JSON array from Llama response
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const match = cleaned.match(/\[[\s\S]*\]/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          if (Array.isArray(parsed)) prompts = parsed.slice(0, count);
+        }
+      } catch (e) {
+        console.error("Llama prompt generation failed:", e instanceof Error ? e.message : e);
+      }
+
+      // Fallback: hardcoded varied prompts if Llama fails
+      if (prompts.length === 0) {
         prompts = [
-          `${typeLabel} photography of ${name}, front view, white studio background, professional lighting`,
-          `${typeLabel} shot of ${name}, left side 45-degree angle, soft lighting, clean backdrop`,
-          `${typeLabel} photo of ${name}, right side view, dramatic studio strobe, white background`,
-          `${typeLabel} back view of ${name}, gradient background, product commercial quality`,
-          `${typeLabel} overhead flatlay of ${name}, top-down, minimal props, editorial`,
-          `${typeLabel} close-up detail of ${name}, macro lens, studio light, sharp focus`,
-          `${typeLabel} lifestyle shot of ${name}, natural environment, authentic context`,
-          `${typeLabel} hero shot of ${name}, cinematic lighting, premium magazine quality`,
+          `${typeLabel} "${name}", front view, white seamless studio background, professional strobe lighting, f/8, sharp detail, commercial product photography, Flux-2 Pro optimized`,
+          `${typeLabel} "${name}", 45-degree left angle, soft natural window light, minimalist white backdrop, lifestyle product shot, high-end commercial`,
+          `${typeLabel} "${name}", right profile view, dramatic side lighting, dark gradient background, luxury brand aesthetic, cinematic quality`,
+          `${typeLabel} "${name}", back view, soft gradient background, editorial photography style, premium quality, studio environment`,
+          `${typeLabel} "${name}", overhead top-down flatlay, minimal props arrangement, warm neutral tones, social media lifestyle`,
+          `${typeLabel} "${name}", macro close-up detail shot, studio ring light, sharp focus extreme detail, textural quality`,
+          `${typeLabel} "${name}", environmental lifestyle context, natural outdoor setting, golden hour warm light, authentic brand story`,
+          `${typeLabel} "${name}", hero shot low angle, cinematic dramatic lighting, premium magazine cover quality, high fashion aesthetic`,
         ].slice(0, count);
       }
 
@@ -206,7 +378,13 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
         }
       }
 
-      return json({ success: true, synthetic_urls: results, count: results.length });
+      return json({
+        success: true,
+        synthetic_urls: results,
+        count: results.length,
+        reverse_engineered_rules: reverseEngineeredRules || null,
+        rlhf_applied: likedList.length > 0 || dislikedList.length > 0,
+      });
     }
 
     // ── GENERATE IMAGE ───────────────────────────────────────────────────────
@@ -219,7 +397,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
 
       const kieRes = await kiePost("/image/generate", payload);
 
-      const { data: inserted } = await supabase.from("gv_image_generations").insert({
+      const { data: inserted, error: insertErr } = await supabase.from("gv_image_generations").insert({
         brand_id,
         prompt_text: prompt,
         negative_prompt,
@@ -232,6 +410,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
         target_platform: data.platform ?? "instagram",
         style_preset: lora_model || null,
       }).select("id").single();
+      if (insertErr) console.error("generate_image DB insert failed:", insertErr.message);
 
       return json({
         success: true,
@@ -253,7 +432,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
 
       const kieRes = await kiePost("/video/generate", payload);
 
-      const { data: inserted } = await supabase.from("gv_video_generations").insert({
+      const { data: inserted, error: insertErr } = await supabase.from("gv_video_generations").insert({
         brand_id,
         target_platform: data.platform ?? "tiktok",
         hook: prompt,
@@ -266,6 +445,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
         video_aspect_ratio: aspect_ratio,
         video_status: kieRes.status ?? "processing",
       }).select("id").single();
+      if (insertErr) console.error("generate_video DB insert failed:", insertErr.message);
 
       return json({
         success: true,
@@ -349,7 +529,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
       const kieRes = await kieGet(`/training/${training_id}`);
       const status = kieRes.status ?? "training";
 
-      if (["completed", "succeeded"].includes(status)) {
+      if (["completed", "succeeded", "success"].includes(status)) {
         await supabase.from("gv_lora_datasets").update({
           training_status: "completed",
           model_path: kieRes.model_url ?? kieRes.model_path ?? null,
@@ -373,7 +553,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
       if (type === "all" || type === "image") {
         const { data: imgs } = await supabase
           .from("gv_image_generations")
-          .select("id, prompt_text, image_url, thumbnail_url, status, ai_model, target_platform, style_preset, created_at")
+          .select("id, prompt_text, image_url, thumbnail_url, status, ai_model, target_platform, style_preset, created_at, feedback")
           .eq("brand_id", brand_id)
           .order("created_at", { ascending: false })
           .limit(limit);
@@ -383,7 +563,7 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
       if (type === "all" || type === "video") {
         const { data: vids } = await supabase
           .from("gv_video_generations")
-          .select("id, hook, video_url, video_thumbnail_url, video_status, ai_model, target_platform, video_aspect_ratio, created_at")
+          .select("id, hook, video_url, video_thumbnail_url, video_status, ai_model, target_platform, video_aspect_ratio, created_at, feedback")
           .eq("brand_id", brand_id)
           .order("created_at", { ascending: false })
           .limit(limit);
@@ -401,6 +581,37 @@ Return ONLY a JSON array of prompt strings, nothing else.`;
       }
 
       return json({ success: true, ...results });
+    }
+
+    // ── SUBMIT FEEDBACK (RLHF — trains smart prompt AI) ─────────────────────
+    if (action === "submit_feedback") {
+      const { db_id, content_type, feedback } = data;
+      if (!db_id || !content_type || !feedback) {
+        return json({ error: "db_id, content_type, and feedback are required" }, 400);
+      }
+      if (!["liked", "disliked"].includes(feedback)) {
+        return json({ error: "feedback must be liked or disliked" }, 400);
+      }
+
+      let dbError: string | null = null;
+      if (content_type === "image") {
+        const { error } = await supabase.from("gv_image_generations")
+          .update({ feedback })
+          .eq("id", db_id)
+          .eq("brand_id", brand_id);
+        if (error) dbError = error.message;
+      } else if (content_type === "video") {
+        const { error } = await supabase.from("gv_video_generations")
+          .update({ feedback })
+          .eq("id", db_id)
+          .eq("brand_id", brand_id);
+        if (error) dbError = error.message;
+      } else {
+        return json({ error: "content_type must be image or video" }, 400);
+      }
+
+      if (dbError) return json({ error: `Failed to save feedback: ${dbError}` }, 500);
+      return json({ success: true, feedback, db_id });
     }
 
     return json({ error: "Invalid action" }, 400);
