@@ -25,9 +25,9 @@ export default function TaskHeader() {
   };
   return (
     <>
-      <div className="flex flex-col items-center px-4 py-5 xl:px-6 xl:py-6">
+      <div className="flex flex-col items-center" style={{ padding: "20px 24px" }}>
         <div className="flex flex-col w-full gap-5 sm:justify-between xl:flex-row xl:items-center">
-          <div className="grid grid-cols-2 sm:grid-cols-4 items-center gap-x-1 gap-y-2 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
+          <div className="grid grid-cols-2 sm:grid-cols-4 items-center gap-x-1 gap-y-2 p-0.5 dark:bg-gray-900" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-100)" }}>
             {taskGroups.map((group) => (
               <button
                 key={group.key}
@@ -96,7 +96,7 @@ export default function TaskHeader() {
         className="max-w-[700px] p-5 lg:p-10 m-4"
       >
         <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90" style={{ fontFamily: "var(--gv-font-heading)" }}>
             Add a new task
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
@@ -139,7 +139,7 @@ export default function TaskHeader() {
               <div>
                 <Label>Status</Label>
                 <div className="relative z-20 bg-transparent dark:bg-form-input">
-                  <select className="dark:bg-dark-900 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800">
+                  <select className="gv-input pr-11">
                     <option
                       value=""
                       className="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
@@ -185,7 +185,7 @@ export default function TaskHeader() {
                   Tags
                 </Label>
                 <div className="relative z-20 bg-transparent dark:bg-form-input">
-                  <select className="dark:bg-dark-900 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800">
+                  <select className="gv-input pr-11">
                     <option
                       value=""
                       className="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
@@ -229,7 +229,7 @@ export default function TaskHeader() {
               <div>
                 <Label>Assignees</Label>
                 <div className="relative z-20 bg-transparent dark:bg-form-input">
-                  <select className="dark:bg-dark-900 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800">
+                  <select className="gv-input pr-11">
                     <option
                       value=""
                       className="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
@@ -281,7 +281,7 @@ export default function TaskHeader() {
               </div>
             </div>
 
-            <div className="relative p-3 mt-6 border border-gray-200 rounded-xl bg-gray-50 dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+            <div className="relative p-3 mt-6 border bg-gray-50 dark:border-gray-800 dark:bg-gray-900 sm:p-5" style={{ borderColor: "var(--gv-color-neutral-200)", borderRadius: "var(--gv-radius-md)" }}>
               <input type="file" id="upload-file" className="sr-only" />
               <div className="flex items-center gap-3 mb-5">
                 <span className="text-lg font-medium text-gray-800 dark:text-white/90">
@@ -440,14 +440,14 @@ export default function TaskHeader() {
               <button
                 onClick={closeModal}
                 type="button"
-                className="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
+                className="gv-btn-secondary sm:w-auto" style={{ height: "40px", fontSize: "14px" }}
               >
                 Cancel
               </button>
               <button
                 onClick={closeModal}
                 type="button"
-                className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
+                className="gv-btn-sm sm:w-auto"
               >
                 Create Task
               </button>
