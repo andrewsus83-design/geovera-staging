@@ -7,6 +7,9 @@ import {
   GridIcon,
   CalenderIcon,
   PieChartIcon,
+  PencilIcon,
+  AiIcon,
+  PlugInIcon,
 } from "@/icons/index";
 import { supabase } from "@/lib/supabase";
 
@@ -16,7 +19,10 @@ interface NavColumnProps {
 
 const navItems = [
   { icon: <GridIcon />,     name: "Home",              path: "/" },
-  { icon: <CalenderIcon />, name: "Calendar",           path: "/calendar" },
+  { icon: <CalenderIcon />, name: "Calendar",          path: "/calendar" },
+  { icon: <PencilIcon />,   name: "Content Studio",    path: "/content-studio" },
+  { icon: <AiIcon />,       name: "AI Agent",          path: "/ai-agent" },
+  { icon: <PlugInIcon />,   name: "Connect",           path: "/connect" },
   { icon: <PieChartIcon />, name: "Report & Analytics", path: "/analytics" },
 ];
 
