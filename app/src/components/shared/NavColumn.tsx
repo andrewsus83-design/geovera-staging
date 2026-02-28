@@ -74,10 +74,10 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 
 /* ── Nav items ── */
 const navItems = [
-  { icon: <HomeIcon />,      name: "Home",               path: "/" },
-  { icon: <CalendarIcon />,  name: "Calendar",            path: "/calendar" },
-  { icon: <StudioIcon />,    name: "Content Studio",      path: "/content-studio" },
-  { icon: <AnalyticsIcon />, name: "Report & Analytics",  path: "/analytics" },
+  { icon: <HomeIcon />,      name: "Home",    path: "/" },
+  { icon: <CalendarIcon />,  name: "Tasks",   path: "/calendar" },
+  { icon: <StudioIcon />,    name: "Studio",  path: "/content-studio" },
+  { icon: <AnalyticsIcon />, name: "Report",  path: "/analytics" },
 ];
 
 const DEMO_USER = {

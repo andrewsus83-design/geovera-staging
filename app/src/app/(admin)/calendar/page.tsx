@@ -858,11 +858,11 @@ function TikTokPhoneMockup({ post, caption, hashtags }: {
 type TaskFilter = "inprogress" | "done" | "rejected";
 type SubTab = "content" | "comments" | "others";
 
-// 72H window: today + 3 days ahead
+// 7D window: today + 6 days ahead
 const getMaxDateStr = () => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 3);
+  d.setDate(d.getDate() + 6);
   return d.toISOString().slice(0, 10);
 };
 
@@ -1176,64 +1176,102 @@ export default function CalendarPage() {
     </NavColumn>
   );
 
+  // 7-day window: today + 6 days
+  const sevenDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    return days;
+  }, []);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const center = (
-    <div className="flex flex-col h-full">
-      {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 pl-4 pr-2 pt-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2
-              className="text-xl font-semibold text-gray-900 dark:text-white"
-              style={{ fontFamily: "Georgia, serif" }}
-            >
-              {selectedDate
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "Tasks"}
-            </h2>
-            {/* Active / Total counter */}
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              {activeTasks.length}/{activeBucket.length}
-            </span>
-            {doneTasks.length > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/10 dark:text-green-400">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {doneTasks.length} done
-              </span>
-            )}
-            {rejectedTasks.length > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                {rejectedTasks.length} rejected
-              </span>
-            )}
-          </div>
-          {/* On Progress / Done / Rejected filter pills */}
-          <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 flex-shrink-0">
-            {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Header: title + 7D date window ── */}
+      <div
+        className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-[#F3F4F6]"
+        style={{ background: "var(--gv-color-bg-surface, white)" }}
+      >
+        {/* Title row — 10% larger */}
+        <div className="flex items-center gap-2 mb-3">
+          <h2
+            className="text-[22px] font-bold text-[#1F2428] leading-tight"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
+            Tasks
+          </h2>
+          <span className="inline-flex items-center rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] font-medium text-[#4A545B]">
+            {activeTasks.length}/{activeBucket.length}
+          </span>
+        </div>
+
+        {/* 7-day date strip — pill style */}
+        <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {sevenDays.map((dateStr) => {
+            const d = new Date(dateStr + "T00:00:00");
+            const isToday = dateStr === todayStr;
+            const isSelected = dateStr === selectedDate;
+            const dayName = d.toLocaleDateString("en", { weekday: "short" });
+            const dayNum = d.getDate();
+            const hasTasks = taskDates.some((td) => td === dateStr);
+            return (
               <button
-                key={f}
-                onClick={() => setTaskFilter(f)}
-                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
-                  taskFilter === f
-                    ? f === "rejected"
-                      ? "bg-red-500 text-white shadow-sm"
-                      : "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-                }`}
+                key={dateStr}
+                onClick={() => handleDateSelect(dateStr)}
+                className={[
+                  "flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-[16px] transition-all duration-200 min-w-[48px]",
+                  isSelected
+                    ? "bg-[#EDF5F4] text-[#5F8F8B]"
+                    : isToday
+                    ? "bg-[#1F2428] text-white"
+                    : "text-[#4A545B] hover:bg-[#F3F4F6]",
+                ].join(" ")}
+                style={isSelected ? {
+                  border: "1px solid rgba(95,143,139,0.3)",
+                  boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
+                } : {}}
               >
-                {f === "inprogress" ? "On Progress" : f === "done" ? "Done" : "Rejected"}
+                <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">{dayName}</span>
+                <span className="text-[16px] font-bold leading-tight">{dayNum}</span>
+                {hasTasks && (
+                  <span
+                    className="w-1 h-1 rounded-full mt-0.5"
+                    style={{ background: isSelected ? "#5F8F8B" : isToday ? "white" : "#D1D5DB" }}
+                  />
+                )}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
+
       {/* ── Scrollable tasks body ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-1">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-1 pb-24">
+        {/* Filter pills — On Progress / Done / Rejected — at top of task list */}
+        <div className="flex items-center gap-1.5 px-2 pt-3 pb-2">
+          {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setTaskFilter(f)}
+              className={[
+                "flex-1 rounded-[10px] px-2 py-1.5 text-[11px] font-semibold transition-all",
+                taskFilter === f
+                  ? f === "rejected"
+                    ? "bg-[#FEE2E2] text-[#B91C1C]"
+                    : f === "done"
+                    ? "bg-[#DCFCE7] text-[#166534]"
+                    : "bg-[#EDF5F4] text-[#3D6562]"
+                  : "bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#4A545B]",
+              ].join(" ")}
+            >
+              {f === "inprogress" ? `On Progress${taskFilter === "inprogress" ? ` (${activeTasks.length})` : ""}` : f === "done" ? `Done${taskFilter === "done" ? ` (${doneTasks.length})` : ""}` : `Rejected${taskFilter === "rejected" ? ` (${rejectedTasks.length})` : ""}`}
+            </button>
+          ))}
+        </div>
 
         {/* Comments tab */}
         {subTab === "comments" && (
@@ -1517,7 +1555,7 @@ export default function CalendarPage() {
         {/* Floating button */}
         <button
           onClick={() => setMobileCalendarOpen(true)}
-          className="fixed bottom-[70px] right-4 z-[35] h-12 w-12 flex items-center justify-center rounded-full bg-brand-500 text-white shadow-lg border-2 border-white dark:border-gray-900 transition-transform active:scale-95"
+          className="fixed bottom-[80px] right-4 z-[35] h-12 w-12 flex items-center justify-center rounded-full bg-[#5F8F8B] text-white shadow-lg border-2 border-white transition-transform active:scale-95"
           aria-label="Open calendar"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1526,9 +1564,8 @@ export default function CalendarPage() {
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          {/* Badge: selected date day number */}
           {selectedDate && (
-            <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-white dark:bg-gray-900 text-[9px] font-bold text-brand-600 dark:text-brand-400 border border-brand-500">
+            <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-white text-[9px] font-bold text-[#5F8F8B] border border-[#5F8F8B]">
               {new Date(selectedDate + "T00:00:00").getDate()}
             </span>
           )}
@@ -1537,41 +1574,33 @@ export default function CalendarPage() {
         {/* Calendar popup overlay */}
         {mobileCalendarOpen && (
           <div className="fixed inset-0 z-[55]">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/40" onClick={() => setMobileCalendarOpen(false)} />
-            {/* Calendar card - positioned bottom right above FAB */}
-            <div className="absolute bottom-[134px] right-4 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-              {/* Popup header */}
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="absolute bottom-[144px] right-4 w-[320px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#F3F4F6]">
+                <p className="text-xs font-semibold text-[#1F2428]">
                   {selectedDate
                     ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en", { weekday: "short", month: "long", day: "numeric" })
                     : "Select a date"}
                 </p>
                 <button
                   onClick={() => setMobileCalendarOpen(false)}
-                  className="h-6 w-6 flex items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="h-6 w-6 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F3F4F6]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               </div>
-              {/* Mini calendar */}
               <MiniCalendar
                 taskDates={taskDates}
-                onDateSelect={(date) => {
-                  handleDateSelect(date);
-                  setMobileCalendarOpen(false);
-                }}
+                onDateSelect={(date) => { handleDateSelect(date); setMobileCalendarOpen(false); }}
                 selectedDate={selectedDate}
                 maxDate={maxDateStr}
               />
-              {/* Show all / clear */}
               {selectedDate && (
-                <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                  <p className="text-[11px] text-gray-400">{baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""} this day</p>
+                <div className="px-4 py-2.5 border-t border-[#F3F4F6] flex items-center justify-between">
+                  <p className="text-[11px] text-[#9CA3AF]">{baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""} this day</p>
                   <button
                     onClick={() => { setSelectedDate(null); setSelectedTask(null); setMobileCalendarOpen(false); }}
-                    className="text-[11px] text-brand-500 hover:text-brand-600 font-medium"
+                    className="text-[11px] text-[#5F8F8B] hover:text-[#4E7C78] font-medium"
                   >
                     Show all →
                   </button>
@@ -1580,54 +1609,6 @@ export default function CalendarPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── Sticky bottom tabs — Content / Comments / Others ── */}
-      <div className="sticky bottom-0 z-10 border-t border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="flex h-full">
-          {([
-            {
-              key: "content" as SubTab,
-              label: "Content",
-              icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
-                </svg>
-              ),
-            },
-            {
-              key: "comments" as SubTab,
-              label: "Comments",
-              icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                </svg>
-              ),
-            },
-            {
-              key: "others" as SubTab,
-              label: "Others",
-              icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
-                </svg>
-              ),
-            },
-          ]).map(({ key, icon, label }) => (
-            <button
-              key={key}
-              onClick={() => { setSubTab(key); setSelectedTask(null); setSelectedPostId(null); }}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-[11px] font-medium transition-colors border-r last:border-r-0 border-gray-200 dark:border-gray-800 ${
-                subTab === key
-                  ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
-                  : "bg-white text-gray-400 dark:bg-gray-900 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
-              }`}
-            >
-              {icon}
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -1748,9 +1729,77 @@ export default function CalendarPage() {
         onMobileBack={handleMobileBack}
         mobileBackLabel="Tasks"
       />
+
+      {/* ── Floating bottom tab — Content / Comments / Others — same pill style as NavColumn ── */}
+      <nav
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-[48px] border border-white/60 overflow-hidden"
+        style={{
+          background: "rgba(255, 255, 255, 0.88)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(31,36,40,0.06)",
+        }}
+      >
+        <div className="flex items-center px-3 py-2 gap-1">
+          {([
+            {
+              key: "content" as SubTab,
+              label: "Content",
+              icon: (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              ),
+            },
+            {
+              key: "comments" as SubTab,
+              label: "Comments",
+              icon: (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+              ),
+            },
+            {
+              key: "others" as SubTab,
+              label: "Others",
+              icon: (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                </svg>
+              ),
+            },
+          ]).map(({ key, icon, label }) => {
+            const isActive = subTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => { setSubTab(key); setSelectedTask(null); setSelectedPostId(null); }}
+                className={[
+                  "flex items-center gap-2 h-10 px-4 rounded-[36px] transition-all duration-200",
+                  isActive
+                    ? "bg-[#EDF5F4] text-[#5F8F8B]"
+                    : "text-[#4A545B] hover:bg-[#F3F4F6] hover:text-[#1F2428]",
+                ].join(" ")}
+                style={isActive ? {
+                  border: "1px solid rgba(95,143,139,0.3)",
+                  boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
+                } : {}}
+              >
+                <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{icon}</span>
+                <span className="text-[13px] font-[550] whitespace-nowrap leading-none">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       {postToast && (
-        <div className={`fixed bottom-6 right-6 z-50 rounded-xl px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 max-w-sm ${
-          postToast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+        <div className={`fixed bottom-20 right-6 z-50 rounded-[16px] px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 max-w-sm ${
+          postToast.type === "success" ? "bg-[#3D6562] text-white" : "bg-[#B91C1C] text-white"
         }`}>
           {postToast.msg}
         </div>

@@ -1513,6 +1513,227 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// BOTTOM FLOATING STUDIO TAB — same pill style as NavColumn
+// ══════════════════════════════════════════════════════════════════════════════
+const ImageTabIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+const VideoTabIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" />
+  </svg>
+);
+const ProductTabIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+);
+const CharTabIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const STUDIO_TABS: { id: StudioSection; icon: React.ReactNode; label: string }[] = [
+  { id: "generate_image",  icon: <ImageTabIcon />,   label: "Image" },
+  { id: "generate_video",  icon: <VideoTabIcon />,   label: "Video" },
+  { id: "train_product",   icon: <ProductTabIcon />, label: "Product" },
+  { id: "train_character", icon: <CharTabIcon />,    label: "Character" },
+];
+
+function BottomStudioTab({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
+  return (
+    <nav
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-[48px] border border-white/60 overflow-hidden"
+      style={{
+        background: "rgba(255, 255, 255, 0.88)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(31,36,40,0.06)",
+      }}
+    >
+      <div className="flex items-center px-3 py-2 gap-1">
+        {STUDIO_TABS.map((tab) => {
+          const isActive = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onSelect(tab.id)}
+              className={[
+                "flex items-center gap-2 h-10 px-4 rounded-[36px] transition-all duration-200",
+                isActive
+                  ? "bg-[#EDF5F4] text-[#5F8F8B]"
+                  : "text-[#4A545B] hover:bg-[#F3F4F6] hover:text-[#1F2428]",
+              ].join(" ")}
+              style={isActive ? {
+                border: "1px solid rgba(95,143,139,0.3)",
+                boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
+              } : {}}
+            >
+              <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                {tab.icon}
+              </span>
+              <span className="text-[13px] font-[550] whitespace-nowrap leading-none">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HISTORY RIGHT PANEL — right column showing generated images & videos
+// ══════════════════════════════════════════════════════════════════════════════
+function HistoryRight({ brandId, historyKey, onSelect }: {
+  brandId: string;
+  historyKey: number;
+  onSelect: (item: DetailItem) => void;
+}) {
+  const [tab, setTab] = useState<"images" | "videos" | "models">("images");
+  const [images, setImages] = useState<GeneratedImage[]>([]);
+  const [videos, setVideos] = useState<GeneratedVideo[]>([]);
+  const [models, setModels] = useState<TrainedModel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    studioFetch({ action: "get_history", brand_id: brandId, type: "all", limit: 30 })
+      .then((r) => {
+        if (r.success) {
+          setImages(r.images ?? []);
+          setVideos(r.videos ?? []);
+          setModels(r.trainings ?? []);
+        }
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId, historyKey]);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 px-5 py-4 border-b border-[#F3F4F6]">
+        <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>
+          History
+        </h3>
+        <p className="text-[12px] text-[#9CA3AF] mt-0.5">Generated images, videos & models</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex-shrink-0 flex border-b border-[#F3F4F6]">
+        {(["images", "videos", "models"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 py-2.5 text-[11px] font-semibold transition-colors ${
+              tab === t
+                ? "text-[#5F8F8B] border-b-2 border-[#5F8F8B]"
+                : "text-[#9CA3AF] hover:text-[#4A545B]"
+            }`}
+          >
+            {t === "images" ? `🖼️ ${images.length}` : t === "videos" ? `🎬 ${videos.length}` : `🤖 ${models.length}`}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-5 h-5 rounded-full border-2 border-[#5F8F8B] border-t-transparent animate-spin" />
+          </div>
+        )}
+
+        {/* Images grid */}
+        {!loading && tab === "images" && (
+          images.length === 0
+            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No generated images yet</p>
+            : (
+              <div className="grid grid-cols-2 gap-2">
+                {images.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => onSelect({ type: "image", data: img })}
+                    className="aspect-square rounded-[12px] overflow-hidden bg-[#F3F4F6] hover:ring-2 ring-[#5F8F8B] transition-all"
+                  >
+                    {img.image_url
+                      ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-lg">{img.status === "processing" ? "⏳" : "❌"}</div>}
+                  </button>
+                ))}
+              </div>
+            )
+        )}
+
+        {/* Videos list */}
+        {!loading && tab === "videos" && (
+          videos.length === 0
+            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No generated videos yet</p>
+            : (
+              <div className="space-y-2">
+                {videos.map((vid) => (
+                  <button
+                    key={vid.id}
+                    onClick={() => onSelect({ type: "video", data: vid })}
+                    className="w-full flex items-center gap-3 p-3 rounded-[12px] border border-[#E5E7EB] hover:border-[#5F8F8B] text-left transition-colors"
+                    style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
+                  >
+                    <div className="w-10 h-10 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                      {vid.video_thumbnail_url
+                        ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover rounded-[10px]" />
+                        : <span className="text-base">🎬</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-[#1F2428] truncate">{vid.hook}</p>
+                      <p className="text-[10px] text-[#9CA3AF] mt-0.5">{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+        )}
+
+        {/* Models list */}
+        {!loading && tab === "models" && (
+          models.length === 0
+            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No trained models yet</p>
+            : (
+              <div className="space-y-2">
+                {models.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => onSelect({ type: "model", data: m })}
+                    className="w-full flex items-center gap-3 p-3 rounded-[12px] border border-[#E5E7EB] hover:border-[#5F8F8B] text-left transition-colors"
+                    style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
+                  >
+                    <span className="text-xl">{m.theme === "character" ? "👤" : "📦"}</span>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-[#1F2428] truncate">{m.dataset_name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`text-[10px] font-medium ${m.training_status === "completed" ? "text-[#16a34a]" : "text-[#d97706]"}`}>{m.training_status}</span>
+                        <span className="text-[10px] text-[#9CA3AF]">· {m.image_count} images</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function ContentStudioPage() {
@@ -1525,7 +1746,6 @@ export default function ContentStudioPage() {
   const [videosUsedToday, setVideosUsedToday] = useState(0);
   const [detailItem, setDetailItem] = useState<DetailItem>(null);
   const [showGeneratingPopup, setShowGeneratingPopup] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
 
   // Auth + brand
@@ -1620,56 +1840,78 @@ export default function ContentStudioPage() {
     }
   };
 
+  /* ── Active tab label for center header ── */
+  const activeTabLabel = STUDIO_TABS.find((t) => t.id === activeSection)?.label ?? "Studio";
+
   return (
     <>
       <ThreeColumnLayout
         left={<NavColumn />}
-        center={<StudioSectionPicker active={activeSection} onSelect={setActiveSection} />}
-        right={
-          <div className="space-y-4">
-            {/* TOP: Active wizard (hidden when History section selected) */}
-            {activeSection !== "history" && (
-              <div>{wizardContent()}</div>
+        center={
+          <div className="h-full flex flex-col overflow-hidden">
+            {detailItem ? (
+              /* ── DETAIL VIEW ── */
+              <>
+                {/* Back bar */}
+                <div
+                  className="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-b border-[#F3F4F6]"
+                >
+                  <button
+                    onClick={() => setDetailItem(null)}
+                    className="flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+                    style={{ color: "var(--gv-color-primary-500, #5F8F8B)" }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to {activeTabLabel}
+                  </button>
+                </div>
+                {/* Detail content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24">
+                  <DetailPanel item={detailItem} brandId={brandId} />
+                </div>
+              </>
+            ) : (
+              /* ── WIZARD VIEW ── */
+              <>
+                {/* Header */}
+                <div className="flex-shrink-0 px-5 py-4 border-b border-[#F3F4F6]">
+                  <h3
+                    className="text-[16px] font-bold text-[#1F2428]"
+                    style={{ fontFamily: "Georgia, serif" }}
+                  >
+                    {activeTabLabel} {activeSection === "generate_image" ? "Generation" : activeSection === "generate_video" ? "Generation" : "Training"}
+                  </h3>
+                  <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+                    {activeSection === "generate_image" && "Powered by KIE Flux AI"}
+                    {activeSection === "generate_video" && "Powered by KIE Kling AI"}
+                    {activeSection === "train_product" && "LoRA model training — 4-side product upload"}
+                    {activeSection === "train_character" && "LoRA model training — persona character"}
+                  </p>
+                </div>
+                {/* Wizard scrollable content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24">
+                  {wizardContent()}
+                </div>
+              </>
             )}
-            {/* BOTTOM: History with 3 tabs — always visible */}
-            <HistoryCenter
-              key={historyKey}
-              brandId={brandId}
-              onSelectImage={(img) => { setDetailItem({ type: "image", data: img }); setShowDetailModal(true); }}
-              onSelectVideo={(vid) => { setDetailItem({ type: "video", data: vid }); setShowDetailModal(true); }}
-            />
           </div>
+        }
+        right={
+          <HistoryRight
+            brandId={brandId}
+            historyKey={historyKey}
+            onSelect={(item) => setDetailItem(item)}
+          />
         }
       />
 
       {/* Generating popup */}
       {showGeneratingPopup && <GeneratingPopup onClose={() => setShowGeneratingPopup(false)} />}
 
-      {/* Detail modal */}
-      {showDetailModal && detailItem && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowDetailModal(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Detail</h3>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-4">
-              <DetailPanel item={detailItem} brandId={brandId} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Bottom floating studio tab bar — same pill style as NavColumn */}
+      <BottomStudioTab active={activeSection} onSelect={(s) => { setActiveSection(s); setDetailItem(null); }} />
     </>
   );
 }
