@@ -146,7 +146,7 @@ Return comprehensive JSON with:
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-latest',
       max_tokens: 8000,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],

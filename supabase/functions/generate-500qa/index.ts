@@ -63,7 +63,7 @@ class ClaudeQAGenerator {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-3-5-sonnet-latest",
           max_tokens: 16384, // Max output for deeper analysis
           temperature: 0.8, // Higher creativity for variety
           messages: [
@@ -339,7 +339,7 @@ class QuestionStorage {
       content_markdown: `Generated ${questionCount} strategic questions covering SEO, GEO, Social, and Market Intelligence.`,
       summary: `Claude generated ${questionCount} high-impact questions with priority and impact scoring.`,
       ai_provider: "claude",
-      model_used: "claude-3-5-sonnet-20241022",
+      model_used: "claude-3-5-sonnet-latest",
       generation_cost_usd: cost,
       published: false,
       article_date: new Date().toISOString().split("T")[0],

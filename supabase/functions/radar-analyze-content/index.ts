@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Anthropic Claude API configuration
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-const CLAUDE_MODEL = "claude-3-5-sonnet-20241022";
+const CLAUDE_MODEL = "claude-3-5-sonnet-latest";
 
 // Token costs per 1M tokens (USD) - Claude 3.5 Sonnet
 const TOKEN_COSTS = {

@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug, brand_name, report_markdown, visual_research, country, product_photo_urls } = await req.json();
+    const { slug, brand_name, report_markdown, visual_research, country, product_photo_urls, use_fal } = await req.json();
 
     if (!slug || !brand_name || !report_markdown) {
       throw new Error('slug, brand_name, and report_markdown are required');
@@ -426,8 +426,8 @@ Deno.serve(async (req) => {
     const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Use Vast.ai if key configured, otherwise fall back to Fal.ai
-    const useVastai     = !!VAST_API_KEY;
+    // Use Vast.ai if key configured, unless use_fal=true is passed (force Fal.ai backend)
+    const useVastai     = !!VAST_API_KEY && !use_fal;
     const inferenceKey  = useVastai ? VAST_API_KEY! : (FAL_API_KEY || '');
 
     if (!useVastai && !FAL_API_KEY) {

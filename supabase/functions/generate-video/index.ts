@@ -176,7 +176,7 @@ Deno.serve(async (req: Request) => {
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-5-sonnet-latest",
         max_tokens: 2000,
         messages: [{
           role: "user",
@@ -230,7 +230,7 @@ Include:
         content_goal: "visibility",
         target_platforms: [target_platform],
         ai_provider_used: "anthropic",
-        model_used: "claude-3-5-sonnet-20241022",
+        model_used: "claude-3-5-sonnet-latest",
         generation_prompt: `Video script for ${topic} with brand guidelines`,
         generation_cost_usd: cost_usd,
         publish_status: "draft",

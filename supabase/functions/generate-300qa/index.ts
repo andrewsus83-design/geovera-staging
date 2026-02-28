@@ -61,7 +61,7 @@ class ClaudeQAGenerator {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-3-5-sonnet-latest",
           max_tokens: 16000,
           temperature: 0.7,
           messages: [
@@ -294,7 +294,7 @@ class QuestionStorage {
       content_markdown: `Generated ${questionCount} strategic questions for market research.`,
       summary: `Claude generated ${questionCount} questions for SEO, GEO, and Social tracking.`,
       ai_provider: "claude",
-      model_used: "claude-3-5-sonnet-20241022",
+      model_used: "claude-3-5-sonnet-latest",
       generation_cost_usd: cost,
       published: false,
       article_date: new Date().toISOString().split("T")[0],

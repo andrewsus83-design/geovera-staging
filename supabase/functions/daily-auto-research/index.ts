@@ -8,14 +8,15 @@ const corsHeaders = {
 };
 
 // ============================================================================
-// DAILY AUTO-RESEARCH SYSTEM WITH TIER-BASED SUGGESTIONS
-// Purpose: Automated daily research with intelligent question selection
+// DAILY AUTO-RESEARCH SYSTEM
+// Stack: Perplexity (research) + Gemini (trends) + YouTube API (videos)
+//        + Claude via Cloudflare AI Gateway (analysis + caching)
 // Syncs with: Insights, To-Do, Content Studio
 // ============================================================================
 
 interface DailyResearchRequest {
   brand_id: string;
-  research_channels?: ("seo" | "geo" | "social")[]; // Default: all
+  research_channels?: ("seo" | "geo" | "social")[];
 }
 
 interface BrandProfile {
@@ -26,28 +27,27 @@ interface BrandProfile {
   brand_description: string;
   target_audience: string;
   key_products: string[];
-  subscription_tier: string; // 'basic', 'premium', 'partner'
+  subscription_tier: string;
 }
 
 interface ResearchConfig {
-  total_questions: number; // Total questions to research daily
-  suggested_count: number; // How many to suggest to user
+  total_questions: number;
+  suggested_count: number;
   tier: string;
 }
 
 interface ResearchResult {
   channel: "seo" | "geo" | "social";
   query: string;
-  source: "perplexity" | "serpapi";
   findings: string;
-  sentiment: "positive" | "negative" | "neutral"; // 20% negative sentiment
+  sentiment: "positive" | "negative" | "neutral";
   keywords_found: string[];
   competitors_found: string[];
   backlinks_found: string[];
   ranking_insights: any;
-  priority_score: number; // Combined priority + impact from Perplexity
-  impact_score: number; // Business impact (1-100)
-  suggested: boolean; // Is this a suggested action item?
+  priority_score: number;
+  impact_score: number;
+  suggested: boolean;
   cost: number;
 }
 
@@ -56,28 +56,16 @@ interface ResearchResult {
 // ============================================================================
 
 const TIER_CONFIGS: Record<string, ResearchConfig> = {
-  basic: {
-    total_questions: 20, // Research 20 questions daily
-    suggested_count: 5, // Suggest top 5 to user
-    tier: "basic",
-  },
-  premium: {
-    total_questions: 30, // Research 30 questions daily
-    suggested_count: 10, // Suggest top 10 to user
-    tier: "premium",
-  },
-  partner: {
-    total_questions: 50, // Research 50 questions daily
-    suggested_count: 20, // Suggest top 20 to user
-    tier: "partner",
-  },
+  basic:   { total_questions: 20, suggested_count: 5,  tier: "basic" },
+  premium: { total_questions: 30, suggested_count: 10, tier: "premium" },
+  partner: { total_questions: 50, suggested_count: 20, tier: "partner" },
 };
 
 // ============================================================================
-// OPTIMIZED PERPLEXITY RESEARCH ENGINE
+// PERPLEXITY ENGINE — Primary research for SEO, GEO, Social
 // ============================================================================
 
-class PerplexityResearchEngine {
+class PerplexityEngine {
   private apiKey: string;
 
   constructor(apiKey: string) {
@@ -85,349 +73,281 @@ class PerplexityResearchEngine {
   }
 
   async researchSEO(brand: BrandProfile, query: string): Promise<any> {
-    const optimizedPrompt = `You are an SEO research expert. Analyze the search landscape for: "${query}"
+    const prompt = `You are an SEO research expert. Analyze the search landscape for: "${query}"
 
 **RESEARCH FOCUS**:
-1. **Top Ranking Content**:
-   - What content ranks #1-3 for this query?
-   - Content length, format, structure?
-   - What makes them rank (backlinks, authority, freshness)?
+1. **Top Ranking Content**: Who ranks #1-3? Content format, length, structure?
+2. **Keyword Opportunities**: Related keywords, long-tail variations, LSI keywords
+3. **SERP Features**: Featured snippets, People Also Ask, video carousels present?
+4. **Competitive Intelligence**: Who dominates this query? Content gaps to exploit?
+5. **Search Intent**: Informational / Commercial / Transactional / Navigational?
+6. **SENTIMENT**: Current brand sentiment (positive/negative/neutral)
+7. **IMPACT SCORE** (1-100): Business value of ranking for this query
 
-2. **Keyword Opportunities**:
-   - Related keywords with search volume
-   - Long-tail variations with low competition
-   - LSI keywords (semantically related)
+**BRAND**: ${brand.brand_name} (${brand.brand_category} in ${brand.brand_country})
 
-3. **Backlink Analysis**:
-   - Which websites link to top results?
-   - What content attracts backlinks naturally?
-   - Guest post opportunities in this niche?
+END with: Sentiment: [positive/negative/neutral] | Impact Score: [1-100]`;
 
-4. **SERP Features**:
-   - Featured snippets, People Also Ask, videos?
-   - How to optimize for these features?
-   - Current brand visibility on SERP?
-
-5. **Competitive Intelligence**:
-   - Who ranks for "${query}"?
-   - What's their content strategy?
-   - Gaps we can exploit?
-
-6. **SENTIMENT ANALYSIS** (CRITICAL):
-   - Current brand sentiment for this query (positive/negative/neutral)
-   - Common complaints or pain points mentioned?
-   - Negative reviews or issues to address?
-
-7. **IMPACT ASSESSMENT** (CRITICAL):
-   - Business impact score (1-100): How valuable is ranking for this?
-   - Quick win potential: Can we rank in 30-60 days?
-   - ROI estimate: Traffic potential × conversion value
-
-**BRAND CONTEXT**: ${brand.brand_name} (${brand.brand_category} in ${brand.brand_country})
-
-Provide detailed, actionable insights with specific data. Include URLs when relevant. END with sentiment, impact score and priority recommendation.`;
-
-    return await this.query(optimizedPrompt);
+    return this.query(prompt);
   }
 
   async researchGEO(brand: BrandProfile, query: string): Promise<any> {
-    const optimizedPrompt = `You are a GEO (Generative Engine Optimization) research expert. Analyze AI platform responses for: "${query}"
+    const prompt = `You are a GEO (Generative Engine Optimization) expert. Analyze AI platform responses for: "${query}"
 
 **RESEARCH FOCUS**:
-1. **AI Platform Preferences**:
-   - Which brands does ChatGPT/Gemini/Claude mention?
-   - What sources do they cite?
-   - Why are these brands chosen?
+1. **AI Platform Mentions**: Which brands do ChatGPT/Gemini/Claude/Perplexity mention?
+2. **Citation Sources**: What websites/articles are cited by AI for this topic?
+3. **Content Gaps**: What questions do AI struggle to answer about "${query}"?
+4. **Entity Recognition**: How is ${brand.brand_name} mentioned (if at all)?
+5. **Optimization Strategy**: How to increase AI visibility for this query?
+6. **SENTIMENT**: How is the brand portrayed in AI responses?
+7. **IMPACT SCORE** (1-100): Value of AI visibility for this query
 
-2. **Citation Analysis**:
-   - What makes content citation-worthy for AI?
-   - Which news sources, research papers, or websites are cited?
-   - Authority signals AI platforms trust?
+**BRAND**: ${brand.brand_name} (${brand.brand_category})
 
-3. **Entity Recognition**:
-   - How are brands mentioned (full name, variations)?
-   - Context of brand mentions (positive, neutral, negative)?
-   - Brand associations (e.g., "sustainable", "affordable")?
+END with: Sentiment: [positive/negative/neutral] | Impact Score: [1-100]`;
 
-4. **Content Gaps**:
-   - What questions do AI struggle to answer about "${query}"?
-   - Missing information we can provide?
-   - Emerging topics in this space?
-
-5. **Optimization Strategy**:
-   - How to increase brand mentions in AI responses?
-   - What content to create for better AI visibility?
-   - Schema markup or structured data needs?
-
-6. **SENTIMENT ANALYSIS** (CRITICAL):
-   - How is the brand portrayed in AI responses (positive/negative/neutral)?
-   - Any negative associations or concerns?
-   - Trust signals or red flags?
-
-7. **IMPACT ASSESSMENT** (CRITICAL):
-   - Business impact score (1-100): Value of AI visibility for this query?
-   - Authority building potential: Can we become a cited source?
-   - Brand awareness lift: Expected visibility increase
-
-**BRAND CONTEXT**: ${brand.brand_name} (${brand.brand_category})
-**GOAL**: Improve "${brand.brand_name}" visibility when AI platforms answer "${query}"
-
-Provide specific, implementable strategies with examples. END with sentiment, impact score and priority.`;
-
-    return await this.query(optimizedPrompt);
+    return this.query(prompt);
   }
 
   async researchSocial(brand: BrandProfile, query: string): Promise<any> {
-    const optimizedPrompt = `You are a Social Media Search expert. Analyze social search performance for: "${query}"
+    const prompt = `You are a Social Media Search expert. Analyze social performance for: "${query}"
 
 **RESEARCH FOCUS**:
-1. **Platform-Specific Trends**:
-   - TikTok: Trending sounds, hashtags, video formats?
-   - Instagram: Reel trends, carousel styles, Stories usage?
-   - YouTube: Video length, thumbnail strategies, titles?
+1. **Platform Trends**: TikTok sounds/hashtags, Instagram Reel trends, YouTube formats
+2. **Hashtag Intelligence**: Top performing hashtags, volume, engagement rates
+3. **Content Performance**: Best formats (tutorial, review, unboxing)? Optimal video length?
+4. **Algorithm Signals**: What content gets pushed? Watch time vs engagement priority?
+5. **Creator Strategies**: Who ranks for "${query}" on social? What makes them succeed?
+6. **SENTIMENT**: Sentiment around this query on social (positive/negative/neutral)
+7. **IMPACT SCORE** (1-100): Viral potential × conversion value
 
-2. **Hashtag Intelligence**:
-   - Top performing hashtags for "${query}"?
-   - Hashtag volume, competition, engagement rate?
-   - Emerging hashtags before they peak?
-
-3. **Content Performance**:
-   - What content format ranks best (tutorial, review, unboxing)?
-   - Optimal video length per platform?
-   - Hook strategies (first 3 seconds)?
-
-4. **Creator Strategies**:
-   - Who ranks for "${query}" on social?
-   - What makes their content perform well?
-   - Collaboration opportunities?
-
-5. **Algorithm Signals**:
-   - What content gets pushed by algorithms?
-   - Watch time, engagement, shares priority?
-   - Best posting times for "${brand.brand_category}"?
-
-6. **SENTIMENT ANALYSIS** (CRITICAL):
-   - What's the sentiment around this query on social (positive/negative/neutral)?
-   - Common negative comments or concerns?
-   - Viral negative content to be aware of?
-
-7. **IMPACT ASSESSMENT** (CRITICAL):
-   - Business impact score (1-100): Viral potential × conversion value
-   - Engagement estimate: Expected reach and engagement
-   - Trend timing: Is this trending up or down?
-
-**BRAND CONTEXT**: ${brand.brand_name} (${brand.brand_category} in ${brand.brand_country})
+**BRAND**: ${brand.brand_name} | **AUDIENCE**: ${brand.target_audience}
 **PLATFORMS**: TikTok, Instagram, YouTube
-**AUDIENCE**: ${brand.target_audience}
 
-Provide data-driven insights with specific examples and metrics. END with sentiment and impact score.`;
+END with: Sentiment: [positive/negative/neutral] | Impact Score: [1-100]`;
 
-    return await this.query(optimizedPrompt);
+    return this.query(prompt);
   }
 
   private async query(prompt: string): Promise<any> {
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "sonar-deep-research",
+        messages: [
+          {
+            role: "system",
+            content: "You are a market research expert. Provide detailed, data-driven insights with specific examples and actionable recommendations. Always end with Sentiment and Impact Score as instructed.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 4000,
+        return_citations: true,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`Perplexity error: ${response.status}`);
+
+    const data = await response.json();
+    const answer = data.choices?.[0]?.message?.content || "";
+
+    const impactMatch = answer.match(/impact\s+score[:\s]+(\d+)/i);
+    const sentimentMatch = answer.match(/sentiment[:\s]+(positive|negative|neutral)/i);
+
+    return {
+      answer,
+      citations: data.citations || [],
+      impact_score: impactMatch ? parseInt(impactMatch[1]) : 50,
+      sentiment: (sentimentMatch?.[1]?.toLowerCase() || "neutral") as "positive" | "negative" | "neutral",
+      cost: 0.005,
+    };
+  }
+}
+
+// ============================================================================
+// GEMINI ENGINE — Google Trends + Related Queries via Cloudflare AI Gateway
+// ============================================================================
+
+class GeminiEngine {
+  private apiKey: string;
+  private gatewayUrl: string;
+
+  constructor(apiKey: string, gatewayUrl: string) {
+    this.apiKey = apiKey;
+    this.gatewayUrl = gatewayUrl;
+  }
+
+  async getTrends(query: string, country: string): Promise<any> {
+    // Use Gemini via Cloudflare Gateway for trend analysis
+    const endpoint = `${this.gatewayUrl}/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+
+    const prompt = `Analyze current search trends for the keyword: "${query}" in ${country}.
+
+Provide:
+1. Is this keyword trending UP, DOWN, or STABLE right now?
+2. Top 5 rising related queries (new, fast-growing searches)
+3. Top 5 related queries by volume
+4. Seasonal patterns (peak months?)
+5. Trend momentum score (1-100)
+
+Format as JSON:
+{
+  "trend_direction": "up|down|stable",
+  "momentum_score": 0-100,
+  "rising_queries": ["query1", "query2", "query3", "query4", "query5"],
+  "top_queries": ["query1", "query2", "query3", "query4", "query5"],
+  "seasonal_peak": "month or null",
+  "summary": "one sentence"
+}`;
+
     try {
-      const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "llama-3.1-sonar-large-128k-online",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a market research expert. Provide detailed, data-driven insights with specific examples, metrics, and actionable recommendations. ALWAYS analyze sentiment (positive/negative/neutral) and end with a business impact score (1-100) and priority recommendation. Include URLs when citing sources.",
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          temperature: 0.2,
-          max_tokens: 4000,
-          return_citations: true,
-          search_recency_filter: "day", // Focus on recent data
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Perplexity API error: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Gemini error: ${response.status}`);
       const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content || "";
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      // Extract impact score from answer (look for pattern like "Impact Score: 85")
-      const impactMatch = answer.match(/impact\s+score[:\s]+(\d+)/i);
-      const impactScore = impactMatch ? parseInt(impactMatch[1]) : 50; // Default 50 if not found
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const trends = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-      // Extract sentiment
-      const sentimentMatch = answer.match(/sentiment[:\s]+(positive|negative|neutral)/i);
-      const sentiment = sentimentMatch ? sentimentMatch[1].toLowerCase() : "neutral";
-
-      return {
-        answer,
-        citations: data.citations || [],
-        impact_score: impactScore,
-        sentiment,
-        cost: 0.005, // ~$0.005 per query
-      };
-    } catch (error) {
-      console.error("[PerplexityResearchEngine] Error:", error);
-      throw error;
+      return { ...trends, cost: 0.0001 };
+    } catch (e) {
+      console.error("[GeminiEngine] Trends error:", e);
+      return { trend_direction: "stable", momentum_score: 50, rising_queries: [], top_queries: [], cost: 0 };
     }
   }
 }
 
 // ============================================================================
-// OPTIMIZED SERPAPI RESEARCH ENGINE
+// YOUTUBE ENGINE — YouTube Data API v3 (replaces SerpAPI YouTube)
 // ============================================================================
 
-class SerpAPIResearchEngine {
+class YouTubeEngine {
   private apiKey: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  async researchSEO(brand: BrandProfile, query: string): Promise<any> {
-    console.log(`[SerpAPIResearchEngine] SEO research for: ${query}`);
+  async searchVideos(query: string, maxResults = 5): Promise<any> {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=${maxResults}&type=video&order=viewCount&key=${this.apiKey}`;
 
-    const results: any = {};
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`YouTube API error: ${response.status}`);
+      const data = await response.json();
 
-    // 1. Google Search Results
-    const searchResults = await this.googleSearch(query, brand.brand_country);
-    results.search = searchResults;
+      const videos = (data.items || []).map((item: any) => ({
+        videoId: item.id?.videoId,
+        title: item.snippet?.title,
+        channel: item.snippet?.channelTitle,
+        published: item.snippet?.publishedAt?.substring(0, 10),
+        description: item.snippet?.description?.substring(0, 150),
+      }));
 
-    // 2. Google Trends
-    const trendsData = await this.googleTrends(query, brand.brand_country);
-    results.trends = trendsData;
-
-    // 3. Related Searches
-    const relatedSearches = await this.relatedSearches(query, brand.brand_country);
-    results.related = relatedSearches;
-
-    return results;
-  }
-
-  async researchSocial(brand: BrandProfile, query: string): Promise<any> {
-    console.log(`[SerpAPIResearchEngine] Social research for: ${query}`);
-
-    const results: any = {};
-
-    // YouTube Search (via SerpAPI)
-    const youtubeResults = await this.youtubeSearch(query);
-    results.youtube = youtubeResults;
-
-    // Google Trends for Social Signals
-    const socialTrends = await this.googleTrends(query, brand.brand_country, "YouTube");
-    results.social_trends = socialTrends;
-
-    return results;
-  }
-
-  private async googleSearch(query: string, country: string): Promise<any> {
-    const url = new URL("https://serpapi.com/search.json");
-    url.searchParams.set("api_key", this.apiKey);
-    url.searchParams.set("engine", "google");
-    url.searchParams.set("q", query);
-    url.searchParams.set("gl", country.toLowerCase());
-    url.searchParams.set("hl", "en");
-    url.searchParams.set("num", "20");
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`SerpAPI error: ${response.status}`);
+      return { videos, cost: 0.0001 }; // ~100 quota units, free tier
+    } catch (e) {
+      console.error("[YouTubeEngine] Error:", e);
+      return { videos: [], cost: 0 };
     }
-
-    const data = await response.json();
-    return {
-      organic_results: data.organic_results || [],
-      featured_snippet: data.featured_snippet || null,
-      people_also_ask: data.related_questions || [],
-      cost: 0.001,
-    };
-  }
-
-  private async googleTrends(query: string, country: string, category?: string): Promise<any> {
-    const url = new URL("https://serpapi.com/search.json");
-    url.searchParams.set("api_key", this.apiKey);
-    url.searchParams.set("engine", "google_trends");
-    url.searchParams.set("q", query);
-    url.searchParams.set("data_type", "RELATED_QUERIES");
-    url.searchParams.set("geo", country.toUpperCase());
-    url.searchParams.set("date", "now 7-d");
-
-    if (category) {
-      url.searchParams.set("cat", "18");
-    }
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`SerpAPI Trends error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      rising_queries: data.rising_queries || [],
-      top_queries: data.top_queries || [],
-      cost: 0.001,
-    };
-  }
-
-  private async relatedSearches(query: string, country: string): Promise<any> {
-    const url = new URL("https://serpapi.com/search.json");
-    url.searchParams.set("api_key", this.apiKey);
-    url.searchParams.set("engine", "google");
-    url.searchParams.set("q", query);
-    url.searchParams.set("gl", country.toLowerCase());
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`SerpAPI Related error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      related_searches: data.related_searches || [],
-      cost: 0.001,
-    };
-  }
-
-  private async youtubeSearch(query: string): Promise<any> {
-    const url = new URL("https://serpapi.com/search.json");
-    url.searchParams.set("api_key", this.apiKey);
-    url.searchParams.set("engine", "youtube");
-    url.searchParams.set("search_query", query);
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`SerpAPI YouTube error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      video_results: data.video_results || [],
-      cost: 0.001,
-    };
   }
 }
 
 // ============================================================================
-// RESEARCH ORCHESTRATOR WITH INTELLIGENT SUGGESTION & SYNC
+// CLAUDE ENGINE — Analysis via Cloudflare AI Gateway (with caching)
+// ============================================================================
+
+class ClaudeEngine {
+  private apiKey: string;
+  private gatewayUrl: string;
+
+  constructor(apiKey: string, gatewayUrl: string) {
+    this.apiKey = apiKey;
+    this.gatewayUrl = gatewayUrl;
+  }
+
+  async synthesize(brand: BrandProfile, channel: string, query: string, researchData: any): Promise<any> {
+    // Route through Cloudflare AI Gateway — same query cached for 24h
+    const endpoint = `${this.gatewayUrl}/v1/messages`;
+
+    const prompt = `You are a ${channel.toUpperCase()} strategy expert for ${brand.brand_name}.
+
+Based on this research data for "${query}":
+${JSON.stringify(researchData, null, 2).substring(0, 3000)}
+
+Provide:
+1. **Top 3 Priority Actions** — specific, actionable, time-bound
+2. **Quick Win** — what can be done in 7 days?
+3. **Content Suggestion** — one specific content piece to create
+4. **Risk Alert** — any threat or issue to address?
+
+Be concise and specific. Focus on ${brand.brand_category} in ${brand.brand_country}.`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": this.apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-haiku-20241022",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Claude error: ${response.status}`);
+      const data = await response.json();
+      return {
+        synthesis: data.content?.[0]?.text || "",
+        cost: 0.001,
+        cached: response.headers.get("cf-cache-status") === "HIT",
+      };
+    } catch (e) {
+      console.error("[ClaudeEngine] Error:", e);
+      return { synthesis: "", cost: 0, cached: false };
+    }
+  }
+}
+
+// ============================================================================
+// ORCHESTRATOR
 // ============================================================================
 
 class DailyResearchOrchestrator {
-  private perplexity: PerplexityResearchEngine;
-  private serpapi: SerpAPIResearchEngine;
+  private perplexity: PerplexityEngine;
+  private gemini: GeminiEngine;
+  private youtube: YouTubeEngine;
+  private claude: ClaudeEngine;
   private supabase: any;
 
-  constructor(perplexity: PerplexityResearchEngine, serpapi: SerpAPIResearchEngine, supabase: any) {
+  constructor(
+    perplexity: PerplexityEngine,
+    gemini: GeminiEngine,
+    youtube: YouTubeEngine,
+    claude: ClaudeEngine,
+    supabase: any
+  ) {
     this.perplexity = perplexity;
-    this.serpapi = serpapi;
+    this.gemini = gemini;
+    this.youtube = youtube;
+    this.claude = claude;
     this.supabase = supabase;
   }
 
@@ -436,13 +356,9 @@ class DailyResearchOrchestrator {
     channels: string[],
     config: ResearchConfig
   ): Promise<{ results: ResearchResult[]; suggestions: ResearchResult[] }> {
-    console.log(`[Orchestrator] Running research for ${brand.brand_name} (${config.tier} tier)`);
-    console.log(`[Orchestrator] Total: ${config.total_questions}, Suggested: ${config.suggested_count}`);
+    console.log(`[Orchestrator] ${brand.brand_name} | tier: ${config.tier} | channels: ${channels.join(", ")}`);
 
-    const allResults: ResearchResult[] = [];
-
-    // Get priority questions from 500QA, sorted by priority + impact_score
-    const { data: priorityQuestions } = await this.supabase
+    const { data: questions } = await this.supabase
       .from("gv_keywords")
       .select("*")
       .eq("brand_id", brand.id)
@@ -452,44 +368,31 @@ class DailyResearchOrchestrator {
       .order("impact_score", { ascending: false })
       .limit(config.total_questions);
 
-    if (!priorityQuestions || priorityQuestions.length === 0) {
+    if (!questions || questions.length === 0) {
       console.log("[Orchestrator] No questions found");
       return { results: [], suggestions: [] };
     }
 
-    console.log(`[Orchestrator] Processing ${priorityQuestions.length} questions`);
-
-    // Distribute questions across channels
+    const allResults: ResearchResult[] = [];
     const questionsPerChannel = Math.ceil(config.total_questions / channels.length);
 
-    // SEO Research
-    if (channels.includes("seo")) {
-      await this.processChannel("seo", brand, priorityQuestions, questionsPerChannel, allResults);
+    for (const channel of channels) {
+      await this.processChannel(
+        channel as "seo" | "geo" | "social",
+        brand,
+        questions,
+        questionsPerChannel,
+        allResults
+      );
     }
 
-    // GEO Research
-    if (channels.includes("geo")) {
-      await this.processChannel("geo", brand, priorityQuestions, questionsPerChannel, allResults);
-    }
-
-    // Social Research
-    if (channels.includes("social")) {
-      await this.processChannel("social", brand, priorityQuestions, questionsPerChannel, allResults);
-    }
-
-    // Ensure 20% negative sentiment distribution
     this.ensureNegativeSentiment(allResults);
-
-    // Sort by priority_score and select top N as suggestions
     allResults.sort((a, b) => b.priority_score - a.priority_score);
 
     const suggestions = allResults.slice(0, config.suggested_count);
     suggestions.forEach((s) => (s.suggested = true));
 
-    console.log(`[Orchestrator] Completed ${allResults.length} research queries`);
-    console.log(`[Orchestrator] ${suggestions.length} suggestions selected`);
-    console.log(`[Orchestrator] Sentiment: ${allResults.filter(r => r.sentiment === "negative").length} negative, ${allResults.filter(r => r.sentiment === "positive").length} positive, ${allResults.filter(r => r.sentiment === "neutral").length} neutral`);
-
+    console.log(`[Orchestrator] Done: ${allResults.length} researched, ${suggestions.length} suggested`);
     return { results: allResults, suggestions };
   }
 
@@ -507,85 +410,85 @@ class DailyResearchOrchestrator {
     for (const q of channelQuestions) {
       try {
         let perplexityResult: any;
-        let serpapiResult: any = {};
+        let extraData: any = {};
         let cost = 0;
 
         if (channel === "seo") {
+          // Perplexity: deep SERP research
           perplexityResult = await this.perplexity.researchSEO(brand, q.keyword);
-          serpapiResult = await this.serpapi.researchSEO(brand, q.keyword);
-          cost = perplexityResult.cost + 0.003;
+          // Gemini: Google Trends data
+          const trends = await this.gemini.getTrends(q.keyword, brand.brand_country);
+          extraData = { trends };
+          cost = perplexityResult.cost + 0.0001;
+
         } else if (channel === "geo") {
+          // Perplexity: AI platform visibility
           perplexityResult = await this.perplexity.researchGEO(brand, q.keyword);
-          serpapiResult = { citations: perplexityResult.citations };
+          extraData = { citations: perplexityResult.citations };
           cost = perplexityResult.cost;
+
         } else if (channel === "social") {
+          // Perplexity: social trends research
           perplexityResult = await this.perplexity.researchSocial(brand, q.keyword);
-          serpapiResult = await this.serpapi.researchSocial(brand, q.keyword);
-          cost = perplexityResult.cost + 0.002;
+          // YouTube Data API: actual video results
+          const youtubeData = await this.youtube.searchVideos(q.keyword);
+          extraData = { youtube: youtubeData.videos };
+          cost = perplexityResult.cost + youtubeData.cost;
         }
 
-        const priorityScore = q.priority * perplexityResult.impact_score;
+        // Claude via Cloudflare Gateway: synthesize + cache
+        const claudeResult = await this.claude.synthesize(brand, channel, q.keyword, {
+          research: perplexityResult.answer.substring(0, 1500),
+          ...extraData,
+        });
+
+        if (claudeResult.cached) {
+          console.log(`[Claude] Cache HIT for: ${q.keyword}`);
+        }
+
+        cost += claudeResult.cost;
 
         allResults.push({
           channel,
           query: q.keyword,
-          source: "perplexity",
-          findings: perplexityResult.answer,
-          sentiment: perplexityResult.sentiment || "neutral",
+          findings: `${perplexityResult.answer}\n\n---\n**Strategic Analysis:**\n${claudeResult.synthesis}`,
+          sentiment: perplexityResult.sentiment,
           keywords_found: this.extractKeywords(perplexityResult.answer),
           competitors_found: this.extractCompetitors(perplexityResult.answer),
-          backlinks_found: this.extractBacklinks(perplexityResult.citations),
-          ranking_insights: serpapiResult,
-          priority_score: priorityScore,
+          backlinks_found: perplexityResult.citations.map((c: any) => c.url || c.link).filter(Boolean).slice(0, 10),
+          ranking_insights: extraData,
+          priority_score: q.priority * perplexityResult.impact_score,
           impact_score: perplexityResult.impact_score,
           suggested: false,
           cost,
         });
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       } catch (error) {
-        console.error(`[Orchestrator] ${channel.toUpperCase()} error for "${q.keyword}":`, error);
+        console.error(`[Orchestrator] ${channel} error for "${q.keyword}":`, error);
       }
     }
   }
 
   private ensureNegativeSentiment(results: ResearchResult[]): void {
-    const targetNegative = Math.ceil(results.length * 0.2); // 20% negative
+    const targetNegative = Math.ceil(results.length * 0.2);
     const currentNegative = results.filter((r) => r.sentiment === "negative").length;
-
     if (currentNegative < targetNegative) {
-      // Convert some neutral/positive to negative (simulate real-world issues)
-      const needsConversion = targetNegative - currentNegative;
-      const neutralResults = results.filter((r) => r.sentiment === "neutral" || r.sentiment === "positive");
-
-      for (let i = 0; i < Math.min(needsConversion, neutralResults.length); i++) {
-        neutralResults[i].sentiment = "negative";
+      const neutrals = results.filter((r) => r.sentiment === "neutral");
+      for (let i = 0; i < Math.min(targetNegative - currentNegative, neutrals.length); i++) {
+        neutrals[i].sentiment = "negative";
       }
-
-      console.log(`[Orchestrator] Adjusted sentiment: ${needsConversion} results marked as negative`);
     }
   }
 
   private extractKeywords(text: string): string[] {
-    const keywords: string[] = [];
-    const matches = text.match(/["']([^"']{10,50})["']/g);
-    if (matches) {
-      keywords.push(...matches.map((m) => m.replace(/["']/g, "")));
-    }
-    return [...new Set(keywords)].slice(0, 10);
+    const matches = text.match(/["']([^"']{10,50})["']/g) || [];
+    return [...new Set(matches.map((m) => m.replace(/["']/g, "")))].slice(0, 10);
   }
 
   private extractCompetitors(text: string): string[] {
-    const knownBrands = [
-      "wardah", "emina", "somethinc", "skintific", "avoskin",
-      "garnier", "loreal", "maybelline",
-    ];
-    const found = knownBrands.filter((brand) => text.toLowerCase().includes(brand));
-    return [...new Set(found)];
-  }
-
-  private extractBacklinks(citations: any[]): string[] {
-    return citations.map((c) => c.url || c.link).filter(Boolean).slice(0, 10);
+    const knownBrands = ["wardah", "emina", "somethinc", "skintific", "avoskin", "garnier", "loreal", "maybelline"];
+    return [...new Set(knownBrands.filter((b) => text.toLowerCase().includes(b)))];
   }
 }
 
@@ -598,65 +501,58 @@ async function syncToInsightsAndTodo(
   brandId: string,
   suggestions: ResearchResult[]
 ): Promise<void> {
-  console.log("[Sync] Syncing suggestions to Insights, To-Do, and Content Studio");
-
-  for (const suggestion of suggestions) {
-    // 1. Save to Insights (gv_daily_insights)
-    const { data: insight } = await supabase.from("gv_daily_insights").insert({
+  for (const s of suggestions) {
+    // 1. Save to Insights
+    await supabase.from("gv_daily_insights").insert({
       brand_id: brandId,
-      insight_type: suggestion.sentiment === "negative" ? "threat_alert" : "opportunity",
-      channel: suggestion.channel,
-      title: `${suggestion.sentiment === "negative" ? "⚠️ Alert" : "✨ Opportunity"}: ${suggestion.query}`,
-      description: suggestion.findings.substring(0, 500),
-      priority: Math.ceil(suggestion.priority_score / 100),
-      impact_score: suggestion.impact_score,
+      insight_type: s.sentiment === "negative" ? "threat_alert" : "opportunity",
+      channel: s.channel,
+      title: `${s.sentiment === "negative" ? "⚠️ Alert" : "✨ Opportunity"}: ${s.query}`,
+      description: s.findings.substring(0, 500),
+      priority: Math.ceil(s.priority_score / 100),
+      impact_score: s.impact_score,
       confidence_score: 0.85,
       suggested: true,
       insights_data: {
-        query: suggestion.query,
-        sentiment: suggestion.sentiment,
-        keywords_found: suggestion.keywords_found,
-        competitors_found: suggestion.competitors_found,
-        backlinks_found: suggestion.backlinks_found,
+        query: s.query,
+        sentiment: s.sentiment,
+        keywords_found: s.keywords_found,
+        competitors_found: s.competitors_found,
+        backlinks_found: s.backlinks_found,
+        ranking_insights: s.ranking_insights,
       },
-    }).select().single();
+    });
 
-    // 2. Create To-Do Items (gv_user_todo) for high-priority suggestions
-    if (suggestion.priority_score > 300) { // High-priority threshold
+    // 2. High-priority → To-Do
+    if (s.priority_score > 300) {
       await supabase.from("gv_user_todo").insert({
         brand_id: brandId,
-        title: `[${suggestion.channel.toUpperCase()}] ${suggestion.sentiment === "negative" ? "Address Issue" : "Capture Opportunity"}: ${suggestion.query}`,
-        description: `Research findings:\n\n${suggestion.findings.substring(0, 300)}...\n\nKeywords: ${suggestion.keywords_found.join(", ")}`,
-        column_type: suggestion.sentiment === "negative" ? "urgent" : "to_do",
-        priority: Math.ceil(suggestion.priority_score / 100),
-        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // Due in 7 days
-        tags: [suggestion.channel, suggestion.sentiment, "ai_suggested"],
-        assigned_to: null, // User can assign
+        title: `[${s.channel.toUpperCase()}] ${s.sentiment === "negative" ? "Address Issue" : "Capture Opportunity"}: ${s.query}`,
+        description: `${s.findings.substring(0, 300)}...\n\nKeywords: ${s.keywords_found.join(", ")}`,
+        column_type: s.sentiment === "negative" ? "urgent" : "to_do",
+        priority: Math.ceil(s.priority_score / 100),
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        tags: [s.channel, s.sentiment, "ai_suggested"],
+        assigned_to: null,
       });
     }
 
-    // 3. Create Content Ideas (gv_content_studio_posts) for content opportunities
-    if (suggestion.channel === "social" || suggestion.keywords_found.length > 3) {
+    // 3. Social/content → Content Studio
+    if (s.channel === "social" || s.keywords_found.length > 3) {
       await supabase.from("gv_content_studio_posts").insert({
         brand_id: brandId,
         post_type: "idea",
-        title: `Content Idea: ${suggestion.query}`,
-        content: `Based on research findings:\n\n${suggestion.findings.substring(0, 400)}\n\nKeywords to target: ${suggestion.keywords_found.join(", ")}\n\nSuggested format: ${suggestion.channel === "social" ? "Video/Reel" : "Blog post"}`,
-        platforms: suggestion.channel === "social" ? ["tiktok", "instagram", "youtube"] : ["blog"],
+        title: `Content Idea: ${s.query}`,
+        content: `${s.findings.substring(0, 400)}\n\nKeywords: ${s.keywords_found.join(", ")}\nFormat: ${s.channel === "social" ? "Video/Reel" : "Blog post"}`,
+        platforms: s.channel === "social" ? ["tiktok", "instagram", "youtube"] : ["blog"],
         status: "draft",
-        scheduled_date: null,
         ai_generated: true,
-        metadata: {
-          source: "daily_research",
-          query: suggestion.query,
-          impact_score: suggestion.impact_score,
-          sentiment: suggestion.sentiment,
-        },
+        metadata: { source: "daily_research", query: s.query, impact_score: s.impact_score, sentiment: s.sentiment },
       });
     }
   }
 
-  console.log(`[Sync] Synced ${suggestions.length} suggestions to Insights, To-Do, and Content Studio`);
+  console.log(`[Sync] ${suggestions.length} suggestions → Insights + Todo + ContentStudio`);
 }
 
 // ============================================================================
@@ -664,117 +560,100 @@ async function syncToInsightsAndTodo(
 // ============================================================================
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
-    const serpapiKey = Deno.env.get("SERPAPI_KEY");
+    const PERPLEXITY_API_KEY  = Deno.env.get("PERPLEXITY_API_KEY");
+    const GOOGLE_AI_API_KEY   = Deno.env.get("GOOGLE_AI_API_KEY"); // Gemini
+    const YOUTUBE_API_KEY     = Deno.env.get("YOUTUBE_API_KEY");
+    const ANTHROPIC_API_KEY   = Deno.env.get("ANTHROPIC_API_KEY");
+    const CF_ANTHROPIC        = Deno.env.get("CF_AI_GATEWAY_ANTHROPIC");
+    const CF_GEMINI           = Deno.env.get("CF_AI_GATEWAY_GEMINI");
 
-    if (!perplexityKey || !serpapiKey) {
-      return new Response(
-        JSON.stringify({ error: "API keys not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!PERPLEXITY_API_KEY || !ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({ error: "Missing required API keys" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing Authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: "Missing Authorization" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (userError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { brand_id, research_channels }: DailyResearchRequest = await req.json();
 
-    const requestData: DailyResearchRequest = await req.json();
-    const { brand_id, research_channels } = requestData;
+    const { data: brand } = await supabase.from("gv_brands").select("*").eq("id", brand_id).single();
+    if (!brand) return new Response(JSON.stringify({ error: "Brand not found" }), {
+      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    const { data: brand } = await supabaseClient.from("gv_brands").select("*").eq("id", brand_id).single();
-
-    if (!brand) {
-      return new Response(
-        JSON.stringify({ error: "Brand not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get tier configuration
-    const tier = brand.subscription_tier || "basic";
-    const config = TIER_CONFIGS[tier] || TIER_CONFIGS.basic;
+    const tier    = brand.subscription_tier || "basic";
+    const config  = TIER_CONFIGS[tier] || TIER_CONFIGS.basic;
     const channels = research_channels || ["seo", "geo", "social"];
 
-    const perplexity = new PerplexityResearchEngine(perplexityKey);
-    const serpapi = new SerpAPIResearchEngine(serpapiKey);
-    const orchestrator = new DailyResearchOrchestrator(perplexity, serpapi, supabaseClient);
+    // Initialise engines
+    const perplexity = new PerplexityEngine(PERPLEXITY_API_KEY);
+    const gemini     = new GeminiEngine(GOOGLE_AI_API_KEY || "", CF_GEMINI || "https://generativelanguage.googleapis.com");
+    const youtube    = new YouTubeEngine(YOUTUBE_API_KEY || "");
+    const claude     = new ClaudeEngine(ANTHROPIC_API_KEY, CF_ANTHROPIC || "https://api.anthropic.com");
 
-    console.log(`[daily-auto-research] Starting research for: ${brand.brand_name} (${tier})`);
+    const orchestrator = new DailyResearchOrchestrator(perplexity, gemini, youtube, claude, supabase);
+
+    console.log(`[daily-auto-research] START: ${brand.brand_name} (${tier})`);
+    console.log(`[daily-auto-research] Stack: Perplexity + Gemini + YouTube API + Claude via Cloudflare`);
 
     const { results, suggestions } = await orchestrator.runDailyResearch(brand, channels, config);
+    await syncToInsightsAndTodo(supabase, brand_id, suggestions);
 
-    // Sync to Insights, To-Do, and Content Studio
-    await syncToInsightsAndTodo(supabaseClient, brand_id, suggestions);
+    const totalCost   = results.reduce((sum, r) => sum + r.cost, 0);
+    const cacheHits   = results.filter((r) => r.ranking_insights?.cached).length;
 
-    const totalCost = results.reduce((sum, r) => sum + r.cost, 0);
+    console.log(`[daily-auto-research] DONE: ${results.length} queries | $${totalCost.toFixed(3)} | ${cacheHits} cache hits`);
 
-    console.log(`[daily-auto-research] Complete. ${results.length} queries, $${totalCost.toFixed(3)}`);
-    console.log(`[daily-auto-research] Synced to Insights, To-Do, and Content Studio`);
+    return new Response(JSON.stringify({
+      success: true,
+      brand_id,
+      tier,
+      channels,
+      stack: ["perplexity-sonar-deep-research", "gemini-1.5-flash", "youtube-data-api-v3", "claude-3.5-haiku-cloudflare-cached"],
+      total_researched: results.length,
+      suggested_count: suggestions.length,
+      cloudflare_cache_hits: cacheHits,
+      sentiment_breakdown: {
+        negative: results.filter((r) => r.sentiment === "negative").length,
+        positive: results.filter((r) => r.sentiment === "positive").length,
+        neutral:  results.filter((r) => r.sentiment === "neutral").length,
+      },
+      cost_usd: parseFloat(totalCost.toFixed(3)),
+      config: { tier, total_questions: config.total_questions, suggested_count: config.suggested_count },
+      suggestions: suggestions.map((s) => ({
+        query: s.query,
+        channel: s.channel,
+        sentiment: s.sentiment,
+        priority_score: s.priority_score,
+        impact_score: s.impact_score,
+        findings_preview: s.findings.substring(0, 200) + "...",
+      })),
+      synced_to: ["insights", "todo", "content_studio"],
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        brand_id,
-        tier,
-        channels,
-        total_researched: results.length,
-        suggested_count: suggestions.length,
-        sentiment_breakdown: {
-          negative: results.filter((r) => r.sentiment === "negative").length,
-          positive: results.filter((r) => r.sentiment === "positive").length,
-          neutral: results.filter((r) => r.sentiment === "neutral").length,
-        },
-        cost_usd: parseFloat(totalCost.toFixed(3)),
-        config: {
-          tier,
-          total_questions: config.total_questions,
-          suggested_count: config.suggested_count,
-        },
-        suggestions: suggestions.map((s) => ({
-          query: s.query,
-          channel: s.channel,
-          sentiment: s.sentiment,
-          priority_score: s.priority_score,
-          impact_score: s.impact_score,
-          findings_preview: s.findings.substring(0, 200) + "...",
-        })),
-        synced_to: ["insights", "todo", "content_studio"],
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("[daily-auto-research] Error:", error);
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || "Research failed",
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: false, error: error.message || "Research failed" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

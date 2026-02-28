@@ -12,7 +12,7 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 // Model configuration
-const CLAUDE_MODEL = "claude-3-5-sonnet-20241022";
+const CLAUDE_MODEL = "claude-3-5-sonnet-latest";
 const OPENAI_MODEL = "gpt-4o-mini";
 
 // Cost tracking (USD per 1M tokens)
@@ -327,6 +327,19 @@ async function generateArticle(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+  // ── Build RSS / social fields ──────────────────────────────────────────
+  // Excerpt: strip HTML tags, take first 200 chars
+  const plainText = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const excerpt = plainText.slice(0, 200).replace(/\s+\S+$/, "") + "…";
+
+  // Hashtags: derive from themes (e.g. "AI Marketing" → "AIMarketing")
+  const hashtags = (analysis.themes || [])
+    .slice(0, 6)
+    .map((t: string) => t.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, ""));
+
+  // Social caption: excerpt + CTA
+  const socialCaption = `${excerpt}\n\nRead the full article 👇`;
+
   const { data: article, error: insertError } = await supabase
     .from("gv_hub_articles")
     .insert({
@@ -336,9 +349,9 @@ async function generateArticle(
       article_type: articleType,
       category: analysis.themes[0] || "general",
       content_html: content,
-      content_markdown: content, // For now, using same content
+      content_markdown: content,
       word_count: quality.word_count,
-      reading_time_minutes: quality.reading_time,
+      reading_time_min: quality.reading_time,
       neutrality_score: quality.neutrality_score,
       source_content_ids: contentIds,
       embedding_count: contentIds.length,
@@ -346,6 +359,11 @@ async function generateArticle(
       generation_cost_usd: totalCost,
       status: "published",
       published_at: new Date().toISOString(),
+      // RSS / social fields
+      excerpt,
+      hashtags,
+      social_caption: socialCaption,
+      rss_include: true,
     })
     .select()
     .single();

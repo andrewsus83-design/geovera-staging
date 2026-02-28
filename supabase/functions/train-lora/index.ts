@@ -29,6 +29,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ─── Shopify Auto-Discovery ────────────────────────────────────────────────
+// For resellers/multi-brand stores: automatically finds the product with
+// the MOST images (= best candidate for LoRA training) and returns all its angles.
+
+interface ShopifyProduct {
+  title: string;
+  handle: string;
+  images: Array<{ src: string }>;
+}
+
+async function discoverImagesViaShopify(
+  shopifyStoreUrl: string,
+  preferredProductHandle?: string,  // optional: target specific product
+  maxProducts?: number,
+): Promise<{ urls: string[]; productTitle: string; productHandle: string } | null> {
+  console.log(`   🛍️  Shopify auto-discovery: ${shopifyStoreUrl}`);
+  try {
+    // Normalize store URL
+    const base = shopifyStoreUrl.replace(/\/$/, '').replace(/^(?!https?:\/\/)/, 'https://');
+    const apiUrl = `${base}/products.json?limit=${maxProducts || 250}`;
+
+    const resp = await fetch(apiUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GeoVera/1.0)' },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!resp.ok) {
+      console.warn(`   ✗ Shopify products.json failed: HTTP ${resp.status}`);
+      return null;
+    }
+
+    const data = await resp.json();
+    const products: ShopifyProduct[] = data.products || [];
+    if (products.length === 0) return null;
+
+    console.log(`   ✓ Found ${products.length} products in store`);
+
+    let bestProduct: ShopifyProduct | null = null;
+
+    // If a specific handle is requested, use that
+    if (preferredProductHandle) {
+      bestProduct = products.find(p => p.handle === preferredProductHandle) || null;
+    }
+
+    // Otherwise: pick product with the MOST images (best angle coverage)
+    if (!bestProduct) {
+      bestProduct = products.reduce((best, p) =>
+        (p.images?.length || 0) > (best.images?.length || 0) ? p : best
+      );
+    }
+
+    if (!bestProduct || !bestProduct.images?.length) return null;
+
+    // Clean URLs: remove version params, get full resolution
+    const urls = bestProduct.images.map(img => {
+      let url = img.src;
+      // Shopify CDN: remove _medium/_small/_thumb size suffixes for full res
+      url = url.replace(/_(pico|icon|thumb|small|compact|medium|large|grande|1024x1024|2048x2048)(?=\.)/, '');
+      // Remove version query param
+      url = url.replace(/\?v=\d+$/, '');
+      return url;
+    }).filter(url => /\.(jpg|jpeg|png|webp)/i.test(url));
+
+    console.log(`   ✓ Best product: "${bestProduct.title}" (${urls.length} images)`);
+    return {
+      urls,
+      productTitle: bestProduct.title,
+      productHandle: bestProduct.handle,
+    };
+  } catch (err) {
+    console.warn(`   Shopify discovery failed: ${err}`);
+    return null;
+  }
+}
+
 // ─── Gemini Image Discovery ────────────────────────────────────────────────
 
 async function discoverImagesViaGemini(
@@ -160,17 +234,31 @@ interface VastOffer {
   rentable: boolean;
 }
 
-async function findCheapestGpuOffer(vastApiKey: string): Promise<VastOffer | null> {
-  // Search for cheapest GPU with ≥20GB VRAM that can run FLUX LoRA training
-  // Requirements: CUDA 12+, ≥20GB VRAM, reliability ≥0.90
+// GPU preference tiers — higher tier = preferred first
+// RTX 5090 (Blackwell, 32GB) → H200 → H100 → RTX 4090 → RTX 3090 → fallback any ≥20GB
+const GPU_PREFERENCE_TIERS: { keywords: string[]; label: string }[] = [
+  { keywords: ['5090'],               label: 'RTX 5090' },
+  { keywords: ['H200'],               label: 'H200' },
+  { keywords: ['H100'],               label: 'H100' },
+  { keywords: ['A100'],               label: 'A100' },
+  { keywords: ['4090'],               label: 'RTX 4090' },
+  { keywords: ['3090'],               label: 'RTX 3090' },
+  { keywords: ['4080'],               label: 'RTX 4080' },
+];
+
+async function findCheapestGpuOffer(
+  vastApiKey: string,
+  preferredGpu?: string,  // e.g. "RTX 5090", "H200" — overrides tier preference
+): Promise<VastOffer | null> {
+  // Search all available GPUs with ≥20GB VRAM, CUDA 12+, reliability ≥0.90
   const query = {
     verified: { eq: true },
     rentable: { eq: true },
     cuda_max_good: { gte: 12.0 },
-    gpu_ram: { gte: 20000 },      // ≥20GB VRAM in MB
+    gpu_ram: { gte: 20000 },      // ≥20GB VRAM in MB (FLUX needs ~24GB)
     reliability2: { gte: 0.90 },
     num_gpus: { eq: 1 },
-    dph_total: { lte: 2.0 },      // max $2/hr to avoid expensive H100s
+    dph_total: { lte: 5.0 },      // up to $5/hr (covers H200, RTX 5090)
   };
 
   const queryStr = encodeURIComponent(JSON.stringify(query));
@@ -194,10 +282,115 @@ async function findCheapestGpuOffer(vastApiKey: string): Promise<VastOffer | nul
     return null;
   }
 
-  // Pick cheapest reliable offer
+  console.log(`   Found ${offers.length} GPU offers. Available: ${[...new Set(offers.map(o => o.gpu_name))].join(', ')}`);
+
+  // If specific GPU requested, filter for it first
+  if (preferredGpu) {
+    const keyword = preferredGpu.toLowerCase();
+    const preferred = offers.filter(o => o.gpu_name.toLowerCase().includes(keyword));
+    if (preferred.length > 0) {
+      const best = preferred[0]; // cheapest matching
+      console.log(`   ✓ Using requested GPU: ${best.gpu_name} ${Math.round(best.gpu_ram / 1024)}GB @ $${best.dph_total.toFixed(2)}/hr`);
+      return best;
+    }
+    console.warn(`   ⚠ Requested GPU "${preferredGpu}" not available — falling back to tier selection`);
+  }
+
+  // Otherwise use tier preference (RTX 5090 → H200 → H100 → ...)
+  for (const tier of GPU_PREFERENCE_TIERS) {
+    const match = offers.find(o =>
+      tier.keywords.some(kw => o.gpu_name.toLowerCase().includes(kw.toLowerCase()))
+    );
+    if (match) {
+      console.log(`   ✓ Best GPU offer [tier: ${tier.label}]: ${match.gpu_name} ${Math.round(match.gpu_ram / 1024)}GB @ $${match.dph_total.toFixed(2)}/hr (offer_id: ${match.id})`);
+      return match;
+    }
+  }
+
+  // Fallback: cheapest available
   const best = offers[0];
-  console.log(`   ✓ Best GPU offer: ${best.gpu_name} ${Math.round(best.gpu_ram / 1024)}GB @ $${best.dph_total.toFixed(2)}/hr (offer_id: ${best.id})`);
+  console.log(`   ✓ Fallback GPU: ${best.gpu_name} ${Math.round(best.gpu_ram / 1024)}GB @ $${best.dph_total.toFixed(2)}/hr`);
   return best;
+}
+
+// ─── Script URLs in Supabase Storage (public, no auth needed) ────────────────
+// Scripts are hosted in Supabase Storage to keep onstart small (< 1KB vs 20KB base64).
+// To update: re-upload to report-images/scripts/ with x-upsert: true.
+const SCRIPTS_BASE_URL = 'https://vozjwptzutolvkvfpknk.supabase.co/storage/v1/object/public/report-images/scripts';
+
+// ─── Build onstart script for ostris/aitoolkit:latest ────────────────────────
+// Downloads train.py + config from Supabase Storage at runtime — keeps onstart tiny.
+// ai-toolkit is pre-installed at /workspace/ai-toolkit in ostris/aitoolkit image.
+
+function buildOnstartScript(envVars: Record<string, string>): string {
+  // Export env vars explicitly (Vast.ai sometimes doesn't pass them to onstart)
+  const envExports = Object.entries(envVars)
+    .map(([k, v]) => `export ${k}="${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
+    .join('\n');
+
+  const script = [
+    '#!/bin/bash',
+    'echo "[GeoVera] Starting LoRA training setup..."',
+    '',
+    '# Export all env vars (Vast.ai may not pass them to subprocesses)',
+    envExports,
+    '',
+    '# ── Auto-destroy: always terminate instance after training (success OR failure)',
+    '# This prevents idle billing if training crashes or finishes early.',
+    'auto_destroy() {',
+    '  EXIT_CODE=$?',
+    '  echo "[GeoVera] Training finished (exit code: $EXIT_CODE). Destroying instance in 30s..."',
+    '  sleep 30  # Give time for logs/webhook to flush',
+    '  INSTANCE_ID=$(cat /proc/self/cgroup 2>/dev/null | grep -oP "(?<=docker-)[a-f0-9]+" | head -1 || echo "")',
+    '  # Try Vast.ai self-destruct endpoint',
+    '  curl -s -X DELETE "https://console.vast.ai/api/v0/instances/${VAST_INSTANCE_ID}/" \\',
+    '    -H "Authorization: Bearer ${VAST_API_KEY}" 2>/dev/null || true',
+    '  # Fallback: use vast CLI if available',
+    '  vastai destroy instance ${VAST_INSTANCE_ID} 2>/dev/null || true',
+    '  echo "[GeoVera] Destroy signal sent."',
+    '}',
+    'trap auto_destroy EXIT',
+    '',
+    '# Prevent set -e from killing the script before trap fires',
+    'set -e',
+    '',
+    '# Install requests if not present',
+    'pip install requests --quiet 2>/dev/null || true',
+    '',
+    '# Download train.py from Supabase Storage',
+    'echo "[GeoVera] Downloading train.py..."',
+    `curl -fsSL "${SCRIPTS_BASE_URL}/train.py" -o /tmp/geovera_train.py`,
+    'chmod +x /tmp/geovera_train.py',
+    '',
+    '# Download config_template.yaml from Supabase Storage',
+    'echo "[GeoVera] Downloading config_template.yaml..."',
+    `curl -fsSL "${SCRIPTS_BASE_URL}/config_template.yaml" -o /tmp/config_template.yaml`,
+    '',
+    '# Find ai-toolkit run.py location in ostris/aitoolkit image',
+    'AI_TOOLKIT_PATH=""',
+    'for p in /workspace/ai-toolkit /app/ai-toolkit /root/ai-toolkit /ai-toolkit; do',
+    '  if [ -f "$p/run.py" ]; then',
+    '    AI_TOOLKIT_PATH=$p',
+    '    echo "[GeoVera] Found ai-toolkit at: $p"',
+    '    break',
+    '  fi',
+    'done',
+    '',
+    'if [ -z "$AI_TOOLKIT_PATH" ]; then',
+    '  echo "[GeoVera] ERROR: ai-toolkit not found!"',
+    '  find / -name "run.py" -path "*/ai-toolkit/*" 2>/dev/null | head -5',
+    '  exit 1',
+    'fi',
+    '',
+    'export AI_TOOLKIT_PATH=$AI_TOOLKIT_PATH',
+    '',
+    '# Run training (trap will auto-destroy instance when this exits)',
+    'echo "[GeoVera] Starting training..."',
+    'python3 /tmp/geovera_train.py',
+    'echo "[GeoVera] Training script completed successfully."',
+  ].join('\n');
+
+  return script;
 }
 
 // ─── Vast.ai Instance Creation ────────────────────────────────────────────
@@ -207,8 +400,10 @@ async function createVastInstance(
   offerId: number,
   envVars: Record<string, string>,
 ): Promise<{ instance_id: string } | null> {
-  // Create Vast.ai instance with our Docker image
-  // The Docker CMD is "python3 /app/train.py" which reads env vars and runs training
+  // Use ostris/aitoolkit:latest (official, 10GB, updated Jan 2026, 83K pulls)
+  // Inject our train.py + config via onstart bash script (no custom Docker needed)
+  const onstart = buildOnstartScript(envVars);
+
   const resp = await fetch(
     `https://console.vast.ai/api/v0/asks/${offerId}/`,
     {
@@ -219,14 +414,13 @@ async function createVastInstance(
       },
       body: JSON.stringify({
         client_id: 'me',
-        image: 'geovera/lora-trainer:latest',
-        disk: 40,               // GB disk (FLUX model is ~24GB, plus images/output)
+        image: 'ostris/aitoolkit:latest',  // Official ai-toolkit image, no custom Docker needed
+        disk: 50,               // GB disk (FLUX model ~24GB + training data + output)
         env: envVars,
-        onstart: 'python3 /app/train.py',
-        runtype: 'args',
-        image_login: null,      // public Docker Hub image, no auth needed
+        onstart: onstart,
+        runtype: 'ssh',         // ssh runtype supports onstart scripts properly
+        image_login: null,
         label: `geovera-lora-${envVars.SLUG || 'training'}`,
-        extra_env: envVars,
       }),
     }
   );
@@ -255,7 +449,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug, brand_name, image_urls, trigger_word, country, zip_url, force } = await req.json();
+    const {
+      slug, brand_name, image_urls, trigger_word, country, zip_url, force,
+      shopify_url,        // e.g. "https://thewatch.co" — auto-scrape best product
+      product_handle,     // e.g. "g-shock-digital-black-resin-strap-46-8mm-men-dw-5900bb-1dr"
+      preferred_gpu,      // e.g. "RTX 5090", "H200", "H100" — GPU preference for training
+    } = await req.json();
 
     if (!slug || !brand_name) {
       return new Response(JSON.stringify({ success: false, error: 'slug and brand_name are required' }),
@@ -317,8 +516,23 @@ Deno.serve(async (req) => {
 
     // ─── Step 1: Collect product image URLs ────────────────────────────────────
     let productImageUrls: string[] = [...(image_urls || [])];
+    let discoveredProductTitle = brand_name;
+    let discoveredProductHandle = '';
     console.log(`   Provided URLs: ${productImageUrls.length}`);
 
+    // Priority 1: Shopify auto-discovery (best for resellers/multi-brand stores)
+    if (shopify_url && productImageUrls.length < 4) {
+      console.log(`\n🛍️  Shopify auto-discovery mode...`);
+      const shopifyResult = await discoverImagesViaShopify(shopify_url, product_handle);
+      if (shopifyResult && shopifyResult.urls.length >= 4) {
+        productImageUrls = [...productImageUrls, ...shopifyResult.urls];
+        discoveredProductTitle = shopifyResult.productTitle;
+        discoveredProductHandle = shopifyResult.productHandle;
+        console.log(`   ✓ Shopify: found ${shopifyResult.urls.length} images for "${shopifyResult.productTitle}"`);
+      }
+    }
+
+    // Priority 2: Gemini web search fallback
     if (productImageUrls.length < 4 && GEMINI_API_KEY) {
       const geminiImages = await discoverImagesViaGemini(brand_name, brandCountry, GEMINI_API_KEY);
       productImageUrls = [...productImageUrls, ...geminiImages];
@@ -329,8 +543,11 @@ Deno.serve(async (req) => {
     if (productImageUrls.length < 4 && !zip_url) {
       return new Response(JSON.stringify({
         success: false,
-        error: `Need ≥4 product image URLs. Found: ${productImageUrls.length}. Upload product photos manually.`,
+        error: `Need ≥4 product image URLs. Found: ${productImageUrls.length}. Try passing shopify_url or image_urls directly.`,
         images_found: productImageUrls.length,
+        tip: shopify_url
+          ? `Shopify returned <4 images. Try passing product_handle to target a specific product.`
+          : `Pass shopify_url to auto-discover images, or provide image_urls manually.`,
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -360,7 +577,7 @@ Deno.serve(async (req) => {
       console.log(`\n🚀 Submitting to Vast.ai (self-hosted GPU)...`);
 
       // Find cheapest available GPU
-      const offer = await findCheapestGpuOffer(VAST_API_KEY!);
+      const offer = await findCheapestGpuOffer(VAST_API_KEY!, preferred_gpu);
       if (!offer) {
         return new Response(JSON.stringify({
           success: false, error: 'No suitable GPU available on Vast.ai right now. Try again in a few minutes.',
@@ -371,21 +588,45 @@ Deno.serve(async (req) => {
       const webhookUrl = `${FUNCTION_BASE_URL}/lora-webhook?slug=${slug}&trigger_word=${encodeURIComponent(loraTrigggerWord)}`;
 
       // Create Vast.ai instance with training env vars
+      // VAST_API_KEY + VAST_INSTANCE_ID passed so onstart script can self-destroy when done
       const instance = await createVastInstance(VAST_API_KEY!, offer.id, {
-        ZIP_URL:       zipPublicUrl,
-        TRIGGER_WORD:  loraTrigggerWord,
-        SLUG:          slug,
-        SUPABASE_URL:  SUPABASE_URL,
-        SUPABASE_KEY:  SUPABASE_SERVICE_KEY,
-        WEBHOOK_URL:   webhookUrl,
-        HF_TOKEN:      HF_TOKEN,
-        STEPS:         '1000',
+        ZIP_URL:          zipPublicUrl,
+        TRIGGER_WORD:     loraTrigggerWord,
+        SLUG:             slug,
+        SUPABASE_URL:     SUPABASE_URL,
+        SUPABASE_KEY:     SUPABASE_SERVICE_KEY,
+        WEBHOOK_URL:      webhookUrl,
+        HF_TOKEN:         HF_TOKEN,
+        STEPS:            '1500',
+        VAST_API_KEY:     VAST_API_KEY!,   // For auto-destroy after training
+        VAST_INSTANCE_ID: '',              // Patched below after instance creation
       });
 
       if (!instance) {
         return new Response(JSON.stringify({
           success: false, error: 'Failed to create Vast.ai instance. Check VAST_API_KEY.',
         }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Patch VAST_INSTANCE_ID env var so the instance can self-destroy
+      // (instance_id is only known after creation, so we update it via Vast.ai API)
+      try {
+        await fetch(
+          `https://console.vast.ai/api/v0/instances/${instance.instance_id}/`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${VAST_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              env: { VAST_INSTANCE_ID: instance.instance_id },
+            }),
+          }
+        );
+        console.log(`   ✓ Patched VAST_INSTANCE_ID=${instance.instance_id} into instance env`);
+      } catch (e) {
+        console.warn(`   ⚠ Could not patch VAST_INSTANCE_ID: ${e} (auto-destroy may not work)`);
       }
 
       // Save metadata with vast_instance_id for polling
@@ -432,9 +673,11 @@ Deno.serve(async (req) => {
         gpu: offer.gpu_name,
         trigger_word: loraTrigggerWord,
         images_used: downloadedCount,
+        trained_product: discoveredProductTitle !== brand_name ? discoveredProductTitle : undefined,
+        product_handle: discoveredProductHandle || undefined,
         metadata_url: `${SUPABASE_URL}/storage/v1/object/public/report-images/lora-models/${slug}/metadata.json`,
         estimated_cost_usd: estimatedCost,
-        note: 'Training in progress (~5-10 min). Poll check-lora-status or wait for webhook.',
+        note: 'Training in progress (~10-15 min). Poll check-lora-status or wait for webhook.',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } else {
