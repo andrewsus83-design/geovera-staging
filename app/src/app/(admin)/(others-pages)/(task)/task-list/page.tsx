@@ -1,14 +1,18 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { Metadata } from "next";
 import TaskList from "@/components/task/task-list/TaskList";
 
 export const metadata: Metadata = {
-  title: "Tasks | GeoVera Intelligence Platform",
-  description: "Manage and track your marketing tasks across all channels.",
+  title: "Next.js Task List | TailAdmin - Next.js Dashboard Template",
+  description:
+    "This is Next.js Task List page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  // other metadata
 };
 
 export default function TaskListPage() {
   return (
-    <div style={{ padding: "24px 24px 48px" }}>
+    <div>
+      <PageBreadcrumb pageTitle="Task List" />
       <TaskList />
     </div>
   );

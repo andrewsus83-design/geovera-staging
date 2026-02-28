@@ -21,29 +21,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
       id={`task-${id}`}
       draggable="true"
       onDragStart={onDragStart}
-      style={{
-        padding: "16px 20px",
-        background: "var(--gv-color-bg-surface)",
-        border: "1px solid var(--gv-color-neutral-200)",
-        borderRadius: "var(--gv-radius-md)",
-        boxShadow: "0px 1px 3px 0px rgba(31, 36, 40, 0.05)",
-        cursor: "grab",
-        transition: "all var(--gv-duration-normal) var(--gv-easing-default)",
-      }}
+      className="p-5 mb-4 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "16px",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* Left: drag handle + checkbox + title */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
-          {/* Drag handle */}
-          <span style={{ color: "var(--gv-color-neutral-400)", flexShrink: 0 }}>
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex items-start w-full gap-4">
+          <span className="text-gray-400">
             <svg
               width="20"
               height="20"
@@ -60,12 +42,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
             </svg>
           </span>
 
-          {/* Checkbox */}
           <label
             htmlFor={`taskCheckbox${id}`}
-            style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", minWidth: 0, flex: 1 }}
+            className="w-full cursor-pointer"
           >
-            <div className="relative" style={{ flexShrink: 0 }}>
+            <div className="relative flex items-start">
               <input
                 type="checkbox"
                 id={`taskCheckbox${id}`}
@@ -73,23 +54,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 checked={isChecked}
                 onChange={toggleChecked}
               />
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "var(--gv-radius-xs)",
-                  border: isChecked
-                    ? "none"
-                    : "1.5px solid var(--gv-color-neutral-300)",
-                  background: isChecked ? "var(--gv-color-primary-500)" : "var(--gv-color-bg-surface)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all var(--gv-duration-fast)",
-                }}
-                className="box"
-              >
-                <span style={{ opacity: isChecked ? 1 : 0 }}>
+              <div className="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700">
+                <span className={`opacity-${isChecked ? "100" : "0"}`}>
                   <svg
                     width="14"
                     height="14"
@@ -107,100 +73,63 @@ const TaskItem: React.FC<TaskItemProps> = ({
                   </svg>
                 </span>
               </div>
+              <p className="-mt-0.5 text-base text-gray-800 dark:text-white/90">
+                {title}
+              </p>
             </div>
-            <span
-              style={{
-                fontFamily: "var(--gv-font-body)",
-                fontSize: "15px",
-                fontWeight: 500,
-                color: isChecked ? "var(--gv-color-neutral-400)" : "var(--gv-color-neutral-900)",
-                textDecoration: isChecked ? "line-through" : "none",
-                transition: "all var(--gv-duration-fast)",
-              }}
-            >
-              {title}
-            </span>
           </label>
         </div>
 
-        {/* Right: category badge + meta + avatar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
+        <div className="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5">
           {category && (
-            <span
-              className="gv-badge gv-badge-primary"
-            >
+            <span className="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
               {category}
             </span>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {/* Due date */}
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "13px",
-                color: "var(--gv-color-neutral-500)",
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V6.00016L14.0833 12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668L1.91663 6.00016L1.91663 4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                  fill="currentColor"
-                />
-              </svg>
-              {dueDate}
-            </span>
+          <div className="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400">
+                <svg
+                  className="fill-current"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V6.00016L14.0833 12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668L1.91663 6.00016L1.91663 4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                    fill=""
+                  />
+                </svg>
+                {dueDate}
+              </span>
 
-            {/* Comments */}
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "13px",
-                color: "var(--gv-color-neutral-500)",
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 18 18"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 15.6343C12.6244 15.6343 15.5625 12.6961 15.5625 9.07178C15.5625 5.44741 12.6244 2.50928 9 2.50928C5.37563 2.50928 2.4375 5.44741 2.4375 9.07178C2.4375 10.884 3.17203 12.5246 4.35961 13.7122L2.4375 15.6343H9Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {commentCount}
-            </span>
-          </div>
+              <span className="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 15.6343C12.6244 15.6343 15.5625 12.6961 15.5625 9.07178C15.5625 5.44741 12.6244 2.50928 9 2.50928C5.37563 2.50928 2.4375 5.44741 2.4375 9.07178C2.4375 10.884 3.17203 12.5246 4.35961 13.7122L2.4375 15.6343H9Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {commentCount}
+              </span>
+            </div>
 
-          {/* Avatar */}
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "var(--gv-radius-full)",
-              overflow: "hidden",
-              border: "1.5px solid var(--gv-color-neutral-200)",
-              flexShrink: 0,
-            }}
-          >
-            <Image width={28} height={28} src={userAvatar} alt="user" />
+            <div className="h-6 w-full max-w-6 overflow-hidden rounded-full border-[0.5px] border-gray-200 dark:border-gray-800">
+              <Image width={24} height={24} src={userAvatar} alt="user" />
+            </div>
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-01.jpg",
     status: "todo",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "2",
@@ -25,7 +25,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-02.jpg",
     status: "todo",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "3",
@@ -36,7 +36,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-03.jpg",
     status: "todo",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "4",
@@ -47,7 +47,7 @@ const initialTasks: Task[] = [
     category: "Template",
     userAvatar: "/images/user/user-04.jpg",
     status: "in-progress",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "5",
@@ -57,7 +57,7 @@ const initialTasks: Task[] = [
     commentCount: 2,
     userAvatar: "/images/user/user-05.jpg",
     status: "in-progress",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "6",
@@ -67,7 +67,7 @@ const initialTasks: Task[] = [
     commentCount: 2,
     userAvatar: "/images/user/user-06.jpg",
     status: "in-progress",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "7",
@@ -77,7 +77,7 @@ const initialTasks: Task[] = [
     commentCount: 2,
     userAvatar: "/images/user/user-07.jpg",
     status: "in-progress",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "8",
@@ -88,7 +88,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-08.jpg",
     status: "completed",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "9",
@@ -99,7 +99,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-09.jpg",
     status: "completed",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "10",
@@ -110,7 +110,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-10.jpg",
     status: "completed",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
   {
     id: "11",
@@ -121,7 +121,7 @@ const initialTasks: Task[] = [
     category: "Marketing",
     userAvatar: "/images/user/user-11.jpg",
     status: "completed",
-    toggleChecked: () => {},
+    toggleChecked: () => {}, // This will be replaced
   },
 ];
 
@@ -155,6 +155,7 @@ export default function TaskList() {
       task.id === dragging ? { ...task, status } : task
     );
 
+    // Sort tasks within the same status
     const statusTasks = updatedTasks.filter((task) => task.status === status);
     const otherTasks = updatedTasks.filter((task) => task.status !== status);
 
@@ -186,38 +187,23 @@ export default function TaskList() {
       )
     );
   };
-
   return (
-    <div
-      style={{
-        background: "var(--gv-color-bg-surface)",
-        borderRadius: "var(--gv-radius-xl)",
-        border: "1px solid var(--gv-color-neutral-200)",
-        boxShadow: "var(--gv-shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <TaskHeader />
+    <div>
+      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <TaskHeader />
 
-      <div
-        style={{
-          borderTop: "1px solid var(--gv-color-neutral-200)",
-          padding: "24px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "32px",
-        }}
-      >
-        {lanes.map((lane) => (
-          <TaskLane
-            key={lane}
-            lane={lane}
-            tasks={tasks.filter((task) => task.status === lane)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, lane)}
-            onDragStart={handleDragStart}
-          />
-        ))}
+        <div className="p-4 space-y-8 border-t border-gray-200 mt-7 dark:border-gray-800 sm:mt-0 xl:p-6">
+          {lanes.map((lane) => (
+            <TaskLane
+              key={lane}
+              lane={lane}
+              tasks={tasks.filter((task) => task.status === lane)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, lane)}
+              onDragStart={handleDragStart}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
