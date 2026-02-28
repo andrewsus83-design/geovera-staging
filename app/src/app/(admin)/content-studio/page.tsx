@@ -127,7 +127,7 @@ function SmartPromptBtn({ onClick, loading }: { onClick: () => void; loading: bo
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LEFT — Studio Nav
+// CENTER — Studio Section Picker
 // ══════════════════════════════════════════════════════════════════════════════
 const SECTIONS: { id: StudioSection; icon: string; label: string; sub: string }[] = [
   { id: "generate_image",  icon: "🖼️", label: "Generate Image",     sub: "KIE Flux · daily quota" },
@@ -137,50 +137,73 @@ const SECTIONS: { id: StudioSection; icon: string; label: string; sub: string }[
   { id: "history",         icon: "📋", label: "History",            sub: "All generations" },
 ];
 
-function StudioNav({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
+function StudioSectionPicker({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
   return (
-    <NavColumn>
-      <div className="px-1">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
-            Content Studio
-          </h2>
-          <p className="text-[10px] text-gray-400 mt-0.5">Powered by KIE + OpenAI</p>
-        </div>
-        <ul className="space-y-1">
-          {SECTIONS.map((s) => (
-            <li key={s.id}>
-              <button
-                onClick={() => onSelect(s.id)}
-                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                  active === s.id ? "bg-brand-50 dark:bg-brand-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                }`}
-              >
-                <span className="text-xl flex-shrink-0">{s.icon}</span>
-                <div className="min-w-0">
-                  <p className={`text-xs font-semibold truncate ${active === s.id ? "text-brand-700 dark:text-brand-400" : "text-gray-700 dark:text-gray-300"}`}>
-                    {s.label}
-                  </p>
-                  <p className="text-[10px] text-gray-400 truncate">{s.sub}</p>
-                </div>
-                {active === s.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-6 rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-            <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">KIE API Connected</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-            <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">OpenAI Smart Prompts</span>
-          </div>
-          <p className="text-[10px] text-gray-400 mt-1">Flux · Kling V1/V2 · LoRA</p>
-        </div>
+    <div className="space-y-3">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+          Content Studio
+        </h2>
+        <p className="text-[11px] text-gray-400 mt-0.5">Powered by KIE + OpenAI</p>
       </div>
-    </NavColumn>
+      <div className="space-y-2">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onSelect(s.id)}
+            className={`w-full flex items-center gap-4 rounded-2xl p-4 text-left transition-all border ${
+              active === s.id
+                ? "bg-brand-50 dark:bg-brand-500/10 border-brand-300 dark:border-brand-500 shadow-sm"
+                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-brand-300 hover:shadow-sm"
+            }`}
+          >
+            <span className="text-3xl flex-shrink-0">{s.icon}</span>
+            <div className="min-w-0 flex-1">
+              <p className={`text-sm font-semibold ${active === s.id ? "text-brand-700 dark:text-brand-400" : "text-gray-800 dark:text-gray-200"}`}>
+                {s.label}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
+            </div>
+            {active === s.id && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />}
+          </button>
+        ))}
+      </div>
+      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1.5 mt-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+          <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">KIE API Connected</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+          <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">OpenAI Smart Prompts</span>
+        </div>
+        <p className="text-[10px] text-gray-400">Flux · Kling V1/V2 · LoRA</p>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GENERATING POPUP
+// ══════════════════════════════════════════════════════════════════════════════
+function GeneratingPopup({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-200 dark:border-gray-700">
+        <div className="text-5xl mb-3 animate-bounce">⏳</div>
+        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Sedang Diproses</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          Generate sedang berlangsung di background. Hasilnya akan otomatis muncul di{" "}
+          <strong className="text-brand-600 dark:text-brand-400">History</strong> ketika sudah selesai.
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
+        >
+          OK, Mengerti
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -550,10 +573,11 @@ function TrainingWizard({
 // GENERATE IMAGE WIZARD
 // ══════════════════════════════════════════════════════════════════════════════
 function GenerateImageWizard({
-  brandId, currentTier, imagesUsedToday, trainedModels, onResult, onUsed,
+  brandId, currentTier, imagesUsedToday, trainedModels, onResult, onUsed, onGenerateStart,
 }: {
   brandId: string; currentTier: string; imagesUsedToday: number;
   trainedModels: TrainedModel[]; onResult: (img: GeneratedImage) => void; onUsed: () => void;
+  onGenerateStart?: () => void;
 }) {
   const limit = IMAGE_DAILY_LIMITS[currentTier] ?? 3;
   const atLimit = imagesUsedToday >= limit;
@@ -607,6 +631,7 @@ function GenerateImageWizard({
   const handleGenerate = async () => {
     if (atLimit) return;
     setLoading(true); setError(null);
+    onGenerateStart?.();
     let prompt = customPrompt.trim();
     if (!prompt && promptSource === "task" && selectedTask) {
       prompt = `Create a compelling visual for: ${selectedTask.title}. ${selectedTask.description ?? ""}. Platform: ${selectedTask.target_platforms?.join(", ") ?? "social media"}. Commercial quality, professional photography.`;
@@ -817,11 +842,12 @@ function GenerateImageWizard({
 // GENERATE VIDEO WIZARD
 // ══════════════════════════════════════════════════════════════════════════════
 function GenerateVideoWizard({
-  brandId, currentTier, videosUsedToday, trainedModels, historyImages, onResult, onUsed,
+  brandId, currentTier, videosUsedToday, trainedModels, historyImages, onResult, onUsed, onGenerateStart,
 }: {
   brandId: string; currentTier: string; videosUsedToday: number;
   trainedModels: TrainedModel[]; historyImages: GeneratedImage[];
   onResult: (v: GeneratedVideo) => void; onUsed: () => void;
+  onGenerateStart?: () => void;
 }) {
   const limit = VIDEO_DAILY_LIMITS[currentTier] ?? 1;
   const maxDuration = VIDEO_MAX_DURATION[currentTier] ?? 8;
@@ -895,6 +921,7 @@ function GenerateVideoWizard({
     if (!selectedTopic) { setError("Please select a topic style"); return; }
     if (atLimit) return;
     setLoading(true); setError(null);
+    onGenerateStart?.();
 
     const topicLabel = VIDEO_TOPICS.find((t) => t.id === selectedTopic)?.label ?? selectedTopic;
 
@@ -1497,6 +1524,9 @@ export default function ContentStudioPage() {
   const [imagesUsedToday, setImagesUsedToday] = useState(0);
   const [videosUsedToday, setVideosUsedToday] = useState(0);
   const [detailItem, setDetailItem] = useState<DetailItem>(null);
+  const [showGeneratingPopup, setShowGeneratingPopup] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
 
   // Auth + brand
   useEffect(() => {
@@ -1545,15 +1575,18 @@ export default function ContentStudioPage() {
   const completedModels = trainedModels.filter((m) => m.training_status === "completed");
   const totalModelCount = trainedModels.length;
 
-  const centerContent = () => {
+  const handleGenerateStart = () => setShowGeneratingPopup(true);
+
+  const wizardContent = () => {
     switch (activeSection) {
       case "generate_image":
         return (
           <GenerateImageWizard
             brandId={brandId} currentTier={currentTier} imagesUsedToday={imagesUsedToday}
             trainedModels={completedModels}
-            onResult={(img) => { setHistoryImages((p) => [img, ...p]); setDetailItem({ type: "image", data: img }); }}
+            onResult={(img) => { setHistoryImages((p) => [img, ...p]); setHistoryKey((k) => k + 1); }}
             onUsed={() => setImagesUsedToday((c) => c + 1)}
+            onGenerateStart={handleGenerateStart}
           />
         );
       case "generate_video":
@@ -1561,8 +1594,9 @@ export default function ContentStudioPage() {
           <GenerateVideoWizard
             brandId={brandId} currentTier={currentTier} videosUsedToday={videosUsedToday}
             trainedModels={completedModels} historyImages={historyImages}
-            onResult={(vid) => setDetailItem({ type: "video", data: vid })}
+            onResult={() => setHistoryKey((k) => k + 1)}
             onUsed={() => setVideosUsedToday((c) => c + 1)}
+            onGenerateStart={handleGenerateStart}
           />
         );
       case "train_product":
@@ -1570,7 +1604,7 @@ export default function ContentStudioPage() {
           <TrainingWizard
             brandId={brandId} trainingType="product" currentTier={currentTier} totalModelCount={totalModelCount}
             pastDatasets={trainedModels}
-            onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
+            onDone={(m) => { setTrainedModels((p) => [...p, m]); setHistoryKey((k) => k + 1); }}
           />
         );
       case "train_character":
@@ -1578,29 +1612,64 @@ export default function ContentStudioPage() {
           <TrainingWizard
             brandId={brandId} trainingType="character" currentTier={currentTier} totalModelCount={totalModelCount}
             pastDatasets={trainedModels}
-            onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
+            onDone={(m) => { setTrainedModels((p) => [...p, m]); setHistoryKey((k) => k + 1); }}
           />
         );
-      case "history":
-        return (
-          <HistoryCenter
-            brandId={brandId}
-            onSelectImage={(img) => setDetailItem({ type: "image", data: img })}
-            onSelectVideo={(vid) => setDetailItem({ type: "video", data: vid })}
-          />
-        );
+      default:
+        return null;
     }
   };
 
   return (
-    <ThreeColumnLayout
-      left={<StudioNav active={activeSection} onSelect={setActiveSection} />}
-      center={<div className="space-y-4">{centerContent()}</div>}
-      right={
-        <div className="sticky top-4">
-          <DetailPanel item={detailItem} brandId={brandId} />
+    <>
+      <ThreeColumnLayout
+        left={<NavColumn />}
+        center={<StudioSectionPicker active={activeSection} onSelect={setActiveSection} />}
+        right={
+          <div className="space-y-4">
+            {/* TOP: Active wizard (hidden when History section selected) */}
+            {activeSection !== "history" && (
+              <div>{wizardContent()}</div>
+            )}
+            {/* BOTTOM: History with 3 tabs — always visible */}
+            <HistoryCenter
+              key={historyKey}
+              brandId={brandId}
+              onSelectImage={(img) => { setDetailItem({ type: "image", data: img }); setShowDetailModal(true); }}
+              onSelectVideo={(vid) => { setDetailItem({ type: "video", data: vid }); setShowDetailModal(true); }}
+            />
+          </div>
+        }
+      />
+
+      {/* Generating popup */}
+      {showGeneratingPopup && <GeneratingPopup onClose={() => setShowGeneratingPopup(false)} />}
+
+      {/* Detail modal */}
+      {showDetailModal && detailItem && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowDetailModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Detail</h3>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              <DetailPanel item={detailItem} brandId={brandId} />
+            </div>
+          </div>
         </div>
-      }
-    />
+      )}
+    </>
   );
 }
