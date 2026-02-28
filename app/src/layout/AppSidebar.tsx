@@ -10,6 +10,7 @@ import {
   PlugInIcon,
   AiIcon,
   PieChartIcon,
+  PencilIcon,
 } from "../icons/index";
 
 // TikTok icon (inline SVG)
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { icon: <CalenderIcon />, name: "Calendar", path: "/calendar" },
   { icon: <PlugInIcon />, name: "Connect", path: "/connect" },
   { icon: <AiIcon />, name: "AI Agent", path: "/ai-agent" },
+  { icon: <PencilIcon />, name: "Content Studio", path: "/content-studio" },
   { icon: <TikTokNavIcon />, name: "TikTok Calendar", path: "/tiktok-calendar" },
   { icon: <PieChartIcon />, name: "Analytics", path: "/analytics", partnerOnly: true },
 ];
