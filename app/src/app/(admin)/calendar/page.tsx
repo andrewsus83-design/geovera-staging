@@ -1384,7 +1384,7 @@ export default function CalendarPage() {
       </div>
 
       {/* ── Scrollable tasks body ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-24">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-3">
         {/* Status Tabs (Segmented) — task-filter-tabs-refined token */}
         <div
           className="flex items-center pt-3 pb-2"
@@ -2021,28 +2021,35 @@ export default function CalendarPage() {
   );
 
   return (
-    <div className="relative">
-      <ThreeColumnLayout
-        left={left}
-        center={center}
-        right={right}
-        mobileRightOpen={mobileRightOpen}
-        onMobileBack={handleMobileBack}
-        mobileBackLabel="Tasks"
-      />
+    <div className="flex flex-col h-full">
+      {/* ── Three-column layout — shrinks to fit above nav ── */}
+      <div className="flex-1 min-h-0">
+        <ThreeColumnLayout
+          left={left}
+          center={center}
+          right={right}
+          mobileRightOpen={mobileRightOpen}
+          onMobileBack={handleMobileBack}
+          mobileBackLabel="Tasks"
+        />
+      </div>
 
-      {/* ── Floating bottom tab — Content / Comments / Others — same pill style as NavColumn ── */}
+      {/* ── Bottom tab bar — outside columns, fixed at bottom ── */}
       <nav
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 overflow-hidden"
-        style={{
-          borderRadius: "var(--gv-radius-2xl)",
-          border: "1px solid var(--gv-color-glass-border)",
-          background: "var(--gv-color-glass-bg)",
-          backdropFilter: "blur(var(--gv-blur-lg))",
-          WebkitBackdropFilter: "blur(var(--gv-blur-lg))",
-          boxShadow: "var(--gv-shadow-card)",
-        }}
+        className="flex-shrink-0 flex justify-center py-2"
+        style={{ background: "var(--gv-color-bg-base)" }}
       >
+        <div
+          className="overflow-hidden"
+          style={{
+            borderRadius: "var(--gv-radius-2xl)",
+            border: "1px solid var(--gv-color-glass-border)",
+            background: "var(--gv-color-glass-bg)",
+            backdropFilter: "blur(var(--gv-blur-lg))",
+            WebkitBackdropFilter: "blur(var(--gv-blur-lg))",
+            boxShadow: "var(--gv-shadow-card)",
+          }}
+        >
         <div className="flex items-center px-3 py-2 gap-1">
           {([
             {
@@ -2095,6 +2102,7 @@ export default function CalendarPage() {
               </button>
             );
           })}
+          </div>
         </div>
       </nav>
 
