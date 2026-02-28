@@ -162,26 +162,24 @@ const agents: Agent[] = [
 // ── Billing toggle (monthly / yearly) ───────────────────────────
 function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-[12px] bg-[#F9FAFB] border border-[#F3F4F6] px-4 py-3">
       <div>
-        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Billing cycle</p>
-        <p className="text-[10px] text-gray-400 mt-0.5">
-          {yearly
-            ? "Yearly — pay 11 months, get 1 month free"
-            : "Monthly billing"}
+        <p className="text-[12px] font-semibold text-[#1F2428]">Billing cycle</p>
+        <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+          {yearly ? "Yearly — pay 11 months, get 1 free" : "Monthly billing"}
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`text-[10px] font-medium ${!yearly ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}`}>Monthly</span>
+        <span className={`text-[11px] font-medium ${!yearly ? "text-[#1F2428]" : "text-[#9CA3AF]"}`}>Monthly</span>
         <button
           onClick={() => onChange(!yearly)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${yearly ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-600"}`}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${yearly ? "bg-[#5F8F8B]" : "bg-[#D1D5DB]"}`}
         >
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${yearly ? "translate-x-4.5" : "translate-x-0.5"}`} />
         </button>
-        <span className={`text-[10px] font-medium ${yearly ? "text-brand-600 dark:text-brand-400" : "text-gray-400"}`}>
+        <span className={`text-[11px] font-medium ${yearly ? "text-[#4E7C78]" : "text-[#9CA3AF]"}`}>
           Yearly
-          {yearly && <span className="ml-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-400">1 mo free</span>}
+          {yearly && <span className="ml-1 rounded-full bg-[#EDF5F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#3D6562]">1 mo free</span>}
         </span>
       </div>
     </div>
@@ -200,13 +198,13 @@ function SubscriptionPanel({
 }) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-800 p-2">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+      <div className="flex-shrink-0 border-b border-[#F3F4F6] px-5 py-4">
+        <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>
           Subscription Plans
         </h3>
-        <p className="text-xs text-gray-400 mt-0.5">Click a plan to see details</p>
+        <p className="text-[12px] text-[#9CA3AF] mt-0.5">Click a plan to see details</p>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-3">
         <BillingToggle yearly={billingYearly} onChange={onBillingChange} />
         {PLANS.map((plan) => (
           <SubscriptionTierCard
@@ -278,15 +276,15 @@ function BillingPanel({ brandId }: { brandId: string }) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-800 p-2">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+      <div className="flex-shrink-0 border-b border-[#F3F4F6] px-5 py-4">
+        <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>
           Billing
         </h3>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <p className="text-[12px] text-[#9CA3AF] mt-0.5">
           {sub ? `Next billing: ${nextBilling}` : loading ? "Loading…" : "No active subscription"}
         </p>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-3">
         {loading && (
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
@@ -296,17 +294,17 @@ function BillingPanel({ brandId }: { brandId: string }) {
         {!loading && (
           <>
             {/* Current billing summary */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Current Subscription</p>
+            <div className="rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+              <div className="px-4 py-2.5 bg-[#F9FAFB] border-b border-[#F3F4F6]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">Current Subscription</p>
               </div>
               <table className="w-full text-xs">
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody className="divide-y divide-[#F3F4F6]">
                   {[
                     {
                       label: "Plan",
                       value: sub ? (
-                        <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                        <span className="inline-flex items-center rounded-full bg-[#EDF5F4] px-2 py-0.5 text-[10px] font-semibold text-[#3D6562]">
                           {planLabel}
                         </span>
                       ) : "—",
@@ -317,19 +315,19 @@ function BillingPanel({ brandId }: { brandId: string }) {
                     {
                       label: "Status",
                       value: sub ? (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           sub.status === "active"
-                            ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                            ? "bg-[#ECFDF3] text-[#047857]"
+                            : "bg-[#F3F4F6] text-[#6B7280]"
                         }`}>
                           {sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
                         </span>
-                      ) : <span className="text-gray-400">No subscription</span>,
+                      ) : <span className="text-[#9CA3AF]">No subscription</span>,
                     },
                   ].map(({ label, value }) => (
                     <tr key={label}>
-                      <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
-                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-[#9CA3AF] w-1/3">{label}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-[#1F2428] font-medium">{value}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -338,20 +336,20 @@ function BillingPanel({ brandId }: { brandId: string }) {
 
             {/* Payment Method (Xendit) */}
             {sub && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Payment Method</p>
+              <div className="rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+                <div className="px-4 py-2.5 bg-[#F9FAFB] border-b border-[#F3F4F6]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">Payment Method</p>
                 </div>
                 <table className="w-full text-xs">
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-[#F3F4F6]">
                     {[
                       { label: "Gateway", value: "Xendit" },
                       { label: "Method", value: sub.payment_method || "—" },
                       { label: "Currency", value: "IDR (Indonesian Rupiah)" },
                     ].map(({ label, value }) => (
                       <tr key={label}>
-                        <td className="px-3 py-2 text-gray-400 w-1/3">{label}</td>
-                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{value}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-[#9CA3AF] w-1/3">{label}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-[#1F2428] font-medium">{value}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -360,33 +358,33 @@ function BillingPanel({ brandId }: { brandId: string }) {
             )}
 
             {/* Invoice History */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoice History</p>
+            <div className="rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+              <div className="px-4 py-2.5 bg-[#F9FAFB] border-b border-[#F3F4F6]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">Invoice History</p>
               </div>
               {invoices.length === 0 ? (
-                <p className="px-3 py-4 text-xs text-gray-400 text-center">No invoices yet</p>
+                <p className="px-4 py-5 text-[12px] text-[#9CA3AF] text-center">No invoices yet</p>
               ) : (
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-gray-800">
-                      <th className="px-3 py-2 text-left font-semibold text-gray-400">Date</th>
-                      <th className="px-3 py-2 text-right font-semibold text-gray-400">Amount</th>
-                      <th className="px-3 py-2 text-right font-semibold text-gray-400">Status</th>
+                    <tr className="border-b border-[#F3F4F6]">
+                      <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-[#F3F4F6]">
                     {invoices.map((inv) => (
                       <tr key={inv.id}>
-                        <td className="px-3 py-2 text-gray-500">{fmtDate(inv.created_at)}</td>
-                        <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{fmtAmt(inv.amount, inv.currency)}</td>
-                        <td className="px-3 py-2 text-right">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        <td className="px-4 py-2.5 text-[12px] text-[#6B7280]">{fmtDate(inv.created_at)}</td>
+                        <td className="px-4 py-2.5 text-right text-[12px] text-[#1F2428] font-medium">{fmtAmt(inv.amount, inv.currency)}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                             inv.status === "PAID" || inv.status === "SETTLED"
-                              ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                              ? "bg-[#ECFDF3] text-[#047857]"
                               : inv.status === "PENDING"
-                              ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                              ? "bg-[#FFFBEB] text-[#B45309]"
+                              : "bg-[#F3F4F6] text-[#6B7280]"
                           }`}>
                             {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
                           </span>
@@ -417,28 +415,27 @@ function ConnectAllPanel({
   onToggleReply: (id: string) => void;
 }) {
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* Scrollable content */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b border-[#F3F4F6] px-5 py-4">
+        <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>
+          Connected Platforms
+        </h3>
+        <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+          {platforms.filter((p) => p.connected).length} of {platforms.length} connected
+        </p>
+      </div>
+
+      {/* Column headers */}
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-5 py-2.5 border-b border-[#F3F4F6] bg-[#F9FAFB]">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">Platform</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] w-16 text-center">Connect</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] w-16 text-center">Auto-Reply</span>
+      </div>
+
+      {/* Platform rows — scrollable */}
       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-        {/* Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 p-2">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
-            Connected Platforms
-          </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {platforms.filter((p) => p.connected).length} of {platforms.length} connected
-          </p>
-        </div>
-
-        {/* Column headers */}
-        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-2 py-2 border-b border-gray-100 dark:border-gray-800">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Platform</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-16 text-center">Connect</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-16 text-center">Auto-Reply</span>
-        </div>
-
-        {/* Platform rows */}
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="divide-y divide-[#F3F4F6]">
           {platforms.map((platform) => {
             const accessible = isAccessible(platform);
             const isConnected = platform.connected;
@@ -446,27 +443,27 @@ function ConnectAllPanel({
             return (
               <div
                 key={platform.id}
-                className={`grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-2 py-2 ${!accessible ? "opacity-50" : ""}`}
+                className={`grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-5 py-3 ${!accessible ? "opacity-50" : ""}`}
               >
                 {/* Platform info */}
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <span className={`flex-shrink-0 ${!accessible ? "opacity-40" : ""}`}>
                     <PlatformIcon id={platform.id} size={22} />
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{platform.name}</p>
+                      <p className="text-[13px] font-medium text-[#1F2428] truncate">{platform.name}</p>
                       {!accessible && (
-                        <span className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[9px] font-medium text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 flex-shrink-0">
+                        <span className="rounded-full bg-[#FFF7ED] px-1.5 py-0.5 text-[9px] font-semibold text-[#C2410C] flex-shrink-0">
                           {planLabel[platform.plan]}+
                         </span>
                       )}
                     </div>
                     {platform.handle && accessible && isConnected && (
-                      <p className="text-[10px] text-gray-400 truncate">@{platform.handle}</p>
+                      <p className="text-[11px] text-[#9CA3AF] truncate">@{platform.handle}</p>
                     )}
                     {!isConnected && accessible && (
-                      <p className="text-[10px] text-gray-400">Not connected</p>
+                      <p className="text-[11px] text-[#9CA3AF]">Not connected</p>
                     )}
                   </div>
                 </div>
@@ -476,12 +473,12 @@ function ConnectAllPanel({
                   {accessible ? (
                     <button
                       onClick={() => onToggleConnect(platform.id)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isConnected ? "bg-brand-500" : "bg-gray-200 dark:bg-gray-700"}`}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${isConnected ? "bg-[#5F8F8B]" : "bg-[#D1D5DB]"}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isConnected ? "translate-x-6" : "translate-x-1"}`} />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${isConnected ? "translate-x-5.5" : "translate-x-0.5"}`} />
                     </button>
                   ) : (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 dark:text-gray-600">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D1D5DB]">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
                     </svg>
                   )}
@@ -493,12 +490,12 @@ function ConnectAllPanel({
                     <button
                       onClick={() => onToggleReply(platform.id)}
                       disabled={!isConnected}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${replyOn && isConnected ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"}`}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${replyOn && isConnected ? "bg-[#10B981]" : "bg-[#D1D5DB]"}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${replyOn && isConnected ? "translate-x-6" : "translate-x-1"}`} />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${replyOn && isConnected ? "translate-x-5.5" : "translate-x-0.5"}`} />
                     </button>
                   ) : (
-                    <span className="text-[10px] text-gray-300 dark:text-gray-600">—</span>
+                    <span className="text-[11px] text-[#D1D5DB]">—</span>
                   )}
                 </div>
               </div>
@@ -507,12 +504,11 @@ function ConnectAllPanel({
         </div>
 
         {/* Late note */}
-        <div className="mx-2 mt-2 mb-2 rounded-lg border border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5 p-2">
-          <p className="text-xs font-medium text-brand-700 dark:text-brand-300">Late Auto-Reply Limits</p>
-          <p className="text-[10px] text-brand-500 dark:text-brand-400 mt-1">Basic: 50/day · Premium: 100/day · Partner: 150/day</p>
+        <div className="mx-4 mt-3 mb-4 rounded-[12px] border border-[#A8D5CF] bg-[#EDF5F4] p-3">
+          <p className="text-[12px] font-semibold text-[#3D6562]">Late Auto-Reply Limits</p>
+          <p className="text-[11px] text-[#5F8F8B] mt-1">Basic: 50/day · Premium: 100/day · Partner: 150/day</p>
         </div>
       </div>
-
     </div>
   );
 }
@@ -544,54 +540,51 @@ function SecurityPanel() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4">
+      <div className="flex-shrink-0 border-b border-[#F3F4F6] px-5 py-4">
         <div className="flex items-center gap-2 mb-1">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/10">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 dark:text-red-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FEE2E2]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#DC2626]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>Security</h3>
+          <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>Security</h3>
         </div>
-        <p className="text-xs text-gray-400">Manage your account security settings</p>
+        <p className="text-[12px] text-[#9CA3AF]">Manage your account security settings</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 space-y-6">
 
         {/* ── Two-Factor Authentication ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">Two-Factor Authentication</p>
-              <p className="text-xs text-gray-400 mt-0.5">Add an extra layer of security to your account</p>
+              <p className="text-[14px] font-semibold text-[#1F2428]">Two-Factor Authentication</p>
+              <p className="text-[12px] text-[#9CA3AF] mt-0.5">Add an extra layer of security to your account</p>
             </div>
-            {/* Toggle */}
             <button
               onClick={handleToggle2FA}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                twoFaEnabled ? "bg-brand-500" : "bg-gray-200 dark:bg-gray-700"
+              className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                twoFaEnabled ? "bg-[#5F8F8B]" : "bg-[#D1D5DB]"
               }`}
             >
-              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFaEnabled ? "translate-x-5" : "translate-x-0"}`} />
+              <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFaEnabled ? "translate-x-5" : "translate-x-0"}`} />
             </button>
           </div>
 
           {twoFaEnabled && (
-            <div className="rounded-xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 p-4 space-y-3">
+            <div className="rounded-[12px] border border-[#A8D5CF] bg-[#EDF5F4] p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600 dark:text-brand-400 flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4E7C78] flex-shrink-0">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <p className="text-xs font-medium text-brand-700 dark:text-brand-400">2FA is enabled on your account</p>
+                <p className="text-[12px] font-semibold text-[#3D6562]">2FA is enabled on your account</p>
               </div>
 
               {showQr && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Scan with your authenticator app (Google Authenticator, Authy):</p>
-                  {/* QR placeholder */}
-                  <div className="w-28 h-28 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mx-auto">
+                  <p className="text-[12px] text-[#6B7280] mb-2">Scan with your authenticator app (Google Authenticator, Authy):</p>
+                  <div className="w-28 h-28 rounded-[10px] bg-white border border-[#E5E7EB] flex items-center justify-center mx-auto">
                     <svg viewBox="0 0 100 100" className="w-24 h-24">
-                      {/* Simple QR placeholder pattern */}
                       {[0,30,60].map(x => [0,30,60].map(y => (
                         <rect key={`${x}-${y}`} x={x+2} y={y+2} width="26" height="26" rx="3" fill="none" stroke="#374151" strokeWidth="2"/>
                       )))}
@@ -609,26 +602,25 @@ function SecurityPanel() {
                       <rect x="56" y="56" width="6" height="6" rx="1" fill="#374151"/>
                     </svg>
                   </div>
-                  <p className="text-[10px] text-gray-400 text-center mt-1">Demo QR — connect real auth in production</p>
+                  <p className="text-[10px] text-[#9CA3AF] text-center mt-1">Demo QR — connect real auth in production</p>
                 </div>
               )}
 
-              {/* Recovery codes */}
               <div>
-                <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1.5">Recovery Codes</p>
-                <div className="grid grid-cols-2 gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] mb-2">Recovery Codes</p>
+                <div className="grid grid-cols-2 gap-1.5">
                   {["8F2K-9XPQ", "3M7R-2WNT", "6B4H-5CYL", "1J9V-8ZUE"].map((code) => (
-                    <code key={code} className="rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-mono text-gray-700 dark:text-gray-300 text-center">
+                    <code key={code} className="rounded-[6px] bg-white border border-[#E5E7EB] px-2 py-1.5 text-[10px] font-mono text-[#1F2428] text-center">
                       {code}
                     </code>
                   ))}
                 </div>
-                <p className="text-[9px] text-gray-400 mt-1">Save these codes in a safe place. Each can only be used once.</p>
+                <p className="text-[10px] text-[#9CA3AF] mt-1.5">Save these codes in a safe place. Each can only be used once.</p>
               </div>
 
               <button
                 onClick={() => setTwoFaEnabled(false)}
-                className="w-full rounded-lg border border-red-200 dark:border-red-500/30 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                className="w-full rounded-[10px] border border-[#FCA5A5] py-2 text-[12px] font-semibold text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
               >
                 Disable 2FA
               </button>
@@ -636,87 +628,68 @@ function SecurityPanel() {
           )}
 
           {!twoFaEnabled && (
-            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-3 text-center">
-              <p className="text-xs text-gray-400">2FA is currently <span className="font-medium text-gray-600 dark:text-gray-400">disabled</span>. Enable it to protect your account.</p>
+            <div className="rounded-[12px] border border-dashed border-[#E5E7EB] p-3 text-center">
+              <p className="text-[12px] text-[#9CA3AF]">2FA is currently <span className="font-semibold text-[#4A545B]">disabled</span>. Enable it to protect your account.</p>
             </div>
           )}
         </div>
 
-        <div className="h-px bg-gray-100 dark:bg-gray-800" />
+        <div className="h-px bg-[#F3F4F6]" />
 
         {/* ── Change Password ── */}
         <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Change Password</p>
-          <p className="text-xs text-gray-400 mb-3">Use a strong password with letters, numbers, and symbols</p>
+          <p className="text-[14px] font-semibold text-[#1F2428] mb-1">Change Password</p>
+          <p className="text-[12px] text-[#9CA3AF] mb-4">Use a strong password with letters, numbers, and symbols</p>
 
-          <div className="space-y-2.5">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Current Password</label>
-              <input
-                type="password"
-                value={currentPw}
-                onChange={(e) => setCurrentPw(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">New Password</label>
-              <input
-                type="password"
-                value={newPw}
-                onChange={(e) => setNewPw(e.target.value)}
-                placeholder="Min. 8 characters"
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400 transition-colors"
-              />
-            </div>
+          <div className="space-y-3">
+            {[
+              { id: "current", label: "Current Password", value: currentPw, setter: setCurrentPw, placeholder: "••••••••" },
+              { id: "new",     label: "New Password",     value: newPw,     setter: setNewPw,     placeholder: "Min. 8 characters" },
+              { id: "confirm", label: "Confirm Password", value: confirmPw, setter: setConfirmPw, placeholder: "••••••••" },
+            ].map(({ id, label, value, setter, placeholder }) => (
+              <div key={id}>
+                <label className="block text-[12px] font-semibold text-[#4A545B] mb-1.5">{label}</label>
+                <input
+                  type="password"
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  placeholder={placeholder}
+                  className="gv-input"
+                />
+              </div>
+            ))}
 
-            {pwError && (
-              <p className="text-xs text-red-500 dark:text-red-400">{pwError}</p>
-            )}
-            {pwSaved && (
-              <p className="text-xs text-brand-600 dark:text-brand-400">✓ Password updated successfully</p>
-            )}
+            {pwError && <p className="text-[12px] text-[#DC2626]">{pwError}</p>}
+            {pwSaved  && <p className="text-[12px] text-[#4E7C78] font-medium">✓ Password updated successfully</p>}
 
-            <button
-              onClick={handleChangePw}
-              className="w-full rounded-lg bg-gray-900 dark:bg-white py-2.5 text-xs font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-            >
+            <button onClick={handleChangePw} className="gv-btn-primary w-full">
               Update Password
             </button>
           </div>
         </div>
 
-        <div className="h-px bg-gray-100 dark:bg-gray-800" />
+        <div className="h-px bg-[#F3F4F6]" />
 
         {/* ── Active Sessions ── */}
         <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Active Sessions</p>
+          <p className="text-[14px] font-semibold text-[#1F2428] mb-3">Active Sessions</p>
           <div className="space-y-2">
             {[
               { device: "MacBook Pro · Chrome", location: "Jakarta, ID", time: "Current session", current: true },
               { device: "iPhone 15 · Safari",   location: "Jakarta, ID", time: "2 hours ago",    current: false },
             ].map((s) => (
-              <div key={s.device} className={`rounded-xl border p-3 flex items-center justify-between gap-3 ${s.current ? "border-brand-200 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5" : "border-gray-200 dark:border-gray-800"}`}>
+              <div key={s.device} className={`rounded-[12px] border p-3 flex items-center justify-between gap-3 ${
+                s.current ? "border-[#A8D5CF] bg-[#EDF5F4]" : "border-[#E5E7EB] bg-white"
+              }`}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.device}</p>
-                    {s.current && <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[8px] font-semibold text-white flex-shrink-0">Now</span>}
+                    <p className="text-[13px] font-medium text-[#1F2428] truncate">{s.device}</p>
+                    {s.current && <span className="rounded-full bg-[#5F8F8B] px-1.5 py-0.5 text-[8px] font-bold text-white flex-shrink-0">Now</span>}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{s.location} · {s.time}</p>
+                  <p className="text-[11px] text-[#9CA3AF] mt-0.5">{s.location} · {s.time}</p>
                 </div>
                 {!s.current && (
-                  <button className="flex-shrink-0 text-[10px] font-medium text-red-500 hover:text-red-600">Revoke</button>
+                  <button className="flex-shrink-0 text-[11px] font-semibold text-[#DC2626] hover:text-[#B91C1C] transition-colors">Revoke</button>
                 )}
               </div>
             ))}
@@ -740,7 +713,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      className={`text-gray-400 transition-transform duration-200 flex-shrink-0 ${open ? "rotate-90" : ""}`}
+      className={`text-[#9CA3AF] transition-transform duration-200 flex-shrink-0 ${open ? "rotate-90" : ""}`}
     >
       <path d="M9 18l6-6-6-6" />
     </svg>
@@ -962,57 +935,56 @@ export default function HomePage() {
   );
 
   const center = (
-    <div className="space-y-2 p-2">
+    <div className="space-y-3 p-4 pb-8">
       {saveToast && (
-        <div className={`rounded-xl px-4 py-3 text-sm font-medium ${
+        <div className={`rounded-[12px] px-4 py-3 text-[13px] font-medium ${
           saveToast.startsWith("✅")
-            ? "bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/30"
-            : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30"
+            ? "bg-[#EDF5F4] text-[#3D6562] border border-[#A8D5CF]"
+            : "bg-[#FEF2F2] text-[#B91C1C] border border-[#FCA5A5]"
         }`}>
           {saveToast}
         </div>
       )}
 
       {/* ── PROFILE ─────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+      <div className="rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden"
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}>
         <button
           onClick={() => { toggleSection("profile"); if (openSection !== "profile") openRightMode("brand"); else openRightMode("brand"); }}
-          className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-[#F9FAFB] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600 dark:text-brand-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#D4EAE7] flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4E7C78]">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Profile</p>
-              <p className="text-xs text-gray-400 mt-0.5">GeoVera · Jakarta, ID</p>
+              <p className="text-[14px] font-semibold text-[#1F2428]">Profile</p>
+              <p className="text-[12px] text-[#9CA3AF] mt-0.5">GeoVera · Jakarta, ID</p>
             </div>
           </div>
           <ChevronIcon open={openSection === "profile"} />
         </button>
 
         {openSection === "profile" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 p-2 space-y-3">
+          <div className="border-t border-[#F3F4F6] p-4 space-y-4">
             {/* Brand Overview */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                <div>
-                  <span className="text-gray-400">Industry</span>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium mt-0.5">Marketing Intelligence</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {[
+                { label: "Industry", value: "Marketing Intelligence" },
+                { label: "Location", value: "Jakarta, ID" },
+                { label: "Website",  value: "geovera.xyz" },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <span className="text-[11px] font-medium text-[#9CA3AF] uppercase tracking-wide">{label}</span>
+                  <p className="text-[13px] text-[#1F2428] font-medium mt-1">{value}</p>
                 </div>
-                <div>
-                  <span className="text-gray-400">Location</span>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium mt-0.5">Jakarta, ID</p>
-                </div>
-                <div>
-                  <span className="text-gray-400">Website</span>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium mt-0.5">geovera.xyz</p>
-                </div>
-                <div>
-                  <span className="text-gray-400">Plan</span>
-                  <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 mt-0.5">
+              ))}
+              <div>
+                <span className="text-[11px] font-medium text-[#9CA3AF] uppercase tracking-wide">Plan</span>
+                <div className="mt-1">
+                  <span className="inline-flex items-center rounded-full bg-[#EDF5F4] px-2.5 py-0.5 text-[11px] font-semibold text-[#3D6562]">
                     {currentPlan === "enterprise" ? "Partner" : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
                   </span>
                 </div>
@@ -1020,16 +992,15 @@ export default function HomePage() {
             </div>
 
             {/* DNA / Brand Storytelling */}
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-3 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Brand DNA</p>
-              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+            <div className="rounded-[12px] bg-[#F9FAFB] border border-[#F3F4F6] p-4 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">Brand DNA</p>
+              <p className="text-[13px] text-[#4A545B] leading-relaxed">
                 GeoVera is a marketing intelligence platform built for modern brands navigating the complexity of multi-channel digital growth. Rooted in Jakarta&apos;s vibrant startup ecosystem, GeoVera blends AI-driven automation with human-centric brand storytelling — empowering founders and CMOs to scale their presence without scaling their team.
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              <p className="text-[13px] text-[#6B7280] leading-relaxed">
                 At its core, GeoVera believes that every brand has a unique story worth telling — and that the right intelligence layer can amplify that story across every platform, every audience, and every moment that matters.
               </p>
             </div>
-
           </div>
         )}
       </div>
@@ -1037,24 +1008,25 @@ export default function HomePage() {
       {/* ── ASSETS ──────────────────────────────────────── */}
       <button
         onClick={() => openRightMode("assets")}
-        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+        className={`w-full rounded-[16px] border overflow-hidden flex items-center justify-between p-4 transition-all ${
           rightMode === "assets"
-            ? "border-purple-400 bg-purple-50/30 dark:border-purple-500/50 dark:bg-purple-500/5"
-            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+            ? "border-[#C4B5FD] bg-[#F5F3FF]"
+            : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] hover:border-[#D1D5DB]"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "assets" ? "bg-purple-100 dark:bg-purple-500/20" : "bg-purple-100 dark:bg-purple-500/10"}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600 dark:text-purple-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#EDE9FE] flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#7C3AED]">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Assets</p>
-            <p className="text-xs text-gray-400 mt-0.5">Colors · Logos · LoRA models</p>
+            <p className="text-[14px] font-semibold text-[#1F2428]">Assets</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Colors · Logos · LoRA models</p>
           </div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </button>
@@ -1062,22 +1034,23 @@ export default function HomePage() {
       {/* ── SUBSCRIPTION ────────────────────────────────── */}
       <button
         onClick={() => openRightMode("subscription")}
-        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+        className={`w-full rounded-[16px] border overflow-hidden flex items-center justify-between p-4 transition-all ${
           rightMode === "subscription"
-            ? "border-amber-400 bg-amber-50/30 dark:border-amber-500/50 dark:bg-amber-500/5"
-            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+            ? "border-[#FCD34D] bg-[#FFFBEB]"
+            : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] hover:border-[#D1D5DB]"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "subscription" ? "bg-amber-100 dark:bg-amber-500/20" : "bg-amber-100 dark:bg-amber-500/10"}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 dark:text-amber-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#FEF3C7] flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D97706]">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Subscription</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              <span className="font-semibold text-amber-600 dark:text-amber-400">
+            <p className="text-[14px] font-semibold text-[#1F2428]">Subscription</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+              <span className="font-semibold text-[#D97706]">
                 {currentPlan === "enterprise" ? "Partner" : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
               </span>
               {" · "}
@@ -1085,7 +1058,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </button>
@@ -1093,24 +1066,25 @@ export default function HomePage() {
       {/* ── BILLING ─────────────────────────────────────── */}
       <button
         onClick={() => openRightMode("billing")}
-        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+        className={`w-full rounded-[16px] border overflow-hidden flex items-center justify-between p-4 transition-all ${
           rightMode === "billing"
-            ? "border-blue-400 bg-blue-50/30 dark:border-blue-500/50 dark:bg-blue-500/5"
-            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+            ? "border-[#93C5FD] bg-[#EFF6FF]"
+            : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] hover:border-[#D1D5DB]"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "billing" ? "bg-blue-100 dark:bg-blue-500/20" : "bg-blue-100 dark:bg-blue-500/10"}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#DBEAFE] flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#2563EB]">
               <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Billing</p>
-            <p className="text-xs text-gray-400 mt-0.5">Payment · Xendit · IDR</p>
+            <p className="text-[14px] font-semibold text-[#1F2428]">Billing</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Payment · Xendit · IDR</p>
           </div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </button>
@@ -1118,24 +1092,25 @@ export default function HomePage() {
       {/* ── SECURITY ────────────────────────────────────── */}
       <button
         onClick={() => openRightMode("security")}
-        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+        className={`w-full rounded-[16px] border overflow-hidden flex items-center justify-between p-4 transition-all ${
           rightMode === "security"
-            ? "border-red-400 bg-red-50/30 dark:border-red-500/50 dark:bg-red-500/5"
-            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+            ? "border-[#FCA5A5] bg-[#FEF2F2]"
+            : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] hover:border-[#D1D5DB]"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "security" ? "bg-red-100 dark:bg-red-500/20" : "bg-red-100 dark:bg-red-500/10"}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 dark:text-red-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#FEE2E2] flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#DC2626]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Security</p>
-            <p className="text-xs text-gray-400 mt-0.5">2FA · Password · Sessions</p>
+            <p className="text-[14px] font-semibold text-[#1F2428]">Security</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">2FA · Password · Sessions</p>
           </div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </button>
@@ -1143,92 +1118,93 @@ export default function HomePage() {
       {/* ── CONNECT ─────────────────────────────────────── */}
       <button
         onClick={() => openRightMode("connect")}
-        className={`w-full rounded-xl border overflow-hidden flex items-center justify-between p-2.5 transition-colors ${
+        className={`w-full rounded-[16px] border overflow-hidden flex items-center justify-between p-4 transition-all ${
           rightMode === "connect"
-            ? "border-brand-400 bg-brand-50/30 dark:border-brand-500/50 dark:bg-brand-500/5"
-            : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50"
+            ? "border-[#A8D5CF] bg-[#EDF5F4]"
+            : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] hover:border-[#D1D5DB]"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${rightMode === "connect" ? "bg-brand-100 dark:bg-brand-500/20" : "bg-blue-100 dark:bg-blue-500/10"}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={rightMode === "connect" ? "text-brand-600 dark:text-brand-400" : "text-blue-600 dark:text-blue-400"}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#D4EAE7] flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4E7C78]">
               <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Connect</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              <span className="font-semibold text-brand-600 dark:text-brand-400">{connectedCount}</span> connected · {platforms.length} platforms
+            <p className="text-[14px] font-semibold text-[#1F2428]">Connect</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+              <span className="font-semibold text-[#5F8F8B]">{connectedCount}</span> connected · {platforms.length} platforms
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Mini platform icons */}
           <div className="flex gap-1">
             {platforms.filter(p => p.connected).slice(0, 4).map((p) => (
               <PlatformIcon key={p.id} id={p.id} size={18} />
             ))}
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
             <path d="M9 18l6-6-6-6" />
           </svg>
         </div>
       </button>
 
       {/* ── AI AGENTS ───────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+      <div className="rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden"
+        style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}>
         <button
           onClick={() => toggleSection("agents")}
-          className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-[#F9FAFB] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-500/10 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-rose-600 dark:text-rose-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#FFE4E6] flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#E11D48]">
                 <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7H3a7 7 0 017-7h1V5.73A2 2 0 0110 4a2 2 0 012-2z" /><path d="M3 14v7h18v-7" />
               </svg>
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">AI Agents</p>
-              <p className="text-xs text-gray-400 mt-0.5">CEO · CMO · 2 active</p>
+              <p className="text-[14px] font-semibold text-[#1F2428]">AI Agents</p>
+              <p className="text-[12px] text-[#9CA3AF] mt-0.5">CEO · CMO · 2 active</p>
             </div>
           </div>
           <ChevronIcon open={openSection === "agents"} />
         </button>
 
         {openSection === "agents" && (
-          <div className="border-t border-gray-100 dark:border-gray-800 p-2 space-y-2">
+          <div className="border-t border-[#F3F4F6] p-3 space-y-2">
             {agents.map((agent) => {
               const isSelected = rightMode === "agent" && selectedAgentId === agent.id;
               return (
                 <button
                   key={agent.id}
                   onClick={() => { setSelectedAgentId(agent.id); openRightMode("agent"); }}
-                  className={`w-full text-left rounded-xl border p-3 transition-all ${
+                  className={`w-full text-left rounded-[12px] border p-3 transition-all ${
                     isSelected
-                      ? "border-brand-500 bg-brand-50/50 shadow-sm dark:border-brand-400 dark:bg-brand-500/5"
-                      : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
+                      ? "border-[#A8D5CF] bg-[#EDF5F4]"
+                      : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB] hover:bg-[#F9FAFB]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{agent.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{agent.name}</p>
+                        <p className="text-[13px] font-semibold text-[#1F2428]">{agent.name}</p>
                         {agent.active && !agent.locked && (
-                          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[9px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">Active</span>
+                          <span className="rounded-full bg-[#EDF5F4] px-2 py-0.5 text-[10px] font-semibold text-[#3D6562]">Active</span>
                         )}
                         {agent.locked && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">Locked</span>
+                          <span className="rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[10px] font-semibold text-[#6B7280]">Locked</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{agent.title}</p>
+                      <p className="text-[12px] text-[#6B7280] mt-0.5">{agent.title}</p>
                     </div>
                     {agent.locked ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D1D5DB] flex-shrink-0">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
                       </svg>
                     ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9CA3AF] flex-shrink-0">
                         <path d="M9 18l6-6-6-6" />
                       </svg>
                     )}
