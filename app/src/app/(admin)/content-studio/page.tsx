@@ -1,1182 +1,1353 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import { supabase } from "@/lib/supabase";
-import Image from "next/image";
 
 const FALLBACK_BRAND_ID =
   process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+const IMAGE_DAILY_LIMITS: Record<string, number> = { basic: 3, premium: 6, partner: 10 };
+const VIDEO_DAILY_LIMITS: Record<string, number> = { basic: 1, premium: 2, partner: 3 };
+const VIDEO_MAX_DURATION: Record<string, number> = { basic: 8, premium: 15, partner: 25 };
+const TRAINING_LIMITS: Record<string, number> = { basic: 5, premium: 10, partner: 15 };
+
+const VIDEO_TOPICS = [
+  { id: "podcast",        label: "🎙️ Podcast",               desc: "Conversational, interview style" },
+  { id: "product_review", label: "⭐ Product Review",        desc: "Honest, detailed showcase" },
+  { id: "edu_product",    label: "📚 Edukasi Product",       desc: "How-to, tutorial format" },
+  { id: "new_product",    label: "🆕 New Product Launch",    desc: "Exciting announcement" },
+  { id: "soft_selling",   label: "💫 Soft Selling",          desc: "Subtle, lifestyle integrated" },
+  { id: "lifestyle",      label: "🌟 Lifestyle",             desc: "Day-in-life, aspirational" },
+  { id: "advertorial",    label: "📰 Advertorial Trend",     desc: "Trending format, viral hook" },
+];
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 type StudioSection = "generate_image" | "generate_video" | "train_product" | "train_character" | "history";
+type SubjectType = "character" | "product" | "both";
+type ModelMode = "trained" | "random";
+type VideoInputType = "text" | "image";
+type PromptSource = "random" | "custom" | "task";
 
 interface TrainedModel {
-  id: string;
-  dataset_name: string;
-  theme: string;
-  image_count: number;
-  training_status: string;
-  model_path: string | null;
-  metadata: { trigger_word?: string; kie_training_id?: string } | null;
+  id: string; dataset_name: string; theme: string; image_count: number;
+  training_status: string; model_path: string | null;
+  metadata: { trigger_word?: string; kie_training_id?: string; lora_model?: string } | null;
   created_at: string;
 }
 interface GeneratedImage {
-  id: string;
-  prompt_text: string;
-  image_url: string | null;
-  thumbnail_url: string | null;
-  status: string;
-  ai_model: string | null;
-  target_platform: string | null;
-  style_preset: string | null;
-  created_at: string;
+  id: string; prompt_text: string; image_url: string | null; thumbnail_url: string | null;
+  status: string; ai_model: string | null; target_platform: string | null;
+  style_preset: string | null; created_at: string;
 }
 interface GeneratedVideo {
-  id: string;
-  hook: string;
-  video_url: string | null;
-  video_thumbnail_url: string | null;
-  video_status: string | null;
-  ai_model: string | null;
-  target_platform: string | null;
-  video_aspect_ratio: string | null;
-  created_at: string;
+  id: string; hook: string; video_url: string | null; video_thumbnail_url: string | null;
+  video_status: string | null; ai_model: string | null; target_platform: string | null;
+  video_aspect_ratio: string | null; created_at: string;
 }
+interface TodayTask { id: string; title: string; description: string | null; target_platforms: string[] | null; }
+interface SideImage { side: "front" | "left" | "back" | "right"; label: string; file: File | null; preview: string | null; storageUrl: string | null; }
+type DetailItem = { type: "image"; data: GeneratedImage } | { type: "video"; data: GeneratedVideo } | { type: "model"; data: TrainedModel } | null;
 
-// ── API helper ────────────────────────────────────────────────────────────────
+// ── API helpers ───────────────────────────────────────────────────────────────
 async function studioFetch(payload: Record<string, unknown>) {
   const res = await fetch("/api/content-studio", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
   return res.json();
 }
 
-// ── Section icons & labels ────────────────────────────────────────────────────
+async function uploadImage(file: File, brandId: string, folder: string, name: string): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${folder}/${brandId}/${name}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("agent-profiles").upload(path, file, { upsert: true });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from("agent-profiles").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+function StepBar({ steps, current }: { steps: string[]; current: number }) {
+  return (
+    <div className="flex border-b border-gray-100 dark:border-gray-800">
+      {steps.map((label, i) => {
+        const n = i + 1;
+        return (
+          <div key={label} className={`flex-1 text-center py-2.5 text-[10px] font-semibold transition-colors ${
+            current === n ? "text-brand-600 dark:text-brand-400 border-b-2 border-brand-500"
+            : current > n ? "text-green-600 dark:text-green-400"
+            : "text-gray-400"
+          }`}>
+            {current > n ? "✓ " : `${n}. `}{label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DailyQuota({ used, limit, label }: { used: number; limit: number; label: string }) {
+  const remaining = Math.max(0, limit - used);
+  const pct = Math.min(100, (used / limit) * 100);
+  const color = remaining === 0 ? "bg-red-500" : remaining <= 1 ? "bg-amber-500" : "bg-brand-500";
+  return (
+    <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between mb-1">
+          <span className="text-[10px] text-gray-500 dark:text-gray-400">{label} today</span>
+          <span className={`text-[10px] font-bold ${remaining === 0 ? "text-red-500" : "text-gray-700 dark:text-gray-300"}`}>
+            {remaining} left / {limit}
+          </span>
+        </div>
+        <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SmartPromptBtn({ onClick, loading }: { onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 disabled:opacity-50 transition-colors"
+    >
+      {loading ? <span className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" /> : "✨"}
+      {loading ? "AI thinking..." : "Smart Prompt (OpenAI)"}
+    </button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LEFT — Studio Nav
+// ══════════════════════════════════════════════════════════════════════════════
 const SECTIONS: { id: StudioSection; icon: string; label: string; sub: string }[] = [
-  { id: "generate_image", icon: "🖼️",  label: "Generate Image",     sub: "KIE · Text to Image" },
-  { id: "generate_video", icon: "🎬",  label: "Generate Video",     sub: "KIE · Kling AI" },
-  { id: "train_product",  icon: "🏭",  label: "Product Training",   sub: "LoRA · product model" },
-  { id: "train_character",icon: "👤",  label: "Character Training", sub: "LoRA · persona model" },
-  { id: "history",        icon: "📋",  label: "History",            sub: "All generations" },
+  { id: "generate_image",  icon: "🖼️", label: "Generate Image",     sub: "KIE Flux · daily quota" },
+  { id: "generate_video",  icon: "🎬", label: "Generate Video",     sub: "KIE Kling · daily quota" },
+  { id: "train_product",   icon: "🏭", label: "Product Training",   sub: "LoRA · 4-side upload" },
+  { id: "train_character", icon: "👤", label: "Character Training", sub: "LoRA · persona model" },
+  { id: "history",         icon: "📋", label: "History",            sub: "All generations" },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LEFT COLUMN — Studio navigation
-// ═══════════════════════════════════════════════════════════════════════════════
-function StudioNav({
-  active, onSelect,
-}: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
+function StudioNav({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
   return (
     <NavColumn>
       <div className="px-1">
         <div className="mb-4">
-          <h2
-            className="text-base font-semibold text-gray-900 dark:text-white"
-            style={{ fontFamily: "Georgia, serif" }}
-          >
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
             Content Studio
           </h2>
-          <p className="text-[10px] text-gray-400 mt-0.5">Powered by KIE API</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Powered by KIE + OpenAI</p>
         </div>
-
         <ul className="space-y-1">
           {SECTIONS.map((s) => (
             <li key={s.id}>
               <button
                 onClick={() => onSelect(s.id)}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                  active === s.id
-                    ? "bg-brand-50 dark:bg-brand-500/10"
-                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  active === s.id ? "bg-brand-50 dark:bg-brand-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 }`}
               >
                 <span className="text-xl flex-shrink-0">{s.icon}</span>
                 <div className="min-w-0">
-                  <p className={`text-xs font-semibold truncate ${
-                    active === s.id
-                      ? "text-brand-700 dark:text-brand-400"
-                      : "text-gray-700 dark:text-gray-300"
-                  }`}>
+                  <p className={`text-xs font-semibold truncate ${active === s.id ? "text-brand-700 dark:text-brand-400" : "text-gray-700 dark:text-gray-300"}`}>
                     {s.label}
                   </p>
                   <p className="text-[10px] text-gray-400 truncate">{s.sub}</p>
                 </div>
-                {active === s.id && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />
-                )}
+                {active === s.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />}
               </button>
             </li>
           ))}
         </ul>
-
-        {/* KIE API badge */}
-        <div className="mt-6 rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="0">
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </span>
+        <div className="mt-6 rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
             <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">KIE API Connected</span>
           </div>
-          <p className="text-[10px] text-gray-400">
-            Flux · Kling V1 · LoRA Training
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+            <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">OpenAI Smart Prompts</span>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Flux · Kling V1/V2 · LoRA</p>
         </div>
       </div>
     </NavColumn>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTER — Generate Image
-// ═══════════════════════════════════════════════════════════════════════════════
-function GenerateImageCenter({
-  brandId, trainedModels, onResult,
+// ══════════════════════════════════════════════════════════════════════════════
+// TRAINING WIZARD
+// ══════════════════════════════════════════════════════════════════════════════
+function TrainingWizard({
+  brandId, trainingType, currentTier, totalModelCount, onDone,
 }: {
-  brandId: string;
-  trainedModels: TrainedModel[];
-  onResult: (img: GeneratedImage) => void;
-}) {
-  const [prompt, setPrompt] = useState("");
-  const [negative, setNegative] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [loraModel, setLoraModel] = useState("");
-  const [model, setModel] = useState("kie-flux");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recentImages, setRecentImages] = useState<GeneratedImage[]>([]);
-
-  // Load recent images
-  useEffect(() => {
-    studioFetch({ action: "get_history", brand_id: brandId, type: "image", limit: 8 })
-      .then((r) => { if (r.success) setRecentImages(r.images ?? []); });
-  }, [brandId]);
-
-  const generate = async () => {
-    if (!prompt.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await studioFetch({
-        action: "generate_image",
-        brand_id: brandId,
-        prompt: prompt.trim(),
-        negative_prompt: negative,
-        aspect_ratio: aspectRatio,
-        model,
-        lora_model: loraModel || undefined,
-      });
-      if (res.success) {
-        const newImg: GeneratedImage = {
-          id: res.db_id ?? Date.now().toString(),
-          prompt_text: prompt,
-          image_url: res.image_url,
-          thumbnail_url: res.image_url,
-          status: res.status ?? "completed",
-          ai_model: model,
-          target_platform: null,
-          style_preset: loraModel || null,
-          created_at: new Date().toISOString(),
-        };
-        setRecentImages((prev) => [newImg, ...prev.slice(0, 7)]);
-        onResult(newImg);
-        setPrompt("");
-      } else {
-        setError(res.error ?? "Generation failed");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const productModels = trainedModels.filter((m) => m.theme === "product" && m.training_status === "completed");
-  const charModels = trainedModels.filter((m) => m.theme === "character" && m.training_status === "completed");
-  const allModels = [...productModels, ...charModels];
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3" style={{ fontFamily: "Georgia, serif" }}>
-          🖼️ Generate Image
-        </h3>
-
-        {/* Prompt */}
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A premium lifestyle shot of the product on a white marble surface, golden hour lighting..."
-              rows={3}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400 resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Negative Prompt</label>
-            <input
-              value={negative}
-              onChange={(e) => setNegative(e.target.value)}
-              placeholder="blur, low quality, watermark..."
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Aspect Ratio */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Aspect Ratio</label>
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="1:1">1:1 Square (Instagram)</option>
-                <option value="9:16">9:16 Portrait (Story/Reel)</option>
-                <option value="16:9">16:9 Landscape (YouTube)</option>
-                <option value="4:5">4:5 Portrait (Instagram Feed)</option>
-              </select>
-            </div>
-
-            {/* Model */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Model</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="kie-flux">KIE Flux (Recommended)</option>
-                <option value="kie-sd3">KIE SD3</option>
-                <option value="kie-xl">KIE XL</option>
-              </select>
-            </div>
-          </div>
-
-          {/* LoRA Model */}
-          {allModels.length > 0 && (
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
-                LoRA Model (Optional)
-              </label>
-              <select
-                value={loraModel}
-                onChange={(e) => setLoraModel(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="">None — base model only</option>
-                {productModels.map((m) => (
-                  <option key={m.id} value={m.metadata?.kie_training_id ?? m.id}>
-                    🏭 {m.dataset_name} (trigger: {m.metadata?.trigger_word})
-                  </option>
-                ))}
-                {charModels.map((m) => (
-                  <option key={m.id} value={m.metadata?.kie_training_id ?? m.id}>
-                    👤 {m.dataset_name} (trigger: {m.metadata?.trigger_word})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {error && (
-            <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
-          )}
-
-          <button
-            onClick={generate}
-            disabled={loading || !prompt.trim()}
-            className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Generating…
-              </span>
-            ) : "✨ Generate Image"}
-          </button>
-        </div>
-      </div>
-
-      {/* Recent images grid */}
-      {recentImages.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-          <h4 className="text-xs font-semibold uppercase text-gray-400 mb-3">Recent</h4>
-          <div className="grid grid-cols-4 gap-2">
-            {recentImages.map((img) => (
-              <button
-                key={img.id}
-                onClick={() => onResult(img)}
-                className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 ring-brand-400 transition-all"
-              >
-                {img.image_url ? (
-                  <Image src={img.image_url} alt={img.prompt_text} width={100} height={100} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xl">🖼️</div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTER — Generate Video
-// ═══════════════════════════════════════════════════════════════════════════════
-function GenerateVideoCenter({
-  brandId, onResult,
-}: {
-  brandId: string;
-  onResult: (v: GeneratedVideo) => void;
-}) {
-  const [prompt, setPrompt] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [duration, setDuration] = useState(5);
-  const [aspectRatio, setAspectRatio] = useState("9:16");
-  const [model, setModel] = useState("kling-v1");
-  const [mode, setMode] = useState("standard");
-  const [platform, setPlatform] = useState("tiktok");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recent, setRecent] = useState<GeneratedVideo[]>([]);
-
-  useEffect(() => {
-    studioFetch({ action: "get_history", brand_id: brandId, type: "video", limit: 6 })
-      .then((r) => { if (r.success) setRecent(r.videos ?? []); });
-  }, [brandId]);
-
-  const generate = async () => {
-    if (!prompt.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await studioFetch({
-        action: "generate_video",
-        brand_id: brandId,
-        prompt: prompt.trim(),
-        duration,
-        aspect_ratio: aspectRatio,
-        model,
-        mode,
-        platform,
-        image_url: imageUrl.trim() || undefined,
-      });
-      if (res.success) {
-        const newVid: GeneratedVideo = {
-          id: res.db_id ?? Date.now().toString(),
-          hook: prompt,
-          video_url: res.video_url,
-          video_thumbnail_url: null,
-          video_status: res.status ?? "processing",
-          ai_model: model,
-          target_platform: platform,
-          video_aspect_ratio: aspectRatio,
-          created_at: new Date().toISOString(),
-        };
-        setRecent((prev) => [newVid, ...prev.slice(0, 5)]);
-        onResult(newVid);
-        setPrompt("");
-      } else {
-        setError(res.error ?? "Generation failed");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3" style={{ fontFamily: "Georgia, serif" }}>
-          🎬 Generate Video
-        </h3>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Product floating on water with dramatic slow-motion waves, cinematic lighting..."
-              rows={3}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400 resize-none"
-            />
-          </div>
-
-          {/* Image-to-video */}
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
-              Reference Image URL <span className="text-gray-400 font-normal">(optional — image-to-video)</span>
-            </label>
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://... (paste generated image URL)"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Model */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Model</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="kling-v1">Kling V1</option>
-                <option value="kling-v1.5">Kling V1.5</option>
-                <option value="kling-v2">Kling V2</option>
-              </select>
-            </div>
-            {/* Mode */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Mode</label>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="standard">Standard</option>
-                <option value="pro">Pro</option>
-              </select>
-            </div>
-            {/* Duration */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Duration</label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value={5}>5 seconds</option>
-                <option value={10}>10 seconds</option>
-              </select>
-            </div>
-            {/* Aspect Ratio */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Aspect Ratio</label>
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-              >
-                <option value="9:16">9:16 TikTok/Reel</option>
-                <option value="16:9">16:9 YouTube</option>
-                <option value="1:1">1:1 Square</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Platform */}
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Target Platform</label>
-            <div className="flex gap-2">
-              {["tiktok","instagram","youtube","linkedin"].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-                    platform === p
-                      ? "bg-brand-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {p === "tiktok" ? "🎵" : p === "instagram" ? "📸" : p === "youtube" ? "🎬" : "💼"} {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
-
-          <button
-            onClick={generate}
-            disabled={loading || !prompt.trim()}
-            className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Generating…
-              </span>
-            ) : "🎬 Generate Video"}
-          </button>
-        </div>
-      </div>
-
-      {/* Recent videos */}
-      {recent.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-          <h4 className="text-xs font-semibold uppercase text-gray-400 mb-3">Recent</h4>
-          <div className="space-y-2">
-            {recent.map((v) => (
-              <button
-                key={v.id}
-                onClick={() => onResult(v)}
-                className="w-full flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden">
-                  {v.video_thumbnail_url ? (
-                    <Image src={v.video_thumbnail_url} alt="thumb" width={40} height={40} className="w-full h-full object-cover rounded-lg" />
-                  ) : "🎬"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{v.hook}</p>
-                  <p className="text-[10px] text-gray-400">{v.target_platform} · {v.video_aspect_ratio} · {v.video_status}</p>
-                </div>
-                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                  v.video_status === "completed" ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400" :
-                  "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
-                }`}>
-                  {v.video_status === "completed" ? "Done" : "Processing"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Training limits per tier (total product + character combined)
-const TRAINING_LIMITS: Record<string, number> = { basic: 5, premium: 10, partner: 15 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTER — Training (Product / Character)
-// ═══════════════════════════════════════════════════════════════════════════════
-function TrainingCenter({
-  brandId,
-  type,
-  onModelReady,
-  currentTier,
-  totalModelCount,
-}: {
-  brandId: string;
-  type: "product" | "character";
-  onModelReady: (model: TrainedModel) => void;
-  currentTier: "basic" | "premium" | "partner";
-  totalModelCount: number;
+  brandId: string; trainingType: "product" | "character";
+  currentTier: string; totalModelCount: number;
+  onDone: (m: TrainedModel) => void;
 }) {
   const limit = TRAINING_LIMITS[currentTier] ?? 5;
-  const limitReached = totalModelCount >= limit;
-  const [name, setName] = useState("");
+  const atLimit = totalModelCount >= limit;
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [datasetName, setDatasetName] = useState("");
   const [triggerWord, setTriggerWord] = useState("");
-  const [imageUrls, setImageUrls] = useState("");
-  const [steps, setSteps] = useState(1000);
-  const [loading, setLoading] = useState(false);
+  const [sides, setSides] = useState<SideImage[]>([
+    { side: "front", label: "Front",  file: null, preview: null, storageUrl: null },
+    { side: "left",  label: "Left",   file: null, preview: null, storageUrl: null },
+    { side: "back",  label: "Back",   file: null, preview: null, storageUrl: null },
+    { side: "right", label: "Right",  file: null, preview: null, storageUrl: null },
+  ]);
+  const [totalSizeMB, setTotalSizeMB] = useState(0);
+  const [sizeError, setSizeError] = useState(false);
+  // Step 2
+  const [synthUrls, setSynthUrls] = useState<string[]>([]);
+  const [synthCount, setSynthCount] = useState(0);
+  const [synthLoading, setSynthLoading] = useState(false);
+  // Step 3
+  const [trainingId, setTrainingId] = useState<string | null>(null);
+  const [trainingStatus, setTrainingStatus] = useState("training");
+  const [trainingProgress, setTrainingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [models, setModels] = useState<TrainedModel[]>([]);
-  const [polling, setPolling] = useState<{ id: string; dbId: string } | null>(null);
-  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadModels = async () => {
-    const res = await studioFetch({ action: "get_history", brand_id: brandId, type: "training", limit: 20 });
-    if (res.success) {
-      setModels((res.trainings as TrainedModel[]).filter((m) => m.theme === type));
-    }
-  };
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  useEffect(() => { loadModels(); }, [brandId, type]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleFileChange = useCallback((side: SideImage["side"], files: FileList | null) => {
+    if (!files?.length) return;
+    const file = files[0];
+    const preview = URL.createObjectURL(file);
+    setSides((prev) => {
+      const updated = prev.map((s) => s.side === side ? { ...s, file, preview } : s);
+      const total = updated.reduce((a, s) => a + (s.file?.size ?? 0), 0) / 1024 / 1024;
+      setTotalSizeMB(parseFloat(total.toFixed(2)));
+      setSizeError(total > 10);
+      return updated;
+    });
+  }, []);
 
-  // Poll training status
-  useEffect(() => {
-    if (!polling) return;
-    const poll = async () => {
-      const res = await studioFetch({
-        action: "check_training",
-        brand_id: brandId,
-        training_id: polling.id,
-      });
-      if (res.status === "completed" || res.status === "succeeded") {
-        setPolling(null);
-        loadModels();
-      } else {
-        pollRef.current = setTimeout(poll, 10000);
-      }
-    };
-    poll();
-    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
-  }, [polling]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allUploaded = sides.every((s) => s.file !== null);
 
-  const startTraining = async () => {
-    if (limitReached) {
-      setError(`You've reached the ${limit}-model limit for the ${currentTier} plan. Upgrade to train more models.`);
-      return;
-    }
-    const urls = imageUrls.split("\n").map((u) => u.trim()).filter(Boolean);
-    if (!name.trim() || urls.length < 5) {
-      setError("Name required and at least 5 image URLs needed");
-      return;
-    }
-    setLoading(true);
+  const proceedToStep2 = async () => {
+    if (!datasetName.trim() || !allUploaded || sizeError) return;
+    setStep(2);
+    setSynthLoading(true);
     setError(null);
+    setSynthUrls([]);
+    setSynthCount(0);
+
+    // Upload 4 images to Supabase Storage
+    const uploadedUrls: string[] = [];
+    const folder = `training-${trainingType}`;
+    const safeName = datasetName.replace(/\s+/g, "-").toLowerCase();
+    for (const s of sides) {
+      try {
+        const url = await uploadImage(s.file!, brandId, folder, `${safeName}-${s.side}`);
+        uploadedUrls.push(url);
+      } catch (e) {
+        setError(`Upload failed (${s.label}): ${e instanceof Error ? e.message : "unknown"}`);
+        setStep(1);
+        setSynthLoading(false);
+        return;
+      }
+    }
+
+    // Generate 8 synthetic training images via OpenAI-guided prompts + KIE
     try {
       const res = await studioFetch({
-        action: type === "product" ? "train_product" : "train_character",
+        action: "generate_synthetics",
         brand_id: brandId,
-        name: name.trim(),
-        trigger_word: triggerWord.trim() || name.trim().toLowerCase().replace(/\s+/g, "_"),
-        image_urls: urls,
-        steps,
+        name: datasetName,
+        training_type: trainingType,
+        count: 8,
+      });
+      if (res.success && Array.isArray(res.synthetic_urls)) {
+        setSynthUrls(res.synthetic_urls);
+        setSynthCount(res.count ?? res.synthetic_urls.length);
+      }
+    } catch {
+      // Non-fatal — continue with originals only
+    }
+
+    setSynthLoading(false);
+
+    // Start training with originals + synthetics
+    await startTraining(uploadedUrls, synthUrls);
+  };
+
+  const startTraining = async (originalUrls: string[], synUrls: string[]) => {
+    setStep(3);
+    setError(null);
+    const allUrls = [...originalUrls, ...synUrls];
+    const tw = triggerWord.trim() || datasetName.toLowerCase().replace(/\s+/g, "_");
+
+    try {
+      const res = await studioFetch({
+        action: trainingType === "product" ? "train_product" : "train_character",
+        brand_id: brandId,
+        name: datasetName,
+        trigger_word: tw,
+        image_urls: allUrls,
+        steps: 1000,
       });
       if (res.success) {
-        setPolling({ id: res.training_id, dbId: res.db_id ?? "" });
-        setName("");
-        setTriggerWord("");
-        setImageUrls("");
-        loadModels();
+        setTrainingId(res.training_id);
+        setTrainingStatus("training");
+        pollRef.current = setInterval(async () => {
+          if (!res.training_id) return;
+          const s = await studioFetch({ action: "check_training", brand_id: brandId, training_id: res.training_id });
+          if (s.success) {
+            setTrainingStatus(s.status ?? "training");
+            setTrainingProgress(s.progress ?? 0);
+            if (["completed", "succeeded"].includes(s.status)) {
+              if (pollRef.current) clearInterval(pollRef.current);
+              onDone({
+                id: Date.now().toString(), dataset_name: datasetName, theme: trainingType,
+                image_count: allUrls.length, training_status: "completed",
+                model_path: s.model_url ?? null,
+                metadata: { trigger_word: tw, kie_training_id: res.training_id },
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
+        }, 15000);
       } else {
         setError(res.error ?? "Training failed to start");
       }
-    } catch {
-      setError("Network error.");
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Training error");
     }
   };
 
-  const icon = type === "product" ? "🏭" : "👤";
-  const label = type === "product" ? "Product" : "Character";
+  const resetWizard = () => {
+    setStep(1); setDatasetName(""); setTriggerWord(""); setSynthUrls([]); setSynthCount(0);
+    setTrainingId(null); setTrainingStatus("training"); setTrainingProgress(0); setError(null);
+    setSides(sides.map((s) => ({ ...s, file: null, preview: null, storageUrl: null })));
+    if (pollRef.current) clearInterval(pollRef.current);
+  };
+
+  if (atLimit) {
+    return (
+      <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-6 text-center">
+        <p className="text-2xl mb-2">⚠️</p>
+        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Training Quota Reached</p>
+        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+          {currentTier} plan: max {limit} trained models. Upgrade to train more.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Training form */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3" style={{ fontFamily: "Georgia, serif" }}>
-          {icon} {label} Training
-        </h3>
-        <p className="text-xs text-gray-400 mb-3">
-          Upload {type === "product" ? "product" : "character"} images to create a custom LoRA model via KIE API.
-          Min. 10 images recommended for best results.
-        </p>
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <StepBar steps={["Upload 4 Sides", "32 Synthetics", "Training"]} current={step} />
+      <div className="p-4 space-y-4">
 
-        {/* Tier limit banner */}
-        <div className={`rounded-lg px-3 py-2 mb-4 flex items-center justify-between ${
-          limitReached
-            ? "bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30"
-            : "bg-gray-50 dark:bg-gray-800/60"
-        }`}>
-          <div>
-            <p className={`text-[10px] font-semibold ${limitReached ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>
-              {limitReached ? "⚠️ Training limit reached" : `Training quota`}
-            </p>
-            <p className="text-[10px] text-gray-400">
-              {totalModelCount} / {limit} models used · {currentTier} plan
-            </p>
-          </div>
-          {limitReached && (
-            <span className="text-[9px] font-semibold bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
-              Upgrade
-            </span>
-          )}
-        </div>
+        {/* ── STEP 1: Upload ── */}
+        {step === 1 && (
+          <>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+                {trainingType === "product" ? "🏭 Product Training" : "👤 Character Training"}
+              </h3>
+              <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-500">
+                {totalModelCount} / {limit} models
+              </span>
+            </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Model Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={type === "product" ? "My Product v1" : "Brand Character v1"}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
-              Trigger Word <span className="text-gray-400 font-normal">(use in prompts to apply model)</span>
-            </label>
-            <input
-              value={triggerWord}
-              onChange={(e) => setTriggerWord(e.target.value)}
-              placeholder={type === "product" ? "myproduct" : "mycharacter"}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
-              Image URLs <span className="text-gray-400 font-normal">(one per line, min. 5)</span>
-            </label>
-            <textarea
-              value={imageUrls}
-              onChange={(e) => setImageUrls(e.target.value)}
-              placeholder={"https://cdn.example.com/product-angle-1.jpg\nhttps://cdn.example.com/product-angle-2.jpg\n..."}
-              rows={5}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 outline-none focus:border-brand-400 resize-none font-mono"
-            />
-            <p className="text-[10px] text-gray-400 mt-1">
-              {imageUrls.split("\n").filter((u) => u.trim()).length} URLs entered
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Training Steps</label>
-            <select
-              value={steps}
-              onChange={(e) => setSteps(Number(e.target.value))}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-brand-400"
-            >
-              <option value={500}>500 steps — Fast</option>
-              <option value={1000}>1000 steps — Balanced (Recommended)</option>
-              <option value={2000}>2000 steps — High Quality</option>
-            </select>
-          </div>
-
-          {polling && (
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full border-2 border-amber-400 border-t-amber-600 animate-spin" />
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Training in progress… (checking every 10s)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Dataset Name *</label>
+                <input
+                  value={datasetName}
+                  onChange={(e) => { setDatasetName(e.target.value); if (!triggerWord) setTriggerWord(e.target.value.toLowerCase().replace(/\s+/g, "_")); }}
+                  placeholder={trainingType === "product" ? "Summer Bag 2026" : "Brand Ambassador"}
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400"
+                />
               </div>
-              <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70 mt-1">
-                Training ID: {polling.id}
+              <div>
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Trigger Word</label>
+                <input
+                  value={triggerWord}
+                  onChange={(e) => setTriggerWord(e.target.value)}
+                  placeholder="summer_bag_2026"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
+                Upload 4 Sides{" "}
+                <span className={`font-normal text-[10px] ${sizeError ? "text-red-500" : "text-gray-400"}`}>
+                  (total: {totalSizeMB} MB / 10 MB max)
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {sides.map((s) => (
+                  <label
+                    key={s.side}
+                    className="relative cursor-pointer rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-brand-400 dark:hover:border-brand-500 transition-colors overflow-hidden flex items-center justify-center"
+                    style={{ aspectRatio: "1", minHeight: 90 }}
+                  >
+                    {s.preview ? (
+                      <>
+                        <img src={s.preview} alt={s.side} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-end p-1.5">
+                          <span className="text-[10px] font-bold text-white">{s.label} ✓</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 p-2 text-center">
+                        <span className="text-xl">📸</span>
+                        <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{s.label}</p>
+                        <p className="text-[9px] text-gray-400">Click to upload</p>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(s.side, e.target.files)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {sizeError && <p className="text-xs text-red-500">Total size exceeds 10 MB. Use smaller images.</p>}
+            {error && <p className="text-xs text-red-500">{error}</p>}
+
+            <button
+              onClick={proceedToStep2}
+              disabled={!datasetName.trim() || !allUploaded || sizeError}
+              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Generate Synthetic Dataset →
+            </button>
+            <p className="text-[10px] text-gray-400 text-center">
+              GeoVera will generate 32 training variations using OpenAI + KIE Flux AI
+            </p>
+          </>
+        )}
+
+        {/* ── STEP 2: Synthetics ── */}
+        {step === 2 && (
+          <>
+            <div className="text-center">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎨 Generating Synthetic Dataset</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {synthLoading ? `Building ${Math.min(synthCount + 1, 8)} of 8 AI variations...` : `${synthCount} AI variations ready · 4 originals + synthetics`}
+              </p>
+              <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className={`h-full bg-brand-500 transition-all duration-700 ${synthLoading ? "" : "bg-green-500"}`}
+                  style={{ width: `${synthLoading ? (synthCount / 8) * 100 : 100}%` }} />
+              </div>
+            </div>
+
+            {/* 8 uploaded originals + synthetics in a 4x4 grid preview */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {/* 4 original uploads */}
+              {sides.map((s) => s.preview && (
+                <div key={s.side} className="aspect-square rounded-lg overflow-hidden relative">
+                  <img src={s.preview} alt={s.side} className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-brand-500/80 text-white text-[8px] font-bold text-center py-0.5">{s.label}</div>
+                </div>
+              ))}
+              {/* Synthetics */}
+              {Array.from({ length: 12 }).map((_, i) => {
+                const url = synthUrls[i];
+                return (
+                  <div key={`s${i}`} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    {url ? (
+                      <img src={url} alt={`synthetic-${i}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className={`w-4 h-4 rounded-full border-2 ${synthLoading && i === synthCount ? "border-brand-500 animate-spin border-t-transparent" : "border-gray-300 dark:border-gray-600"}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {synthLoading && (
+              <p className="text-center text-xs text-purple-600 dark:text-purple-400 animate-pulse">
+                ✨ OpenAI generating training prompts → KIE Flux creating images...
+              </p>
+            )}
+            {!synthLoading && !error && (
+              <div className="text-center text-xs text-green-600 dark:text-green-400 font-semibold">
+                ✅ Synthetic dataset ready. Starting LoRA training...
+              </div>
+            )}
+            {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+          </>
+        )}
+
+        {/* ── STEP 3: Training ── */}
+        {step === 3 && (
+          <div className="text-center space-y-4 py-2">
+            <div className="w-14 h-14 rounded-full bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center mx-auto">
+              {["completed", "succeeded"].includes(trainingStatus)
+                ? <span className="text-3xl">✅</span>
+                : <div className="w-7 h-7 rounded-full border-[3px] border-brand-500 border-t-transparent animate-spin" />}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                {["completed", "succeeded"].includes(trainingStatus) ? "Training Complete! 🎉" : "LoRA Training in Progress"}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {["completed", "succeeded"].includes(trainingStatus)
+                  ? `"${datasetName}" is ready. Use it in Generate Image & Video.`
+                  : "Training takes 10–30 mins. You can leave this page safely."}
               </p>
             </div>
-          )}
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-
-          <button
-            onClick={startTraining}
-            disabled={loading || !!polling}
-            className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Starting…
-              </span>
-            ) : `${icon} Start ${label} Training`}
-          </button>
-        </div>
-      </div>
-
-      {/* Existing models */}
-      {models.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-          <h4 className="text-xs font-semibold uppercase text-gray-400 mb-3">{label} Models</h4>
-          <div className="space-y-2">
-            {models.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => onModelReady(m)}
-                className="w-full flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="text-xl flex-shrink-0">{icon}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{m.dataset_name}</p>
-                  <p className="text-[10px] text-gray-400">
-                    trigger: <code className="font-mono text-brand-500">{m.metadata?.trigger_word ?? "—"}</code>
-                    {" · "}{m.image_count} images · {m.training_status}
-                  </p>
+            {trainingId && (
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-left space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-[10px] text-gray-400">Training ID</span>
+                  <span className="text-[10px] font-mono text-gray-600 dark:text-gray-400 truncate max-w-[60%]">{trainingId}</span>
                 </div>
-                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                  m.training_status === "completed"
-                    ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                    : "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
-                }`}>
-                  {m.training_status === "completed" ? "Ready" : "Training"}
-                </span>
-              </button>
-            ))}
+                <div className="flex justify-between">
+                  <span className="text-[10px] text-gray-400">Trigger Word</span>
+                  <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">{triggerWord || datasetName.toLowerCase().replace(/\s+/g, "_")}</span>
+                </div>
+                {trainingProgress > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-gray-400">Progress</span>
+                      <span className="text-[10px] font-semibold text-brand-600">{trainingProgress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-500 transition-all" style={{ width: `${trainingProgress}%` }} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {error && <p className="text-xs text-red-500">{error}</p>}
+            <button onClick={resetWizard} className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
+              + Train Another Model
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTER — History
-// ═══════════════════════════════════════════════════════════════════════════════
-function HistoryCenter({
-  brandId,
-  onSelectImage,
-  onSelectVideo,
+// ══════════════════════════════════════════════════════════════════════════════
+// GENERATE IMAGE WIZARD
+// ══════════════════════════════════════════════════════════════════════════════
+function GenerateImageWizard({
+  brandId, currentTier, imagesUsedToday, trainedModels, onResult, onUsed,
 }: {
+  brandId: string; currentTier: string; imagesUsedToday: number;
+  trainedModels: TrainedModel[]; onResult: (img: GeneratedImage) => void; onUsed: () => void;
+}) {
+  const limit = IMAGE_DAILY_LIMITS[currentTier] ?? 3;
+  const atLimit = imagesUsedToday >= limit;
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [subjectType, setSubjectType] = useState<SubjectType>("product");
+  const [modelMode, setModelMode] = useState<ModelMode>("random");
+  const [selectedModel, setSelectedModel] = useState<TrainedModel | null>(null);
+  const [promptSource, setPromptSource] = useState<PromptSource>("custom");
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [selectedTask, setSelectedTask] = useState<TodayTask | null>(null);
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [smartLoading, setSmartLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const relevantModels = trainedModels.filter((m) =>
+    m.training_status === "completed" && (subjectType === "both" || m.theme === subjectType)
+  );
+
+  useEffect(() => {
+    if (promptSource !== "task") return;
+    const today = new Date().toISOString().split("T")[0];
+    supabase.from("gv_task_board")
+      .select("id, title, description, target_platforms")
+      .eq("brand_id", brandId).eq("due_date", today).neq("status", "completed").limit(10)
+      .then(({ data }) => setTodayTasks(data ?? []));
+  }, [promptSource, brandId]);
+
+  const handleSmartPrompt = async () => {
+    setSmartLoading(true);
+    try {
+      const res = await studioFetch({
+        action: "generate_smart_prompt",
+        brand_id: brandId,
+        prompt_type: "image",
+        subject_type: subjectType,
+        model_name: selectedModel?.dataset_name ?? "",
+        topic_style: "commercial product photography",
+        task_context: selectedTask ? selectedTask.title : "",
+      });
+      if (res.success && res.prompt) {
+        setCustomPrompt(res.prompt);
+        setPromptSource("custom");
+      }
+    } catch { /* ignore */ }
+    setSmartLoading(false);
+  };
+
+  const handleGenerate = async () => {
+    if (atLimit) return;
+    setLoading(true); setError(null);
+    let prompt = customPrompt.trim();
+    if (!prompt && promptSource === "task" && selectedTask) {
+      prompt = `Create a compelling visual for: ${selectedTask.title}. ${selectedTask.description ?? ""}. Platform: ${selectedTask.target_platforms?.join(", ") ?? "social media"}. Commercial quality, professional photography.`;
+    }
+    if (!prompt) { setError("Please enter or generate a prompt"); setLoading(false); return; }
+
+    try {
+      const res = await studioFetch({
+        action: "generate_image", brand_id: brandId, prompt, aspect_ratio: aspectRatio,
+        model: modelMode === "trained" ? "kie-flux" : "flux-2-pro",
+        ...(modelMode === "trained" && selectedModel?.metadata?.lora_model ? { lora_model: selectedModel.metadata.lora_model } : {}),
+      });
+      if (res.success) {
+        onResult({
+          id: res.db_id ?? Date.now().toString(), prompt_text: prompt,
+          image_url: res.image_url, thumbnail_url: res.image_url,
+          status: res.status ?? "completed", ai_model: "kie-flux",
+          target_platform: null, style_preset: selectedModel?.metadata?.lora_model ?? null,
+          created_at: new Date().toISOString(),
+        });
+        onUsed();
+        if (promptSource === "task" && selectedTask && res.image_url) {
+          await supabase.from("gv_task_board").update({ color_label: res.image_url }).eq("id", selectedTask.id);
+        }
+        setStep(1); setCustomPrompt(""); setSelectedTask(null);
+      } else { setError(res.error ?? "Generation failed"); }
+    } catch { setError("Network error. Try again."); }
+    finally { setLoading(false); }
+  };
+
+  const SUBJECT_OPTS = [
+    { id: "character" as SubjectType, icon: "👤", label: "Character Only",       desc: "Person or persona" },
+    { id: "product"   as SubjectType, icon: "📦", label: "Product Only",         desc: "Item or product" },
+    { id: "both"      as SubjectType, icon: "✨", label: "Character + Product",  desc: "Combined scene" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <StepBar steps={["Subject", "Model", "Prompt & Generate"]} current={step} />
+      <div className="p-4 space-y-3">
+        <DailyQuota used={imagesUsedToday} limit={limit} label="Images" />
+
+        {atLimit && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-3 text-center">
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400">Daily limit reached ({limit} images)</p>
+            <p className="text-[10px] text-red-500 mt-0.5">Resets tomorrow at midnight. Upgrade for more.</p>
+          </div>
+        )}
+
+        {/* STEP 1: Subject */}
+        {step === 1 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🖼️ What to feature?</h3>
+            <div className="space-y-2">
+              {SUBJECT_OPTS.map((opt) => (
+                <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-left transition-colors">
+                  <span className="text-2xl">{opt.icon}</span>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{opt.label}</p>
+                    <p className="text-[10px] text-gray-400">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* STEP 2: Model */}
+        {step === 2 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              🤖 Model
+              <span className="ml-2 text-xs font-normal text-brand-600 dark:text-brand-400 capitalize">
+                — {subjectType === "both" ? "Character + Product" : subjectType}
+              </span>
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {(["trained", "random"] as ModelMode[]).map((mode) => (
+                <button key={mode} onClick={() => setModelMode(mode)}
+                  className={`p-3 rounded-xl border text-center transition-colors ${modelMode === mode ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                  <p className="text-xl">{mode === "trained" ? "🎓" : "🎲"}</p>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{mode}</p>
+                  <p className="text-[10px] text-gray-400">{mode === "trained" ? "Your LoRA model" : "Base Flux AI"}</p>
+                </button>
+              ))}
+            </div>
+            {modelMode === "trained" && (
+              relevantModels.length === 0 ? (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-3 text-center">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">No completed {subjectType} models. Train one first!</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {relevantModels.map((m) => (
+                    <button key={m.id} onClick={() => setSelectedModel(m)}
+                      className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-left transition-colors ${selectedModel?.id === m.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                      <span className="text-lg">{m.theme === "character" ? "👤" : "📦"}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
+                        <p className="text-[10px] text-gray-400">{m.metadata?.trigger_word}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+            <button onClick={() => setStep(3)} disabled={modelMode === "trained" && !selectedModel && relevantModels.length > 0}
+              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors">
+              Next: Prompt →
+            </button>
+          </>
+        )}
+
+        {/* STEP 3: Prompt & Generate */}
+        {step === 3 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">✍️ Prompt</h3>
+            <div className="flex gap-2 flex-wrap">
+              {([["1:1","Square"],["9:16","Portrait"],["16:9","Landscape"],["4:5","Feed"]] as [string,string][]).map(([v,l]) => (
+                <button key={v} onClick={() => setAspectRatio(v)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${aspectRatio === v ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-500 hover:border-brand-400"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {([["random","🎲","Random"],["custom","✍️","Custom"],["task","📋","From Task"]] as [PromptSource,string,string][]).map(([id,icon,lbl]) => (
+                <button key={id} onClick={() => setPromptSource(id)}
+                  className={`py-2 rounded-xl border text-center text-xs font-semibold transition-colors ${promptSource === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-600 hover:border-brand-400"}`}>
+                  <span className="block text-base mb-0.5">{icon}</span>{lbl}
+                </button>
+              ))}
+            </div>
+
+            {/* OpenAI smart prompt button (shown for random + custom) */}
+            {(promptSource === "random" || promptSource === "custom") && (
+              <div className="flex items-center gap-2">
+                <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
+                {promptSource === "random" && !customPrompt && (
+                  <span className="text-[10px] text-gray-400">Click to generate AI prompt</span>
+                )}
+              </div>
+            )}
+
+            {(promptSource === "custom" || (promptSource === "random" && customPrompt)) && (
+              <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Describe the image you want to generate..."
+                rows={3}
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400 resize-none" />
+            )}
+
+            {promptSource === "task" && (
+              <>
+                <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
+                {todayTasks.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-2">No tasks for today</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {todayTasks.map((t) => (
+                      <button key={t.id} onClick={() => setSelectedTask(t)}
+                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-colors ${selectedTask?.id === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                        <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
+                        {t.target_platforms && <p className="text-[10px] text-gray-400 mt-0.5">{t.target_platforms.join(", ")}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedTask && customPrompt && (
+                  <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
+                    rows={2} className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none resize-none" />
+                )}
+              </>
+            )}
+
+            {error && <p className="text-xs text-red-500">{error}</p>}
+            <button onClick={handleGenerate} disabled={loading || atLimit}
+              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+              {loading ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating...</> : "✨ Generate Image"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GENERATE VIDEO WIZARD
+// ══════════════════════════════════════════════════════════════════════════════
+function GenerateVideoWizard({
+  brandId, currentTier, videosUsedToday, trainedModels, historyImages, onResult, onUsed,
+}: {
+  brandId: string; currentTier: string; videosUsedToday: number;
+  trainedModels: TrainedModel[]; historyImages: GeneratedImage[];
+  onResult: (v: GeneratedVideo) => void; onUsed: () => void;
+}) {
+  const limit = VIDEO_DAILY_LIMITS[currentTier] ?? 1;
+  const maxDuration = VIDEO_MAX_DURATION[currentTier] ?? 8;
+  const atLimit = videosUsedToday >= limit;
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [subjectType, setSubjectType] = useState<SubjectType>("product");
+  const [modelMode, setModelMode] = useState<ModelMode>("random");
+  const [selectedModel, setSelectedModel] = useState<TrainedModel | null>(null);
+  const [klingModel, setKlingModel] = useState("kling-v1");
+  const [videoInputType, setVideoInputType] = useState<VideoInputType>("text");
+  const [promptSource, setPromptSource] = useState<PromptSource>("custom");
+  const [textPrompt, setTextPrompt] = useState("");
+  const [selectedTask, setSelectedTask] = useState<TodayTask | null>(null);
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
+  const [selectedHistoryImage, setSelectedHistoryImage] = useState<GeneratedImage | null>(null);
+  const [uploadedRefUrl, setUploadedRefUrl] = useState<string | null>(null);
+  const [uploadingRef, setUploadingRef] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [duration, setDuration] = useState(8);
+  const [aspectRatio, setAspectRatio] = useState("9:16");
+  const [loading, setLoading] = useState(false);
+  const [smartLoading, setSmartLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const relevantModels = trainedModels.filter((m) =>
+    m.training_status === "completed" && (subjectType === "both" || m.theme === subjectType)
+  );
+
+  useEffect(() => {
+    if (promptSource !== "task") return;
+    const today = new Date().toISOString().split("T")[0];
+    supabase.from("gv_task_board")
+      .select("id, title, description, target_platforms")
+      .eq("brand_id", brandId).eq("due_date", today).neq("status", "completed").limit(10)
+      .then(({ data }) => setTodayTasks(data ?? []));
+  }, [promptSource, brandId]);
+
+  const handleSmartPrompt = async () => {
+    setSmartLoading(true);
+    const topic = VIDEO_TOPICS.find((t) => t.id === selectedTopic);
+    try {
+      const res = await studioFetch({
+        action: "generate_smart_prompt",
+        brand_id: brandId,
+        prompt_type: "video",
+        subject_type: subjectType,
+        model_name: selectedModel?.dataset_name ?? "",
+        topic_style: topic?.label ?? "commercial video",
+        task_context: selectedTask ? selectedTask.title : "",
+      });
+      if (res.success && res.prompt) {
+        setTextPrompt(res.prompt);
+        setPromptSource("custom");
+      }
+    } catch { /* ignore */ }
+    setSmartLoading(false);
+  };
+
+  const handleRefUpload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploadingRef(true);
+    try {
+      const url = await uploadImage(files[0], brandId, "video-refs", `ref-${Date.now()}`);
+      setUploadedRefUrl(url);
+    } catch { setError("Reference upload failed"); }
+    finally { setUploadingRef(false); }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedTopic) { setError("Please select a topic style"); return; }
+    if (atLimit) return;
+    setLoading(true); setError(null);
+
+    const topicLabel = VIDEO_TOPICS.find((t) => t.id === selectedTopic)?.label ?? selectedTopic;
+
+    let prompt = "";
+    if (videoInputType === "text") {
+      if (textPrompt.trim()) {
+        prompt = `${topicLabel}: ${textPrompt.trim()}`;
+      } else if (selectedTask) {
+        prompt = `${topicLabel} style: ${selectedTask.title}. ${selectedTask.description ?? ""}. Platform: ${selectedTask.target_platforms?.join(", ") ?? "social media"}.`;
+      } else {
+        const type = subjectType === "both" ? "product and character" : subjectType;
+        prompt = `${topicLabel} video for ${type}${selectedModel ? ` — ${selectedModel.dataset_name}` : ""}. Engaging, professional, social media optimized.`;
+      }
+    } else {
+      const imageUrl = selectedHistoryImage?.image_url ?? uploadedRefUrl;
+      if (!imageUrl) { setError("Select or upload a reference image"); setLoading(false); return; }
+      prompt = `${topicLabel} style video showcasing the ${subjectType} in this image. Dynamic movement, professional, ${aspectRatio === "9:16" ? "vertical" : "horizontal"} format.`;
+    }
+
+    try {
+      const payload: Record<string, unknown> = {
+        action: "generate_video", brand_id: brandId, prompt,
+        duration, aspect_ratio: aspectRatio, model: klingModel, mode: "standard",
+      };
+      if (videoInputType === "image") {
+        const imgUrl = selectedHistoryImage?.image_url ?? uploadedRefUrl;
+        if (imgUrl) payload.image_url = imgUrl;
+      }
+
+      const res = await studioFetch(payload);
+      if (res.success) {
+        onResult({
+          id: res.db_id ?? Date.now().toString(), hook: prompt,
+          video_url: res.video_url, video_thumbnail_url: null,
+          video_status: res.status ?? "processing", ai_model: klingModel,
+          target_platform: "tiktok", video_aspect_ratio: aspectRatio,
+          created_at: new Date().toISOString(),
+        });
+        onUsed();
+        setStep(1); setTextPrompt(""); setSelectedTask(null); setSelectedTopic(null);
+      } else { setError(res.error ?? "Generation failed"); }
+    } catch { setError("Network error. Try again."); }
+    finally { setLoading(false); }
+  };
+
+  const SUBJECT_OPTS = [
+    { id: "character" as SubjectType, icon: "👤", label: "Character Only",      desc: "Person or persona" },
+    { id: "product"   as SubjectType, icon: "📦", label: "Product Only",        desc: "Item or product" },
+    { id: "both"      as SubjectType, icon: "✨", label: "Character + Product", desc: "Combined scene" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <StepBar steps={["Subject", "Model", "Content", "Topic & Generate"]} current={step} />
+      <div className="p-4 space-y-3">
+        <DailyQuota used={videosUsedToday} limit={limit} label="Videos" />
+
+        {atLimit && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-3 text-center">
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400">Daily limit reached ({limit} videos)</p>
+            <p className="text-[10px] text-red-500 mt-0.5">Resets tomorrow at midnight. Upgrade for more.</p>
+          </div>
+        )}
+
+        {/* STEP 1 */}
+        {step === 1 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎬 What to feature?</h3>
+            <div className="space-y-2">
+              {SUBJECT_OPTS.map((opt) => (
+                <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-left transition-colors">
+                  <span className="text-2xl">{opt.icon}</span>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{opt.label}</p>
+                    <p className="text-[10px] text-gray-400">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* STEP 2: Model */}
+        {step === 2 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              🤖 Model — <span className="text-xs font-normal text-brand-600 dark:text-brand-400 capitalize">{subjectType === "both" ? "Char + Prod" : subjectType}</span>
+            </h3>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">Kling AI Version</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[["kling-v1","Kling V1","Fast"],["kling-v1.5","Kling V1.5","Enhanced"],["kling-v2","Kling V2","Best quality"],["kling-v1-pro","Kling V1 Pro","Pro grade"]].map(([id,lbl,desc]) => (
+                  <button key={id} onClick={() => setKlingModel(id)}
+                    className={`p-2.5 rounded-xl border text-center transition-colors ${klingModel === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{lbl}</p>
+                    <p className="text-[10px] text-gray-400">{desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["trained","random"] as ModelMode[]).map((mode) => (
+                <button key={mode} onClick={() => setModelMode(mode)}
+                  className={`p-3 rounded-xl border text-center transition-colors ${modelMode === mode ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                  <p className="text-xl">{mode === "trained" ? "🎓" : "🎲"}</p>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{mode}</p>
+                </button>
+              ))}
+            </div>
+            {modelMode === "trained" && (
+              relevantModels.length === 0 ? (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-3 text-center">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">No completed {subjectType} models. Train one first!</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {relevantModels.map((m) => (
+                    <button key={m.id} onClick={() => setSelectedModel(m)}
+                      className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-left transition-colors ${selectedModel?.id === m.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                      <span className="text-lg">{m.theme === "character" ? "👤" : "📦"}</span>
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+            <button onClick={() => setStep(3)} className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+              Next: Content →
+            </button>
+          </>
+        )}
+
+        {/* STEP 3: Content */}
+        {step === 3 && (
+          <>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">📹 Content Source</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {([["text","✍️","Text to Video","AI generates from prompt"],["image","🖼️","Image to Video","Animate an image"]] as [VideoInputType,string,string,string][]).map(([id,icon,lbl,desc]) => (
+                <button key={id} onClick={() => setVideoInputType(id)}
+                  className={`p-3 rounded-xl border text-center transition-colors ${videoInputType === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                  <p className="text-xl">{icon}</p>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1">{lbl}</p>
+                  <p className="text-[10px] text-gray-400">{desc}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-500">Duration</span>
+                  <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{duration}s</span>
+                </div>
+                <input
+                  type="range" min={1} max={maxDuration} value={Math.min(duration, maxDuration)}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none bg-gray-200 dark:bg-gray-700 accent-brand-500 cursor-pointer"
+                />
+                <div className="flex justify-between mt-0.5">
+                  <span className="text-[9px] text-gray-400">1s</span>
+                  <span className="text-[9px] text-gray-400">{maxDuration}s max</span>
+                </div>
+                {currentTier !== "partner" && <p className="text-[9px] text-gray-400 mt-0.5">{currentTier === "basic" ? "Upgrade for up to 25s" : "Partner: up to 25s"}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Aspect Ratio</label>
+                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none">
+                  <option value="9:16">9:16 Portrait (TikTok)</option>
+                  <option value="16:9">16:9 Landscape (YouTube)</option>
+                  <option value="1:1">1:1 Square</option>
+                </select>
+              </div>
+            </div>
+
+            {videoInputType === "text" && (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {([["random","🎲","Random"],["custom","✍️","Custom"],["task","📋","From Task"]] as [PromptSource,string,string][]).map(([id,icon,lbl]) => (
+                    <button key={id} onClick={() => setPromptSource(id)}
+                      className={`py-2 rounded-xl border text-center text-xs font-semibold transition-colors ${promptSource === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-600 hover:border-brand-400"}`}>
+                      <span className="block text-base mb-0.5">{icon}</span>{lbl}
+                    </button>
+                  ))}
+                </div>
+                {(promptSource === "random" || promptSource === "custom") && (
+                  <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
+                )}
+                {(promptSource === "custom" || (promptSource === "random" && textPrompt)) && (
+                  <textarea value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)}
+                    placeholder="Describe the video scene..." rows={3}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400 resize-none" />
+                )}
+                {promptSource === "task" && (
+                  <>
+                    <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
+                    {todayTasks.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-2">No tasks for today</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                        {todayTasks.map((t) => (
+                          <button key={t.id} onClick={() => setSelectedTask(t)}
+                            className={`w-full text-left p-2.5 rounded-lg border text-xs transition-colors ${selectedTask?.id === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {videoInputType === "image" && (
+              <>
+                {historyImages.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 mb-1.5 block">From History</label>
+                    <div className="grid grid-cols-4 gap-1.5 max-h-28 overflow-y-auto">
+                      {historyImages.map((img) => (
+                        <button key={img.id} onClick={() => { setSelectedHistoryImage(img); setUploadedRefUrl(null); }}
+                          className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${selectedHistoryImage?.id === img.id ? "border-brand-500" : "border-transparent hover:border-brand-300"}`}>
+                          {img.image_url
+                            ? <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                            : <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><span className="text-xs text-gray-400">No img</span></div>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <label className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-brand-400 cursor-pointer transition-colors">
+                  {uploadedRefUrl
+                    ? <img src={uploadedRefUrl} alt="ref" className="h-20 object-contain rounded" />
+                    : <><span className="text-2xl">{uploadingRef ? "⏳" : "📎"}</span><p className="text-xs text-gray-400">{uploadingRef ? "Uploading..." : "Upload reference image"}</p></>}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleRefUpload(e.target.files)} disabled={uploadingRef} />
+                </label>
+              </>
+            )}
+
+            <button onClick={() => setStep(4)} className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+              Next: Topic Style →
+            </button>
+          </>
+        )}
+
+        {/* STEP 4: Topic & Generate */}
+        {step === 4 && (
+          <>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎯 Topic Style</h3>
+              <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
+            </div>
+            <div className="space-y-1.5">
+              {VIDEO_TOPICS.map((t) => (
+                <button key={t.id} onClick={() => setSelectedTopic(t.id)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selectedTopic === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{t.label}</p>
+                    <p className="text-[10px] text-gray-400">{t.desc}</p>
+                  </div>
+                  {selectedTopic === t.id && <span className="text-brand-500 flex-shrink-0 text-sm">●</span>}
+                </button>
+              ))}
+            </div>
+
+            {textPrompt && (
+              <div className="rounded-lg bg-purple-50 dark:bg-purple-500/10 p-2">
+                <p className="text-[10px] text-purple-500 font-semibold mb-0.5">✨ OpenAI Prompt</p>
+                <p className="text-[10px] text-purple-700 dark:text-purple-300 line-clamp-2">{textPrompt}</p>
+              </div>
+            )}
+
+            {error && <p className="text-xs text-red-500">{error}</p>}
+            <button onClick={handleGenerate} disabled={loading || atLimit || !selectedTopic}
+              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+              {loading ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating Video...</> : "🎬 Generate Video"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HISTORY CENTER
+// ══════════════════════════════════════════════════════════════════════════════
+function HistoryCenter({ brandId, onSelectImage, onSelectVideo }: {
   brandId: string;
   onSelectImage: (img: GeneratedImage) => void;
-  onSelectVideo: (v: GeneratedVideo) => void;
+  onSelectVideo: (vid: GeneratedVideo) => void;
 }) {
-  const [tab, setTab] = useState<"image" | "video" | "training">("image");
+  const [tab, setTab] = useState<"images" | "videos" | "models">("images");
   const [images, setImages] = useState<GeneratedImage[]>([]);
   const [videos, setVideos] = useState<GeneratedVideo[]>([]);
-  const [trainings, setTrainings] = useState<TrainedModel[]>([]);
+  const [models, setModels] = useState<TrainedModel[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    studioFetch({ action: "get_history", brand_id: brandId, type: "all", limit: 50 })
-      .then((r) => {
-        if (r.success) {
-          setImages(r.images ?? []);
-          setVideos(r.videos ?? []);
-          setTrainings(r.trainings ?? []);
-        }
-      })
+    studioFetch({ action: "get_history", brand_id: brandId, type: "all", limit: 24 })
+      .then((r) => { if (r.success) { setImages(r.images ?? []); setVideos(r.videos ?? []); setModels(r.trainings ?? []); } })
       .finally(() => setLoading(false));
   }, [brandId]);
 
-  const tabs: { id: "image" | "video" | "training"; label: string; count: number }[] = [
-    { id: "image", label: "Images", count: images.length },
-    { id: "video", label: "Videos", count: videos.length },
-    { id: "training", label: "Models", count: trainings.length },
-  ];
-
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3" style={{ fontFamily: "Georgia, serif" }}>
-        📋 Generation History
-      </h3>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-              tab === t.id
-                ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm"
-                : "text-gray-500 dark:text-gray-400"
-            }`}
-          >
-            {t.label} ({t.count})
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="flex border-b border-gray-100 dark:border-gray-800">
+        {(["images", "videos", "models"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`flex-1 py-3 text-xs font-semibold capitalize transition-colors ${tab === t ? "text-brand-600 dark:text-brand-400 border-b-2 border-brand-500" : "text-gray-500 hover:text-gray-700"}`}>
+            {t === "images" ? `🖼️ Images (${images.length})` : t === "videos" ? `🎬 Videos (${videos.length})` : `🤖 Models (${models.length})`}
           </button>
         ))}
       </div>
-
-      {loading ? (
-        <div className="py-8 flex justify-center">
-          <span className="w-6 h-6 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
-        </div>
-      ) : (
-        <>
-          {/* Images grid */}
-          {tab === "image" && (
-            images.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {images.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => onSelectImage(img)}
-                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 ring-brand-400 transition-all group relative"
-                  >
-                    {img.image_url ? (
-                      <Image src={img.image_url} alt={img.prompt_text} width={120} height={120} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">🖼️</div>
-                    )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
-                      <p className="text-[9px] text-white line-clamp-2">{img.prompt_text}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-6">No images generated yet</p>
-            )
-          )}
-
-          {/* Videos list */}
-          {tab === "video" && (
-            videos.length > 0 ? (
-              <div className="space-y-2">
-                {videos.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => onSelectVideo(v)}
-                    className="w-full flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {v.video_thumbnail_url ? (
-                        <Image src={v.video_thumbnail_url} alt="thumb" width={48} height={48} className="w-full h-full object-cover" />
-                      ) : <span className="text-xl">🎬</span>}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{v.hook}</p>
-                      <p className="text-[10px] text-gray-400">{v.target_platform} · {v.video_aspect_ratio} · {v.ai_model}</p>
-                      <p className="text-[10px] text-gray-400">{new Date(v.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                      v.video_status === "completed"
-                        ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                        : "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
-                    }`}>
-                      {v.video_status === "completed" ? "Done" : "Processing"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-6">No videos generated yet</p>
-            )
-          )}
-
-          {/* Trainings list */}
-          {tab === "training" && (
-            trainings.length > 0 ? (
-              <div className="space-y-2">
-                {trainings.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2.5">
-                    <span className="text-xl flex-shrink-0">{t.theme === "product" ? "🏭" : "👤"}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{t.dataset_name}</p>
-                      <p className="text-[10px] text-gray-400">
-                        trigger: <code className="font-mono text-brand-500">{t.metadata?.trigger_word ?? "—"}</code>
-                        {" · "}{t.image_count} images
-                      </p>
-                      <p className="text-[10px] text-gray-400">{new Date(t.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                      t.training_status === "completed"
-                        ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                        : "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
-                    }`}>
-                      {t.training_status === "completed" ? "Ready" : "Training"}
-                    </span>
+      <div className="p-4">
+        {loading && <div className="text-center py-8"><div className="w-6 h-6 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" /></div>}
+        {!loading && tab === "images" && (
+          images.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No generated images yet</p> : (
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((img) => (
+                <button key={img.id} onClick={() => onSelectImage(img)}
+                  className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 ring-brand-500 transition-all">
+                  {img.image_url
+                    ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center text-lg">{img.status === "processing" ? "⏳" : "❌"}</div>}
+                </button>
+              ))}
+            </div>
+          )
+        )}
+        {!loading && tab === "videos" && (
+          videos.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No generated videos yet</p> : (
+            <div className="space-y-2">
+              {videos.map((vid) => (
+                <button key={vid.id} onClick={() => onSelectVideo(vid)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 text-left transition-colors">
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                    {vid.video_thumbnail_url ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover rounded-lg" /> : <span className="text-lg">🎬</span>}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-6">No models trained yet</p>
-            )
-          )}
-        </>
-      )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{vid.hook}</p>
+                    <p className="text-[10px] text-gray-400">{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )
+        )}
+        {!loading && tab === "models" && (
+          models.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No trained models yet</p> : (
+            <div className="space-y-2">
+              {models.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <span className="text-2xl">{m.theme === "character" ? "👤" : "📦"}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`text-[10px] font-medium ${m.training_status === "completed" ? "text-green-600" : "text-amber-600"}`}>{m.training_status}</span>
+                      <span className="text-[10px] text-gray-400">· {m.image_count} images</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RIGHT — Detail panels
-// ═══════════════════════════════════════════════════════════════════════════════
-type DetailState =
-  | { type: "none" }
-  | { type: "image"; data: GeneratedImage }
-  | { type: "video"; data: GeneratedVideo }
-  | { type: "training"; data: TrainedModel };
+// ══════════════════════════════════════════════════════════════════════════════
+// DETAIL PANEL (Right Column)
+// ══════════════════════════════════════════════════════════════════════════════
+const TOPIC_SOUNDS: Record<string, string[]> = {
+  podcast:        ["Lo-fi beats", "Ambient chill", "Soft instrumental"],
+  product_review: ["Upbeat pop", "Corporate upbeat", "Energetic positive"],
+  edu_product:    ["Calm background", "Tutorial music", "Focus beats"],
+  new_product:    ["Exciting reveal", "Hype beat", "Countdown music"],
+  soft_selling:   ["Chill lifestyle", "Indie acoustic", "Morning vibes"],
+  lifestyle:      ["Trendy pop", "Aesthetic lo-fi", "Summer vibes"],
+  advertorial:    ["Viral trend audio", "TikTok trending sound", "Catchy hook"],
+};
 
-function DetailPanel({ detail }: { detail: DetailState }) {
-  if (detail.type === "none") {
+function DetailPanel({ item }: { item: DetailItem }) {
+  if (!item) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-6">
-        <span className="text-4xl mb-3">✨</span>
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Select an item to see details</p>
-        <p className="text-xs text-gray-400 mt-1">Generated images, videos, and trained models will appear here</p>
+      <div className="h-full min-h-64 flex flex-col items-center justify-center gap-3 text-center px-6 py-12">
+        <span className="text-5xl opacity-20">✨</span>
+        <p className="text-sm font-semibold text-gray-400" style={{ fontFamily: "Georgia, serif" }}>Select a result</p>
+        <p className="text-xs text-gray-400">Generate images, videos or train models — click any result to see details here.</p>
       </div>
     );
   }
 
-  if (detail.type === "image") {
-    const img = detail.data;
+  if (item.type === "image") {
+    const img = item.data;
     return (
-      <div className="space-y-4">
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-          {/* Image preview */}
-          <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-            {img.image_url ? (
-              <Image src={img.image_url} alt={img.prompt_text} fill className="object-contain" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-5xl">🖼️</div>
-            )}
+      <div className="space-y-3">
+        <div className="rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-square">
+          {img.image_url
+            ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
+            : <div className="w-full h-full flex items-center justify-center text-4xl">{img.status === "processing" ? "⏳" : "🖼️"}</div>}
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 space-y-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${["completed","succeeded"].includes(img.status) ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" : "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"}`}>{img.status}</span>
+            {img.ai_model && <span className="text-[10px] text-gray-400">{img.ai_model}</span>}
+            {img.style_preset && <span className="text-[10px] bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">LoRA: {img.style_preset}</span>}
           </div>
-          {/* Info */}
-          <div className="p-4 space-y-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1">Prompt</p>
-              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{img.prompt_text}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-              <div>
-                <p className="text-gray-400 font-medium">Model</p>
-                <p className="text-gray-700 dark:text-gray-300 font-mono">{img.ai_model ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Platform</p>
-                <p className="text-gray-700 dark:text-gray-300">{img.target_platform ?? "—"}</p>
-              </div>
-              {img.style_preset && (
-                <div className="col-span-2">
-                  <p className="text-gray-400 font-medium">LoRA</p>
-                  <p className="text-gray-700 dark:text-gray-300 font-mono text-[10px]">{img.style_preset}</p>
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 mb-1">PROMPT</p>
+            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-4">{img.prompt_text}</p>
+          </div>
+          {img.image_url && (
+            <a href={img.image_url} target="_blank" rel="noopener noreferrer"
+              className="block w-full text-center py-2 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+              ↓ Download Image
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (item.type === "video") {
+    const vid = item.data;
+    const topicKey = Object.keys(TOPIC_SOUNDS).find((k) => vid.hook?.toLowerCase().includes(k)) ?? "lifestyle";
+    const sounds = TOPIC_SOUNDS[topicKey] ?? TOPIC_SOUNDS.lifestyle;
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl overflow-hidden bg-gray-900 aspect-video">
+          {vid.video_url
+            ? <video src={vid.video_url} controls className="w-full h-full" poster={vid.video_thumbnail_url ?? undefined} />
+            : <div className="w-full h-full flex flex-col items-center justify-center gap-2"><span className="text-4xl animate-pulse">⏳</span><p className="text-xs text-gray-400">{vid.video_status ?? "Processing..."}</p></div>}
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 space-y-2.5">
+          <div className="flex gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${vid.video_status === "completed" ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>{vid.video_status ?? "processing"}</span>
+            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-400">{vid.ai_model}</span>
+            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-400">{vid.video_aspect_ratio}</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 mb-1">PROMPT</p>
+            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">{vid.hook}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 mb-1.5">🎵 RECOMMENDED SOUNDS</p>
+            <div className="space-y-1">
+              {sounds.map((s) => (
+                <div key={s} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-brand-500 text-sm">♪</span> {s}
                 </div>
-              )}
-              <div>
-                <p className="text-gray-400 font-medium">Status</p>
-                <p className={`font-semibold ${img.status === "completed" ? "text-green-500" : "text-amber-500"}`}>
-                  {img.status}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Created</p>
-                <p className="text-gray-700 dark:text-gray-300">{new Date(img.created_at).toLocaleDateString()}</p>
-              </div>
+              ))}
             </div>
-            {img.image_url && (
-              <a
-                href={img.image_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full block rounded-xl bg-brand-500 px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors text-center"
-              >
-                ↗ Open Full Image
-              </a>
-            )}
           </div>
         </div>
       </div>
     );
   }
 
-  if (detail.type === "video") {
-    const v = detail.data;
-    return (
-      <div className="space-y-4">
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-          {/* Video preview */}
-          <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative flex items-center justify-center">
-            {v.video_url ? (
-              <video
-                src={v.video_url}
-                controls
-                className="w-full h-full object-contain"
-                poster={v.video_thumbnail_url ?? undefined}
-              />
-            ) : (
-              <div className="text-center">
-                <span className="text-4xl">🎬</span>
-                <p className="text-xs text-gray-400 mt-2">
-                  {v.video_status === "processing" ? "Video is generating…" : "No video yet"}
-                </p>
-              </div>
-            )}
-          </div>
-          {/* Info */}
-          <div className="p-4 space-y-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1">Prompt</p>
-              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{v.hook}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-              <div>
-                <p className="text-gray-400 font-medium">Model</p>
-                <p className="text-gray-700 dark:text-gray-300 font-mono">{v.ai_model ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Aspect Ratio</p>
-                <p className="text-gray-700 dark:text-gray-300">{v.video_aspect_ratio ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Platform</p>
-                <p className="text-gray-700 dark:text-gray-300">{v.target_platform ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Status</p>
-                <p className={`font-semibold ${v.video_status === "completed" ? "text-green-500" : "text-amber-500"}`}>
-                  {v.video_status ?? "—"}
-                </p>
-              </div>
-            </div>
-
-            {/* Sound recommendations */}
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-3">
-              <p className="text-[10px] font-semibold uppercase text-gray-400 mb-2">🎵 Suggested Sound</p>
-              <ul className="space-y-1">
-                {["Trending background music for " + (v.target_platform ?? "TikTok"),
-                  "Upbeat corporate/brand anthem",
-                  "Ambient product showcase music"].map((s, i) => (
-                  <li key={i} className="text-[10px] text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
-                    <span className="text-gray-300 mt-0.5">•</span>{s}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {v.video_url && (
-              <a
-                href={v.video_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full block rounded-xl bg-brand-500 px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors text-center"
-              >
-                ↗ Download Video
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (detail.type === "training") {
-    const t = detail.data;
-    const isReady = t.training_status === "completed";
+  if (item.type === "model") {
+    const m = item.data;
     return (
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 space-y-4">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{t.theme === "product" ? "🏭" : "👤"}</span>
+          <span className="text-4xl">{m.theme === "character" ? "👤" : "📦"}</span>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t.dataset_name}</h3>
-            <p className="text-xs text-gray-400 capitalize">{t.theme} Model · {t.image_count} images</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>{m.dataset_name}</h3>
+            <p className="text-xs text-gray-400 capitalize">{m.theme} model · {m.image_count} images</p>
           </div>
-          <span className={`ml-auto text-[10px] font-semibold px-2 py-1 rounded-full ${
-            isReady ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-          }`}>
-            {isReady ? "✓ Ready" : "Training…"}
-          </span>
         </div>
-
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Trigger Word</span>
-            <code className="font-mono text-brand-500 text-[11px]">{t.metadata?.trigger_word ?? "—"}</code>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">KIE Training ID</span>
-            <span className="font-mono text-gray-600 dark:text-gray-400 text-[10px] truncate max-w-[120px]">
-              {t.metadata?.kie_training_id ?? "—"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Images Used</span>
-            <span className="text-gray-700 dark:text-gray-300">{t.image_count}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Created</span>
-            <span className="text-gray-700 dark:text-gray-300">{new Date(t.created_at).toLocaleDateString()}</span>
-          </div>
-          {t.model_path && (
-            <div className="flex justify-between">
-              <span className="text-gray-400">Model Path</span>
-              <span className="font-mono text-gray-600 dark:text-gray-400 text-[10px] truncate max-w-[120px]">{t.model_path}</span>
-            </div>
-          )}
+        <div className="space-y-2">
+          <div className="flex justify-between"><span className="text-[10px] text-gray-400">Status</span><span className={`text-[10px] font-semibold ${m.training_status === "completed" ? "text-green-600" : "text-amber-600"}`}>{m.training_status}</span></div>
+          {m.metadata?.trigger_word && <div className="flex justify-between"><span className="text-[10px] text-gray-400">Trigger Word</span><span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">{m.metadata.trigger_word}</span></div>}
+          {m.image_count && <div className="flex justify-between"><span className="text-[10px] text-gray-400">Training Images</span><span className="text-[10px] text-gray-600 dark:text-gray-400">{m.image_count}</span></div>}
         </div>
-
-        {isReady && (
-          <div className="rounded-lg bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 p-3">
-            <p className="text-xs font-medium text-brand-700 dark:text-brand-400 mb-1">✓ Model Ready</p>
-            <p className="text-[10px] text-brand-600/70 dark:text-brand-400/70">
-              Use trigger word <code className="font-mono font-bold">{t.metadata?.trigger_word}</code> in your image prompts to apply this model.
-            </p>
+        {m.training_status === "completed" && (
+          <div className="rounded-lg bg-green-50 dark:bg-green-500/10 p-3">
+            <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">✅ Ready to Use</p>
+            <p className="text-[10px] text-green-600 dark:text-green-500">Select this model in Generate Image or Video → choose "Trained" mode.</p>
           </div>
         )}
       </div>
@@ -1186,121 +1357,117 @@ function DetailPanel({ detail }: { detail: DetailState }) {
   return null;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 export default function ContentStudioPage() {
   const [brandId, setBrandId] = useState(FALLBACK_BRAND_ID);
-  const [currentTier, setCurrentTier] = useState<"basic" | "premium" | "partner">("basic");
+  const [currentTier, setCurrentTier] = useState("basic");
   const [activeSection, setActiveSection] = useState<StudioSection>("generate_image");
-  const [detail, setDetail] = useState<DetailState>({ type: "none" });
   const [trainedModels, setTrainedModels] = useState<TrainedModel[]>([]);
+  const [historyImages, setHistoryImages] = useState<GeneratedImage[]>([]);
+  const [imagesUsedToday, setImagesUsedToday] = useState(0);
+  const [videosUsedToday, setVideosUsedToday] = useState(0);
+  const [detailItem, setDetailItem] = useState<DetailItem>(null);
 
-  // Load brandId + subscription tier from auth
+  // Auth + brand
   useEffect(() => {
-    const load = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data: ub } = await supabase
-          .from("user_brands")
-          .select("brand_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .single();
-        if (!ub?.brand_id) return;
-        setBrandId(ub.brand_id);
-        // Fetch subscription tier
-        const res = await fetch("/api/payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get_subscription", brand_id: ub.brand_id }),
-        });
-        const sub = await res.json();
-        if (sub.success) {
-          const tier = (sub.brand_payment?.subscription_tier as string) ?? "basic";
-          const mapped = tier === "partner" ? "partner" : tier === "premium" ? "premium" : "basic";
-          setCurrentTier(mapped as "basic" | "premium" | "partner");
-        }
-      } catch { /* keep fallback */ }
-    };
-    load();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: ub } = await supabase.from("user_brands").select("brand_id").eq("user_id", user.id).limit(1).single();
+      if (ub?.brand_id) setBrandId(ub.brand_id);
+    });
   }, []);
 
-  // Load trained models for use in image generation LoRA selector
+  // Subscription tier
   useEffect(() => {
+    if (!brandId) return;
+    fetch("/api/payment", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_subscription", brand_id: brandId }),
+    }).then((r) => r.json()).then((d) => { if (d?.subscription?.plan) setCurrentTier(d.subscription.plan); });
+  }, [brandId]);
+
+  // Daily usage
+  const refreshUsage = useCallback(() => {
+    if (!brandId) return;
+    studioFetch({ action: "check_daily_usage", brand_id: brandId })
+      .then((r) => { if (r.success) { setImagesUsedToday(r.images_today ?? 0); setVideosUsedToday(r.videos_today ?? 0); } });
+  }, [brandId]);
+
+  useEffect(() => { refreshUsage(); }, [refreshUsage]);
+
+  // Trained models
+  useEffect(() => {
+    if (!brandId) return;
     studioFetch({ action: "get_history", brand_id: brandId, type: "training", limit: 50 })
       .then((r) => { if (r.success) setTrainedModels(r.trainings ?? []); });
   }, [brandId]);
 
-  // Center column content
-  const center = (
-    <div>
-      {activeSection === "generate_image" && (
-        <GenerateImageCenter
-          brandId={brandId}
-          trainedModels={trainedModels}
-          onResult={(img) => setDetail({ type: "image", data: img })}
-        />
-      )}
-      {activeSection === "generate_video" && (
-        <GenerateVideoCenter
-          brandId={brandId}
-          onResult={(v) => setDetail({ type: "video", data: v })}
-        />
-      )}
-      {activeSection === "train_product" && (
-        <TrainingCenter
-          brandId={brandId}
-          type="product"
-          currentTier={currentTier}
-          totalModelCount={trainedModels.length}
-          onModelReady={(m) => {
-            setTrainedModels((prev) => {
-              const exists = prev.find((p) => p.id === m.id);
-              if (exists) return prev;
-              return [...prev, m];
-            });
-            setDetail({ type: "training", data: m });
-          }}
-        />
-      )}
-      {activeSection === "train_character" && (
-        <TrainingCenter
-          brandId={brandId}
-          type="character"
-          currentTier={currentTier}
-          totalModelCount={trainedModels.length}
-          onModelReady={(m) => {
-            setTrainedModels((prev) => {
-              const exists = prev.find((p) => p.id === m.id);
-              if (exists) return prev;
-              return [...prev, m];
-            });
-            setDetail({ type: "training", data: m });
-          }}
-        />
-      )}
-      {activeSection === "history" && (
-        <HistoryCenter
-          brandId={brandId}
-          onSelectImage={(img) => setDetail({ type: "image", data: img })}
-          onSelectVideo={(v) => setDetail({ type: "video", data: v })}
-        />
-      )}
-    </div>
-  );
+  // History images (for video reference)
+  useEffect(() => {
+    if (!brandId) return;
+    studioFetch({ action: "get_history", brand_id: brandId, type: "image", limit: 20 })
+      .then((r) => { if (r.success) setHistoryImages(r.images ?? []); });
+  }, [brandId]);
 
-  const left = (
-    <StudioNav active={activeSection} onSelect={setActiveSection} />
-  );
+  const completedModels = trainedModels.filter((m) => m.training_status === "completed");
+  const totalModelCount = trainedModels.length;
 
-  const right = (
-    <div className="h-full overflow-y-auto">
-      <DetailPanel detail={detail} />
-    </div>
-  );
+  const centerContent = () => {
+    switch (activeSection) {
+      case "generate_image":
+        return (
+          <GenerateImageWizard
+            brandId={brandId} currentTier={currentTier} imagesUsedToday={imagesUsedToday}
+            trainedModels={completedModels}
+            onResult={(img) => { setHistoryImages((p) => [img, ...p]); setDetailItem({ type: "image", data: img }); }}
+            onUsed={() => setImagesUsedToday((c) => c + 1)}
+          />
+        );
+      case "generate_video":
+        return (
+          <GenerateVideoWizard
+            brandId={brandId} currentTier={currentTier} videosUsedToday={videosUsedToday}
+            trainedModels={completedModels} historyImages={historyImages}
+            onResult={(vid) => setDetailItem({ type: "video", data: vid })}
+            onUsed={() => setVideosUsedToday((c) => c + 1)}
+          />
+        );
+      case "train_product":
+        return (
+          <TrainingWizard
+            brandId={brandId} trainingType="product" currentTier={currentTier} totalModelCount={totalModelCount}
+            onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
+          />
+        );
+      case "train_character":
+        return (
+          <TrainingWizard
+            brandId={brandId} trainingType="character" currentTier={currentTier} totalModelCount={totalModelCount}
+            onDone={(m) => { setTrainedModels((p) => [...p, m]); setDetailItem({ type: "model", data: m }); }}
+          />
+        );
+      case "history":
+        return (
+          <HistoryCenter
+            brandId={brandId}
+            onSelectImage={(img) => setDetailItem({ type: "image", data: img })}
+            onSelectVideo={(vid) => setDetailItem({ type: "video", data: vid })}
+          />
+        );
+    }
+  };
 
-  return <ThreeColumnLayout left={left} center={center} right={right} />;
+  return (
+    <ThreeColumnLayout
+      left={<StudioNav active={activeSection} onSelect={setActiveSection} />}
+      center={<div className="space-y-4">{centerContent()}</div>}
+      right={
+        <div className="sticky top-4">
+          <DetailPanel item={detailItem} />
+        </div>
+      }
+    />
+  );
 }

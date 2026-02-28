@@ -21,6 +21,9 @@ const ALLOWED_ACTIONS = new Set([
   "train_character",
   "check_training",
   "get_history",
+  "check_daily_usage",
+  "generate_smart_prompt",
+  "generate_synthetics",
 ]);
 
 export async function POST(request: NextRequest) {
