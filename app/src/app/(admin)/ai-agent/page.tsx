@@ -116,12 +116,25 @@ function mergeWithHired(defaults: Agent[], hired: HiredAgent[]): Agent[] {
   });
 }
 
+// Unlock agents based on subscription tier
+function applyTierLocks(defaults: Agent[], tier: string): Agent[] {
+  // premium+ unlocks CMO, partner unlocks CTO + Support
+  return defaults.map((a) => {
+    if (a.id === "cmo")     return { ...a, locked: tier === "basic" };
+    if (a.id === "cto")     return { ...a, locked: tier !== "partner" };
+    if (a.id === "support") return { ...a, locked: tier !== "partner" };
+    return a; // CEO always unlocked
+  });
+}
+
 export default function AIAgentPage() {
   const [selectedId, setSelectedId] = useState("ceo");
   const [brandId, setBrandId] = useState(FALLBACK_BRAND_ID);
+  const [currentTier, setCurrentTier] = useState<"basic" | "premium" | "partner">("basic");
   const [agents, setAgents] = useState<Agent[]>(DEFAULT_AGENTS);
   const [hiredAgents, setHiredAgents] = useState<HiredAgent[]>([]);
 
+  // Load brand_id + subscription tier from auth
   useEffect(() => {
     const load = async () => {
       try {
@@ -134,16 +147,56 @@ export default function AIAgentPage() {
           .order("created_at", { ascending: true })
           .limit(1)
           .single();
-        if (ub?.brand_id) setBrandId(ub.brand_id);
+        if (!ub?.brand_id) return;
+        setBrandId(ub.brand_id);
+        // Fetch subscription tier
+        const res = await fetch("/api/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_subscription", brand_id: ub.brand_id }),
+        });
+        const sub = await res.json();
+        if (sub.success) {
+          const tier = (sub.brand_payment?.subscription_tier as string) ?? "basic";
+          const mapped = tier === "partner" ? "partner" : tier === "premium" ? "premium" : "basic";
+          setCurrentTier(mapped as "basic" | "premium" | "partner");
+        }
       } catch { /* keep fallback */ }
     };
     load();
   }, []);
 
+  // Load existing hired agents from DB whenever brandId resolves
+  useEffect(() => {
+    const loadHired = async () => {
+      try {
+        const { data } = await supabase
+          .from("gv_ai_agents")
+          .select("*")
+          .eq("brand_id", brandId)
+          .eq("is_active", true)
+          .order("created_at", { ascending: true });
+        if (data && data.length > 0) {
+          const hired = data as HiredAgent[];
+          setHiredAgents(hired);
+          setAgents(applyTierLocks(mergeWithHired(DEFAULT_AGENTS, hired), currentTier));
+        }
+      } catch { /* keep defaults */ }
+    };
+    loadHired();
+  }, [brandId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-apply tier locks when currentTier changes
+  useEffect(() => {
+    setAgents(applyTierLocks(mergeWithHired(DEFAULT_AGENTS, hiredAgents), currentTier));
+  // hiredAgents intentionally omitted: this effect only re-locks based on tier change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTier]);
+
   const handleHired = (agent: HiredAgent) => {
     const updated = [...hiredAgents, agent];
     setHiredAgents(updated);
-    setAgents(mergeWithHired(DEFAULT_AGENTS, updated));
+    setAgents(applyTierLocks(mergeWithHired(DEFAULT_AGENTS, updated), currentTier));
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedId)!;
