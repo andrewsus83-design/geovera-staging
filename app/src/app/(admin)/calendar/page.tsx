@@ -1901,9 +1901,9 @@ export default function CalendarPage() {
   );
 
   const right = selectedPost ? (
-    <div className="h-full overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
+      <div className="flex-shrink-0 px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <StatusBadge status={selectedPost.status} />
@@ -1920,93 +1920,96 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Phone preview */}
-      <TikTokPhoneMockup post={selectedPost} caption={editCaption} hashtags={editHashtags.split(/\s+/)} />
+      {/* Scrollable content */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+        {/* Phone preview */}
+        <TikTokPhoneMockup post={selectedPost} caption={editCaption} hashtags={editHashtags.split(/\s+/)} />
 
-      {/* Fields */}
-      <div className="px-4 pb-6 space-y-4">
-        <div>
-          <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Caption</h4>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.caption}</p>
-        </div>
-
-        <div>
-          <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Hashtags</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {selectedPost.hashtags.map((tag, i) => (
-              <span key={i} className="gv-badge gv-badge-primary" style={{ fontSize: "12px" }}>
-                {tag}
-              </span>
-            ))}
+        {/* Fields */}
+        <div className="px-4 pb-4 space-y-4">
+          <div>
+            <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Caption</h4>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.caption}</p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 py-1">
-          <span className="text-sm">📅</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.date}</p>
-            <p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>at {selectedPost.time} WIB</p>
-          </div>
-          <button className="text-sm font-medium hover:underline" style={{ color: "var(--gv-color-primary-500)" }}>Edit</button>
-        </div>
-
-        <div className="space-y-2 pt-1">
-          {!lsConnectedIds.has("tiktok") ? (
-            <div className="p-4 text-center" style={{ borderRadius: "var(--gv-radius-md)", border: "1px solid var(--gv-color-neutral-200)" }}>
-              <p className="text-sm font-medium mb-1" style={{ color: "var(--gv-color-neutral-700)" }}>TikTok belum terhubung</p>
-              <p className="text-xs mb-3" style={{ color: "var(--gv-color-neutral-400)" }}>Hubungkan TikTok di halaman Home terlebih dahulu</p>
-              <a href="/" className="gv-btn-sm" style={{ display: "inline-flex" }}>
-                → Ke Halaman Home
-              </a>
+          <div>
+            <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Hashtags</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedPost.hashtags.map((tag, i) => (
+                <span key={i} className="gv-badge gv-badge-primary" style={{ fontSize: "12px" }}>
+                  {tag}
+                </span>
+              ))}
             </div>
-          ) : (
-            <>
+          </div>
+
+          <div className="flex items-center gap-2 py-1">
+            <span className="text-sm">📅</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>{selectedPost.date}</p>
+              <p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>at {selectedPost.time} WIB</p>
+            </div>
+            <button className="text-sm font-medium hover:underline" style={{ color: "var(--gv-color-primary-500)" }}>Edit</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons — sticky bottom */}
+      <div className="flex-shrink-0 p-4 space-y-2" style={{ borderTop: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
+        {!lsConnectedIds.has("tiktok") ? (
+          <div className="p-4 text-center" style={{ borderRadius: "var(--gv-radius-md)", border: "1px solid var(--gv-color-neutral-200)" }}>
+            <p className="text-sm font-medium mb-1" style={{ color: "var(--gv-color-neutral-700)" }}>TikTok belum terhubung</p>
+            <p className="text-xs mb-3" style={{ color: "var(--gv-color-neutral-400)" }}>Hubungkan TikTok di halaman Home terlebih dahulu</p>
+            <a href="/" className="gv-btn-sm" style={{ display: "inline-flex" }}>
+              → Ke Halaman Home
+            </a>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={handlePostPublish}
+              disabled={publishing || selectedPost.status === "published"}
+              className="w-full font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all"
+              style={{
+                borderRadius: "var(--gv-radius-md)",
+                background: selectedPost.status === "published"
+                  ? "var(--gv-color-success-50)"
+                  : publishing ? "rgba(254,44,85,0.7)" : "#FE2C55",
+                color: selectedPost.status === "published"
+                  ? "var(--gv-color-success-700)"
+                  : "#ffffff",
+                cursor: selectedPost.status === "published" ? "default" : publishing ? "wait" : "pointer",
+                boxShadow: selectedPost.status !== "published" && !publishing ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                opacity: (publishing || selectedPost.status === "published") ? undefined : 1,
+              }}
+            >
+              {publishBtnLabel()}
+            </button>
+
+            {publishing && (
+              <div className="w-full h-1 overflow-hidden" style={{ background: "var(--gv-color-neutral-100)", borderRadius: "var(--gv-radius-full)" }}>
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{ background: "#FE2C55", borderRadius: "var(--gv-radius-full)", width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
+                />
+              </div>
+            )}
+
+            {selectedPost.status !== "published" && (
               <button
-                onClick={handlePostPublish}
-                disabled={publishing || selectedPost.status === "published"}
-                className="w-full font-semibold py-3 text-sm flex items-center justify-center gap-2 transition-all"
+                className="w-full font-medium py-2.5 text-sm flex items-center justify-center gap-2 transition-all"
                 style={{
                   borderRadius: "var(--gv-radius-md)",
-                  background: selectedPost.status === "published"
-                    ? "var(--gv-color-success-50)"
-                    : publishing ? "rgba(254,44,85,0.7)" : "#FE2C55",
-                  color: selectedPost.status === "published"
-                    ? "var(--gv-color-success-700)"
-                    : "#ffffff",
-                  cursor: selectedPost.status === "published" ? "default" : publishing ? "wait" : "pointer",
-                  boxShadow: selectedPost.status !== "published" && !publishing ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-                  opacity: (publishing || selectedPost.status === "published") ? undefined : 1,
+                  border: "1px solid var(--gv-color-neutral-200)",
+                  color: "var(--gv-color-neutral-700)",
+                  background: "var(--gv-color-bg-surface)",
                 }}
               >
-                {publishBtnLabel()}
+                📅 Schedule · {selectedPost.date} {selectedPost.time}
               </button>
-
-              {publishing && (
-                <div className="w-full h-1 overflow-hidden" style={{ background: "var(--gv-color-neutral-100)", borderRadius: "var(--gv-radius-full)" }}>
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{ background: "#FE2C55", borderRadius: "var(--gv-radius-full)", width: publishStep === "connecting" ? "35%" : publishStep === "uploading" ? "75%" : "100%" }}
-                  />
-                </div>
-              )}
-
-              {selectedPost.status !== "published" && (
-                <button
-                  className="w-full font-medium py-2.5 text-sm flex items-center justify-center gap-2 transition-all"
-                  style={{
-                    borderRadius: "var(--gv-radius-md)",
-                    border: "1px solid var(--gv-color-neutral-200)",
-                    color: "var(--gv-color-neutral-700)",
-                    background: "var(--gv-color-bg-surface)",
-                  }}
-                >
-                  📅 Schedule · {selectedPost.date} {selectedPost.time}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
+            )}
+          </>
+        )}
       </div>
     </div>
   ) : (
@@ -2036,7 +2039,7 @@ export default function CalendarPage() {
 
       {/* ── Bottom tab bar — outside columns, fixed at bottom ── */}
       <nav
-        className="flex-shrink-0 flex justify-center py-2"
+        className="flex-shrink-0 flex justify-center pt-0 pb-4"
         style={{ background: "var(--gv-color-bg-base)" }}
       >
         <div
