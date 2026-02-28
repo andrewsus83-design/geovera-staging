@@ -1193,24 +1193,27 @@ export default function CalendarPage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Header: title + 7D date window ── */}
       <div
-        className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-[#F3F4F6]"
-        style={{ background: "var(--gv-color-bg-surface, white)" }}
+        className="flex-shrink-0 px-5 pt-5 pb-4"
+        style={{
+          background: "var(--gv-color-bg-surface)",
+          borderBottom: "1px solid var(--gv-color-neutral-200)",
+        }}
       >
-        {/* Title row — 10% larger */}
+        {/* Title row */}
         <div className="flex items-center gap-2 mb-3">
-          <h2
-            className="text-[22px] font-bold text-[#1F2428] leading-tight"
-            style={{ fontFamily: "Georgia, serif" }}
-          >
+          <h2 className="text-[22px] font-bold leading-tight" style={{ color: "var(--gv-color-neutral-900)" }}>
             Tasks
           </h2>
-          <span className="inline-flex items-center rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] font-medium text-[#4A545B]">
+          <span
+            className="gv-badge"
+            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-700)" }}
+          >
             {activeTasks.length}/{activeBucket.length}
           </span>
         </div>
 
-        {/* 7-day date strip — pill style */}
-        <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        {/* 7-day date strip */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {sevenDays.map((dateStr) => {
             const d = new Date(dateStr + "T00:00:00");
             const isToday = dateStr === todayStr;
@@ -1222,25 +1225,38 @@ export default function CalendarPage() {
               <button
                 key={dateStr}
                 onClick={() => handleDateSelect(dateStr)}
-                className={[
-                  "flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-[16px] transition-all duration-200 min-w-[48px]",
-                  isSelected
-                    ? "bg-[#EDF5F4] text-[#5F8F8B]"
+                className="flex-shrink-0 flex flex-col items-center min-w-[48px] transition-all duration-200"
+                style={{
+                  borderRadius: "var(--gv-radius-md)",
+                  padding: "8px 12px",
+                  background: isSelected
+                    ? "var(--gv-color-primary-50)"
                     : isToday
-                    ? "bg-[#1F2428] text-white"
-                    : "text-[#4A545B] hover:bg-[#F3F4F6]",
-                ].join(" ")}
-                style={isSelected ? {
-                  border: "1px solid rgba(95,143,139,0.3)",
-                  boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
-                } : {}}
+                    ? "var(--gv-color-neutral-900)"
+                    : "transparent",
+                  color: isSelected
+                    ? "var(--gv-color-primary-500)"
+                    : isToday
+                    ? "#ffffff"
+                    : "var(--gv-color-neutral-700)",
+                  border: isSelected
+                    ? "1px solid var(--gv-color-primary-200)"
+                    : "1px solid transparent",
+                  boxShadow: isSelected ? "var(--gv-shadow-focus)" : "none",
+                }}
               >
-                <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">{dayName}</span>
+                <span className="text-[10px] font-medium uppercase tracking-wide" style={{ opacity: 0.7 }}>{dayName}</span>
                 <span className="text-[16px] font-bold leading-tight">{dayNum}</span>
                 {hasTasks && (
                   <span
                     className="w-1 h-1 rounded-full mt-0.5"
-                    style={{ background: isSelected ? "#5F8F8B" : isToday ? "white" : "#D1D5DB" }}
+                    style={{
+                      background: isSelected
+                        ? "var(--gv-color-primary-500)"
+                        : isToday
+                        ? "#ffffff"
+                        : "var(--gv-color-neutral-300)",
+                    }}
                   />
                 )}
               </button>
@@ -1250,41 +1266,80 @@ export default function CalendarPage() {
       </div>
 
       {/* ── Scrollable tasks body ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-1 pb-24">
-        {/* Filter pills — On Progress / Done / Rejected — at top of task list */}
-        <div className="flex items-center gap-1.5 px-2 pt-3 pb-2">
-          {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setTaskFilter(f)}
-              className={[
-                "flex-1 rounded-[10px] px-2 py-1.5 text-[11px] font-semibold transition-all",
-                taskFilter === f
-                  ? f === "rejected"
-                    ? "bg-[#FEE2E2] text-[#B91C1C]"
-                    : f === "done"
-                    ? "bg-[#DCFCE7] text-[#166534]"
-                    : "bg-[#EDF5F4] text-[#3D6562]"
-                  : "bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#4A545B]",
-              ].join(" ")}
-            >
-              {f === "inprogress" ? `On Progress${taskFilter === "inprogress" ? ` (${activeTasks.length})` : ""}` : f === "done" ? `Done${taskFilter === "done" ? ` (${doneTasks.length})` : ""}` : `Rejected${taskFilter === "rejected" ? ` (${rejectedTasks.length})` : ""}`}
-            </button>
-          ))}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-24">
+        {/* Filter pills — On Progress / Done / Rejected */}
+        <div className="flex items-center gap-1.5 pt-3 pb-2">
+          {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => {
+            const isActive = taskFilter === f;
+            const bgColor = isActive
+              ? f === "rejected"
+                ? "var(--gv-color-danger-50)"
+                : f === "done"
+                ? "var(--gv-color-success-50)"
+                : "var(--gv-color-primary-50)"
+              : "var(--gv-color-neutral-100)";
+            const txtColor = isActive
+              ? f === "rejected"
+                ? "var(--gv-color-danger-700)"
+                : f === "done"
+                ? "var(--gv-color-success-700)"
+                : "var(--gv-color-primary-700)"
+              : "var(--gv-color-neutral-400)";
+            const label =
+              f === "inprogress"
+                ? `On Progress${isActive ? ` (${activeTasks.length})` : ""}`
+                : f === "done"
+                ? `Done${isActive ? ` (${doneTasks.length})` : ""}`
+                : `Rejected${isActive ? ` (${rejectedTasks.length})` : ""}`;
+            return (
+              <button
+                key={f}
+                onClick={() => setTaskFilter(f)}
+                className="flex-1 text-[11px] font-semibold transition-all duration-200"
+                style={{
+                  borderRadius: "var(--gv-radius-sm)",
+                  padding: "6px 8px",
+                  background: bgColor,
+                  color: txtColor,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Comments tab */}
         {subTab === "comments" && (
-          <div className="py-6 space-y-2">
-            <div className="rounded-xl border border-teal-200 bg-teal-50/60 dark:border-teal-500/20 dark:bg-teal-500/5 p-3 mb-3">
+          <div className="py-3 space-y-2">
+            {/* Late auto-reply info banner */}
+            <div
+              className="p-3 mb-1"
+              style={{
+                borderRadius: "var(--gv-radius-md)",
+                border: "1px solid var(--gv-color-primary-200)",
+                background: "var(--gv-color-primary-50)",
+              }}
+            >
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">🛡️</span>
-                  <p className="text-xs font-semibold text-teal-700 dark:text-teal-400">Late Auto-Reply</p>
+                  <span className="text-[14px]">🛡️</span>
+                  <p
+                    className="text-[13px] font-semibold"
+                    style={{ color: "var(--gv-color-primary-700)" }}
+                  >
+                    Late Auto-Reply
+                  </p>
                 </div>
                 {connectedPlatforms.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+                  <span
+                    className="gv-badge gv-badge-success"
+                    style={{ gap: 4 }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full inline-block"
+                      style={{ background: "var(--gv-color-success-500)" }}
+                    />
                     {connectedPlatforms.length} connected
                   </span>
                 )}
@@ -1292,25 +1347,47 @@ export default function CalendarPage() {
               {connectedPlatforms.length > 0 ? (
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {connectedPlatforms.map((p) => (
-                    <span key={p.platform} className="inline-flex items-center gap-1 rounded-full bg-white border border-teal-200 px-2 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:border-teal-500/20 dark:text-teal-400">
+                    <span
+                      key={p.platform}
+                      className="gv-badge gv-badge-primary"
+                    >
                       {p.handle ? `@${p.handle}` : p.platform}
-                      {p.auto_reply_enabled && <span className="h-1 w-1 rounded-full bg-teal-500 inline-block" />}
+                      {p.auto_reply_enabled && (
+                        <span
+                          className="h-1 w-1 rounded-full inline-block ml-0.5"
+                          style={{ background: "var(--gv-color-primary-500)" }}
+                        />
+                      )}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-teal-600 dark:text-teal-500 mt-1">
+                <p
+                  className="text-[12px] mt-1"
+                  style={{ color: "var(--gv-color-primary-700)" }}
+                >
                   Connect your social accounts to see live comment queues here. Late ranks comments by author score and drafts personalized replies via OpenAI.
                 </p>
               )}
             </div>
+
             {commentTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-sm font-medium text-gray-500">No comment tasks for this date</p>
-                <p className="text-xs text-gray-400 mt-1">Late reply queues appear here daily</p>
+                <p
+                  className="text-[14px] font-medium"
+                  style={{ color: "var(--gv-color-neutral-500)" }}
+                >
+                  No comment tasks for this date
+                </p>
+                <p
+                  className="text-[12px] mt-1"
+                  style={{ color: "var(--gv-color-neutral-400)" }}
+                >
+                  Late reply queues appear here daily
+                </p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {commentTasks
                   .filter(t => taskFilter === "inprogress" ? !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id)
                               : taskFilter === "done" ? doneTaskIds.has(t.id)
@@ -1319,18 +1396,36 @@ export default function CalendarPage() {
                     <button
                       key={task.id}
                       onClick={() => handleTaskSelect(task)}
-                      className={`w-full text-left rounded-xl border p-2.5 transition-all ${
-                        selectedTask?.id === task.id
-                          ? "border-teal-400 bg-teal-50/50 dark:border-teal-500/40"
-                          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900"
-                      }`}
+                      className="w-full text-left transition-all duration-200"
+                      style={{
+                        borderRadius: "var(--gv-radius-md)",
+                        padding: "12px",
+                        border: `1px solid ${selectedTask?.id === task.id ? "var(--gv-color-primary-200)" : "var(--gv-color-neutral-200)"}`,
+                        background: selectedTask?.id === task.id ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                        boxShadow: selectedTask?.id === task.id ? "var(--gv-shadow-focus)" : "var(--gv-shadow-card)",
+                      }}
                     >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">🔗 Late</span>
-                        {task.platform && <span className="text-[10px] text-gray-400">{task.platform}</span>}
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="gv-badge gv-badge-primary">🔗 Late</span>
+                        {task.platform && (
+                          <span
+                            className="gv-badge"
+                            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}
+                          >
+                            {task.platform}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">{task.title}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p
+                        className="text-[14px] font-semibold leading-snug"
+                        style={{ color: "var(--gv-color-neutral-900)" }}
+                      >
+                        {task.title}
+                      </p>
+                      <p
+                        className="text-[12px] mt-1"
+                        style={{ color: "var(--gv-color-neutral-400)" }}
+                      >
                         {(task.replyQueue?.length || 0)} replies pending
                       </p>
                     </button>
@@ -1342,13 +1437,18 @@ export default function CalendarPage() {
 
         {/* Others tab — CEO tasks */}
         {subTab === "others" && (
-          <div className="py-1 space-y-1">
+          <div className="py-3 space-y-2">
             {othersTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-sm font-medium text-gray-500">No strategy tasks for this date</p>
+                <p
+                  className="text-[14px] font-medium"
+                  style={{ color: "var(--gv-color-neutral-500)" }}
+                >
+                  No strategy tasks for this date
+                </p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {othersTasks
                   .filter(t => taskFilter === "inprogress" ? !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id)
                               : taskFilter === "done" ? doneTaskIds.has(t.id)
@@ -1357,17 +1457,32 @@ export default function CalendarPage() {
                     <button
                       key={task.id}
                       onClick={() => handleTaskSelect(task)}
-                      className={`w-full text-left rounded-xl border p-2.5 transition-all ${
-                        selectedTask?.id === task.id
-                          ? "border-blue-400 bg-blue-50/50 dark:border-blue-500/40"
-                          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900"
-                      }`}
+                      className="w-full text-left transition-all duration-200"
+                      style={{
+                        borderRadius: "var(--gv-radius-md)",
+                        padding: "12px",
+                        border: `1px solid ${selectedTask?.id === task.id ? "var(--gv-color-primary-200)" : "var(--gv-color-neutral-200)"}`,
+                        background: selectedTask?.id === task.id ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                        boxShadow: selectedTask?.id === task.id ? "var(--gv-shadow-focus)" : "var(--gv-shadow-card)",
+                      }}
                     >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">CEO</span>
-                        {doneTaskIds.has(task.id) && <span className="text-[9px] text-green-600">✓ Done</span>}
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span
+                          className="gv-badge"
+                          style={{ background: "var(--gv-color-info-50)", color: "var(--gv-color-info-700)" }}
+                        >
+                          CEO
+                        </span>
+                        {doneTaskIds.has(task.id) && (
+                          <span className="gv-badge gv-badge-success">✓ Done</span>
+                        )}
                       </div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">{task.title}</p>
+                      <p
+                        className="text-[14px] font-semibold leading-snug"
+                        style={{ color: "var(--gv-color-neutral-900)" }}
+                      >
+                        {task.title}
+                      </p>
                     </button>
                   ))}
               </div>
@@ -1382,14 +1497,21 @@ export default function CalendarPage() {
             {taskFilter === "inprogress" && (
               activeTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600 dark:text-green-400">
+                  <div
+                    className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+                    style={{ background: "var(--gv-color-success-50)" }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gv-color-success-700)" }}>
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                  <p className="text-sm font-medium text-gray-500">All tasks completed!</p>
-                  <p className="text-xs text-gray-400 mt-1">Switch to Done to review published tasks</p>
-                  <button onClick={() => setTaskFilter("done")} className="mt-2 text-xs text-brand-500 hover:text-brand-600">
+                  <p className="text-[14px] font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>All tasks completed!</p>
+                  <p className="text-[12px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>Switch to Done to review published tasks</p>
+                  <button
+                    onClick={() => setTaskFilter("done")}
+                    className="mt-2 text-[12px] font-medium"
+                    style={{ color: "var(--gv-color-primary-500)" }}
+                  >
                     View Done →
                   </button>
                 </div>
@@ -1450,42 +1572,53 @@ export default function CalendarPage() {
             {taskFilter === "done" && (
               doneTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                  <div
+                    className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+                    style={{ background: "var(--gv-color-neutral-100)" }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gv-color-neutral-400)" }}>
                       <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <p className="text-sm font-medium text-gray-500">No published tasks yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Publish tasks to see them here</p>
+                  <p className="text-[14px] font-semibold" style={{ color: "var(--gv-color-neutral-500)" }}>No published tasks yet</p>
+                  <p className="text-[12px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>Publish tasks to see them here</p>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {doneTasks.map((task) => (
                     <button
                       key={task.id}
                       onClick={() => handleTaskSelect(task)}
-                      className={`w-full text-left rounded-xl border p-2.5 transition-all opacity-70 ${
-                        selectedTask?.id === task.id
-                          ? "border-green-300 bg-green-50/50 dark:border-green-500/30 dark:bg-green-500/5 opacity-100"
-                          : "border-gray-200 bg-gray-50 hover:opacity-90 dark:border-gray-800 dark:bg-gray-900/50"
-                      }`}
+                      className="w-full text-left transition-all duration-200"
+                      style={{
+                        opacity: selectedTask?.id === task.id ? 1 : 0.7,
+                        borderRadius: "var(--gv-radius-md)",
+                        padding: "12px",
+                        border: `1px solid ${selectedTask?.id === task.id ? "var(--gv-color-success-500)" : "var(--gv-color-neutral-200)"}`,
+                        background: selectedTask?.id === task.id ? "var(--gv-color-success-50)" : "var(--gv-color-bg-surface-sunken)",
+                        boxShadow: "var(--gv-shadow-card)",
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                              Published
-                            </span>
-                            {task.platform && (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                {task.platform}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 leading-tight line-through">{task.title}</h4>
-                        </div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="gv-badge gv-badge-success" style={{ gap: 4 }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          Published
+                        </span>
+                        {task.platform && (
+                          <span
+                            className="gv-badge"
+                            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}
+                          >
+                            {task.platform}
+                          </span>
+                        )}
                       </div>
+                      <h4
+                        className="text-[14px] font-medium leading-snug line-through"
+                        style={{ color: "var(--gv-color-neutral-400)" }}
+                      >
+                        {task.title}
+                      </h4>
                     </button>
                   ))}
                 </div>
@@ -1496,18 +1629,29 @@ export default function CalendarPage() {
             {taskFilter === "rejected" && (
               rejectedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                  <div
+                    className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+                    style={{ background: "var(--gv-color-neutral-100)" }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gv-color-neutral-400)" }}>
                       <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                     </svg>
                   </div>
-                  <p className="text-sm font-medium text-gray-500">No rejected content</p>
-                  <p className="text-xs text-gray-400 mt-1">Rejected tasks are used as AI training data</p>
+                  <p className="text-[14px] font-semibold" style={{ color: "var(--gv-color-neutral-500)" }}>No rejected content</p>
+                  <p className="text-[12px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>Rejected tasks are used as AI training data</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-3 py-2 mb-2">
-                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                <div className="space-y-2">
+                  {/* Training data notice */}
+                  <div
+                    className="px-3 py-2 mb-1"
+                    style={{
+                      borderRadius: "var(--gv-radius-sm)",
+                      border: "1px solid var(--gv-color-warning-500)",
+                      background: "var(--gv-color-warning-50)",
+                    }}
+                  >
+                    <p className="text-[11px]" style={{ color: "var(--gv-color-warning-700)" }}>
                       🧠 {rejectedTasks.length} rejected task{rejectedTasks.length !== 1 ? "s" : ""} added to AI training data to improve future content generation.
                     </p>
                   </div>
@@ -1515,32 +1659,41 @@ export default function CalendarPage() {
                     <button
                       key={task.id}
                       onClick={() => handleTaskSelect(task)}
-                      className={`w-full text-left rounded-xl border p-2.5 transition-all opacity-70 ${
-                        selectedTask?.id === task.id
-                          ? "border-red-300 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5 opacity-100"
-                          : "border-gray-200 bg-gray-50 hover:opacity-90 dark:border-gray-800 dark:bg-gray-900/50"
-                      }`}
+                      className="w-full text-left transition-all duration-200"
+                      style={{
+                        opacity: selectedTask?.id === task.id ? 1 : 0.7,
+                        borderRadius: "var(--gv-radius-md)",
+                        padding: "12px",
+                        border: `1px solid ${selectedTask?.id === task.id ? "var(--gv-color-danger-500)" : "var(--gv-color-neutral-200)"}`,
+                        background: selectedTask?.id === task.id ? "var(--gv-color-danger-50)" : "var(--gv-color-bg-surface-sunken)",
+                        boxShadow: "var(--gv-shadow-card)",
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-500/20 dark:text-red-400">
-                              ✕ Rejected
-                            </span>
-                            {rejectionReasons[task.id] && (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500 dark:bg-gray-800 dark:text-gray-400 capitalize">
-                                {rejectionReasons[task.id]}
-                              </span>
-                            )}
-                            {task.platform && (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                                {task.platform}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="text-sm font-medium text-gray-400 dark:text-gray-600 leading-tight line-through">{task.title}</h4>
-                        </div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="gv-badge gv-badge-danger">✕ Rejected</span>
+                        {rejectionReasons[task.id] && (
+                          <span
+                            className="gv-badge"
+                            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)", textTransform: "capitalize" }}
+                          >
+                            {rejectionReasons[task.id]}
+                          </span>
+                        )}
+                        {task.platform && (
+                          <span
+                            className="gv-badge"
+                            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-400)" }}
+                          >
+                            {task.platform}
+                          </span>
+                        )}
                       </div>
+                      <h4
+                        className="text-[14px] font-medium leading-snug line-through"
+                        style={{ color: "var(--gv-color-neutral-400)" }}
+                      >
+                        {task.title}
+                      </h4>
                     </button>
                   ))}
                 </div>
@@ -1555,7 +1708,8 @@ export default function CalendarPage() {
         {/* Floating button */}
         <button
           onClick={() => setMobileCalendarOpen(true)}
-          className="fixed bottom-[80px] right-4 z-[35] h-12 w-12 flex items-center justify-center rounded-full bg-[#5F8F8B] text-white shadow-lg border-2 border-white transition-transform active:scale-95"
+          className="fixed bottom-[80px] right-4 z-[35] h-12 w-12 flex items-center justify-center rounded-full text-white border-2 border-white transition-transform active:scale-95"
+          style={{ background: "var(--gv-color-primary-500)", boxShadow: "var(--gv-shadow-card)" }}
           aria-label="Open calendar"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1565,7 +1719,7 @@ export default function CalendarPage() {
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
           {selectedDate && (
-            <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-white text-[9px] font-bold text-[#5F8F8B] border border-[#5F8F8B]">
+            <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-white text-[9px] font-bold border" style={{ color: "var(--gv-color-primary-500)", borderColor: "var(--gv-color-primary-500)" }}>
               {new Date(selectedDate + "T00:00:00").getDate()}
             </span>
           )}
@@ -1575,16 +1729,17 @@ export default function CalendarPage() {
         {mobileCalendarOpen && (
           <div className="fixed inset-0 z-[55]">
             <div className="absolute inset-0 bg-black/40" onClick={() => setMobileCalendarOpen(false)} />
-            <div className="absolute bottom-[144px] right-4 w-[320px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#F3F4F6]">
-                <p className="text-xs font-semibold text-[#1F2428]">
+            <div className="absolute bottom-[144px] right-4 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden" style={{ background: "var(--gv-color-bg-surface)", borderRadius: "var(--gv-radius-lg)", boxShadow: "var(--gv-shadow-modal)", border: "1px solid var(--gv-color-neutral-200)" }}>
+              <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)" }}>
+                <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>
                   {selectedDate
                     ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en", { weekday: "short", month: "long", day: "numeric" })
                     : "Select a date"}
                 </p>
                 <button
                   onClick={() => setMobileCalendarOpen(false)}
-                  className="h-6 w-6 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F3F4F6]"
+                  className="h-6 w-6 flex items-center justify-center"
+                  style={{ borderRadius: "var(--gv-radius-xs)", color: "var(--gv-color-neutral-400)" }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
@@ -1596,11 +1751,12 @@ export default function CalendarPage() {
                 maxDate={maxDateStr}
               />
               {selectedDate && (
-                <div className="px-4 py-2.5 border-t border-[#F3F4F6] flex items-center justify-between">
-                  <p className="text-[11px] text-[#9CA3AF]">{baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""} this day</p>
+                <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: "1px solid var(--gv-color-neutral-100)" }}>
+                  <p className="text-[11px]" style={{ color: "var(--gv-color-neutral-400)" }}>{baseTasks.length} task{baseTasks.length !== 1 ? "s" : ""} this day</p>
                   <button
                     onClick={() => { setSelectedDate(null); setSelectedTask(null); setMobileCalendarOpen(false); }}
-                    className="text-[11px] text-[#5F8F8B] hover:text-[#4E7C78] font-medium"
+                    className="text-[11px] font-medium"
+                    style={{ color: "var(--gv-color-primary-500)" }}
                   >
                     Show all →
                   </button>
