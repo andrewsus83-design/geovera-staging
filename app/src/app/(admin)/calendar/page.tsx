@@ -1385,13 +1385,15 @@ export default function CalendarPage() {
 
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-24">
-        {/* Status Tabs (Segmented) — On Progress / Done / Rejected */}
+        {/* Status Tabs (Segmented) — task-filter-tabs-refined token */}
         <div
           className="flex items-center pt-3 pb-2"
           style={{
-            background: "var(--gv-color-neutral-100)",
-            borderRadius: "var(--gv-radius-md)",
+            background: "#F3F4F6",
+            borderRadius: "var(--gv-radius-full)",
             padding: 4,
+            gap: 4,
+            height: 44,
           }}
         >
           {(["inprogress", "done", "rejected"] as TaskFilter[]).map((f) => {
@@ -1404,27 +1406,29 @@ export default function CalendarPage() {
                 : rejectedTasks.length;
             const label =
               f === "inprogress"
-                ? `On Progress (${count})`
+                ? "On Progress"
                 : f === "done"
-                ? `Done (${count})`
-                : `Rejected (${count})`;
+                ? "Done"
+                : "Rejected";
             return (
               <button
                 key={f}
                 onClick={() => setTaskFilter(f)}
-                className="flex-1 text-[13px] font-semibold transition-all duration-200"
+                className="flex-1 text-center text-[13px] font-semibold transition-all duration-200"
                 style={{
-                  borderRadius: "var(--gv-radius-sm)",
-                  padding: "10px 12px",
+                  borderRadius: "var(--gv-radius-full)",
+                  padding: "8px 16px",
                   background: isActive ? "var(--gv-color-bg-surface)" : "transparent",
                   color: isActive ? "var(--gv-color-neutral-900)" : "var(--gv-color-neutral-400)",
                   boxShadow: isActive
                     ? "0 1px 3px rgba(31,36,40,0.08), 0 1px 2px rgba(31,36,40,0.06)"
                     : "none",
                   fontFamily: "var(--gv-font-body)",
+                  cursor: "pointer",
                 }}
               >
                 {label}
+                {isActive && <span style={{ opacity: 0.6, fontSize: 12, marginLeft: 4 }}>({count})</span>}
               </button>
             );
           })}
