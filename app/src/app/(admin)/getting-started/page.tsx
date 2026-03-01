@@ -542,6 +542,7 @@ function ResearchTrigger({ onLaunch }: { onLaunch: () => void }) {
           <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#3D6B6820", color: "#3D6B68" }}>🔄 Monthly</span>
           <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#8E6FD820", color: "#8E6FD8" }}>⚡ Automated</span>
           <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#F59E0B20", color: "#D97706" }}>🦙 Llama-trained</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#EF444420", color: "#EF4444" }}>200–500 QA / client</span>
         </div>
       </div>
 
@@ -584,7 +585,12 @@ function ResearchTrigger({ onLaunch }: { onLaunch: () => void }) {
       {/* GEO — 9 points */}
       <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
         <p className="text-[13px] font-bold text-[#111827] mb-1">✦ GEO Audit — Q&A + Reverse Engineering</p>
-        <p className="text-[11px] text-[#9CA3AF] mb-3">We ask AI engines about your brand, then reverse-engineer what content changes would make them cite you more</p>
+        <p className="text-[11px] text-[#9CA3AF] mb-1">We ask AI engines about your brand, then reverse-engineer what content changes would make them cite you more</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: "#3D6B6820", color: "#3D6B68" }}>Basic: 200 QA/month</span>
+          <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: "#8E6FD820", color: "#8E6FD8" }}>Premium: 300 QA/month</span>
+          <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: "#F59E0B20", color: "#D97706" }}>Partner: 500 QA/month</span>
+        </div>
         {geoPoints.map((pt, i) => (
           <div key={i} className="flex items-start gap-2 mt-2">
             <span className="text-[11px] font-bold text-[#8E6FD8] w-5 flex-shrink-0">{i + 1}.</span>
