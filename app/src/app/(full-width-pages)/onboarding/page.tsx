@@ -343,10 +343,11 @@ export default function OnboardingPage() {
 
   /* ── Create brand (called during processing) ────────────────────────── */
   const createBrand = useCallback(async (): Promise<string | null> => {
-    if (!userId) return null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      if (!session?.user) return null;
+      // Sync userId state if not yet set (e.g. OAuth return race condition)
+      if (!userId) setUserId(session.user.id);
       const res = await fetch("/api/brands/create", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
@@ -474,7 +475,11 @@ export default function OnboardingPage() {
 
   /* ── Payment ─────────────────────────────────────────────────────────── */
   const handlePayment = async (planId: string) => {
-    if (payLoading || !userId) return;
+    if (payLoading) return;
+    if (!userId) {
+      setPayError("Sesi Anda telah berakhir. Silakan muat ulang halaman dan login kembali.");
+      return;
+    }
     setPayLoading(true); setPayError("");
 
     // Make sure brand exists
@@ -498,7 +503,7 @@ export default function OnboardingPage() {
       });
       const data = await res.json();
       const url = data.invoice?.invoice_url || data.invoice_url || data.checkout_url;
-      if (url) { window.location.href = url; }
+      if (url) { try { localStorage.removeItem(LS_KEY); } catch {} window.location.href = url; }
       else { router.push("/getting-started"); }
     } catch {
       setPayError("Gagal memuat halaman pembayaran. Silakan coba lagi.");
@@ -1053,7 +1058,14 @@ export default function OnboardingPage() {
       <Screen visible={screen === 6} direction={dir} scrollable>
         {(() => {
           const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
-          if (!plan) return null;
+          if (!plan) return (
+            <div className="py-8 text-center">
+              <p className="text-[15px] text-[#6B7280] mb-4">Belum ada paket dipilih.</p>
+              <button onClick={() => go(5)} className="text-[14px] font-semibold" style={{ color: GV_TEAL }}>
+                ← Kembali ke pilihan paket
+              </button>
+            </div>
+          );
           return (
             <div className="py-4">
               <div className="text-center mb-5">
