@@ -1763,8 +1763,8 @@ const STUDIO_TABS: { id: StudioSection; icon: React.ReactNode; label: string }[]
 
 function BottomStudioTab({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
   return (
-    <nav
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 overflow-hidden"
+    <div
+      className="overflow-hidden"
       style={{
         borderRadius: "var(--gv-radius-2xl)",
         border: "1px solid var(--gv-color-glass-border)",
@@ -1797,7 +1797,7 @@ function BottomStudioTab({ active, onSelect }: { active: StudioSection; onSelect
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 }
 
@@ -2109,7 +2109,9 @@ export default function ContentStudioPage() {
   const activeTabLabel = STUDIO_TABS.find((t) => t.id === activeSection)?.label ?? "Studio";
 
   return (
-    <>
+    <div className="flex flex-col h-full">
+      {/* ── Three-column layout — shrinks to fit above nav ── */}
+      <div className="flex-1 min-h-0">
       <ThreeColumnLayout
         left={<NavColumn />}
         center={
@@ -2134,7 +2136,7 @@ export default function ContentStudioPage() {
                   </button>
                 </div>
                 {/* Detail content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                   <DetailPanel item={detailItem} brandId={brandId} />
                 </div>
               </>
@@ -2156,7 +2158,7 @@ export default function ContentStudioPage() {
                   </p>
                 </div>
                 {/* Wizard scrollable content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                   {wizardContent()}
                 </div>
               </>
@@ -2171,12 +2173,18 @@ export default function ContentStudioPage() {
           />
         }
       />
+      </div>
+
+      {/* ── Bottom tab bar — outside columns, flush at bottom ── */}
+      <nav
+        className="flex-shrink-0 flex justify-center pt-0 pb-4"
+        style={{ background: "var(--gv-color-bg-base)" }}
+      >
+        <BottomStudioTab active={activeSection} onSelect={(s) => { setActiveSection(s); setDetailItem(null); setAssetSubSection(null); }} />
+      </nav>
 
       {/* Generating popup */}
       {showGeneratingPopup && <GeneratingPopup onClose={() => setShowGeneratingPopup(false)} />}
-
-      {/* Bottom floating studio tab bar — same pill style as NavColumn */}
-      <BottomStudioTab active={activeSection} onSelect={(s) => { setActiveSection(s); setDetailItem(null); setAssetSubSection(null); }} />
-    </>
+    </div>
   );
 }
