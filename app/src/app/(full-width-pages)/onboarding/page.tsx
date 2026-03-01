@@ -52,18 +52,45 @@ const COUNTRIES = [
 
 const PRICING_PLANS = [
   {
-    id: "basic",     name: "Basic",   price: "299",
-    features: ["200 QA/bulan", "SEO & GEO Report", "Social Search", "Email Support"],
-    color: GV_TEAL,  xendit_plan: "BASIC",
+    id: "basic", name: "Basic",
+    price_mo: "3,99", price_yr_mo: "3,66", price_yr_total: "43,89",
+    idr_mo: 3990000, idr_yr: 43890000,
+    features: [
+      "3 tasks/hari",
+      "Unlimited auto reply komentar",
+      "5 LoRA product/character training",
+      "10 images/hari",
+      "4 platform connect & auto publish",
+    ],
+    color: GV_TEAL, xendit_plan: "BASIC",
   },
   {
-    id: "premium",   name: "Premium", price: "599",
-    features: ["300 QA/bulan", "Full SEO+GEO+Social", "Content Suggestions", "Priority Support", "AI Training"],
+    id: "premium", name: "Premium",
+    price_mo: "6,99", price_yr_mo: "6,41", price_yr_total: "76,89",
+    idr_mo: 6990000, idr_yr: 76890000,
+    features: [
+      "6 tasks/hari",
+      "Unlimited auto reply komentar",
+      "10 LoRA product/character training",
+      "15 images/hari",
+      "8 platform connect & auto publish",
+      "1 video/hari (maks. 10 detik)",
+    ],
     color: "#6D28D9", highlight: true, xendit_plan: "PREMIUM",
   },
   {
-    id: "partner",   name: "Partner", price: "1.499",
-    features: ["500 QA/bulan", "Semua fitur Premium", "Monthly Report", "Dedicated Support", "API Access"],
+    id: "partner", name: "Partner",
+    price_mo: "15,99", price_yr_mo: "14,66", price_yr_total: "175,89",
+    idr_mo: 15990000, idr_yr: 175890000,
+    features: [
+      "12 tasks/hari",
+      "Unlimited auto reply komentar",
+      "20 LoRA product/character training",
+      "20 images/hari",
+      "9 platform connect & auto publish",
+      "2 video/hari (maks. 25 detik)",
+      "Report & Analytics",
+    ],
     color: "#B45309", xendit_plan: "PARTNER",
   },
 ];
@@ -255,9 +282,10 @@ export default function OnboardingPage() {
   const [researchCurrent, setRC]    = useState(0);
 
   // Pricing + payment
-  const [selectedPlan, setSelected] = useState("");
-  const [payLoading, setPayLoading] = useState(false);
-  const [payError, setPayError]     = useState("");
+  const [selectedPlan, setSelected]   = useState("");
+  const [billingCycle, setBilling]     = useState<"monthly" | "yearly">("monthly");
+  const [payLoading, setPayLoading]   = useState(false);
+  const [payError, setPayError]       = useState("");
 
   const go = useCallback((next: number) => {
     setPrevScreen(screen);
@@ -361,7 +389,7 @@ export default function OnboardingPage() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(form)); } catch {}
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/onboarding` },
+      options: { redirectTo: "https://app.geovera.xyz/onboarding" },
     });
   };
 
@@ -371,7 +399,7 @@ export default function OnboardingPage() {
     setAuthLoading(true); setAuthError("");
     const { error } = await supabase.auth.signUp({
       email: emailInput.trim(), password: passInput,
-      options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+      options: { emailRedirectTo: "https://app.geovera.xyz/onboarding" },
     });
     if (error) setAuthError(error.message);
     else setAuthError("✓ Cek email Anda untuk konfirmasi akun, lalu kembali ke sini.");
@@ -408,7 +436,7 @@ export default function OnboardingPage() {
           user_id: userId,
           brand_id: bid,
           plan: planId,          // already uppercase: BASIC / PREMIUM / PARTNER
-          billing_cycle: "monthly",
+          billing_cycle: billingCycle,
           customer_email: userEmail,
           customer_name: form.brand_name,
         }),
@@ -788,57 +816,136 @@ export default function OnboardingPage() {
       {/* ══════════════════════════════════════════════════════════════════
           SCREEN 5: Pricing
       ══════════════════════════════════════════════════════════════════ */}
-      <Screen visible={screen === 5} direction={dir}>
-        <div className="text-center mb-5">
-          <h2 className="text-[22px] sm:text-[26px] font-bold text-[#111827] mb-1">Pilih Paket Anda</h2>
-          <p className="text-[13px] text-[#6B7280]">7 hari trial gratis · Batalkan kapan saja</p>
-        </div>
+      <Screen visible={screen === 5} direction={dir} scrollable>
+        <div className="py-2">
+          {/* Header */}
+          <div className="text-center mb-5">
+            <h2 className="text-[22px] sm:text-[26px] font-bold text-[#111827] mb-1">Pilih Paket Anda</h2>
+            <p className="text-[13px] text-[#6B7280]">7 hari trial gratis · Batalkan kapan saja</p>
+          </div>
 
-        <div className="grid grid-cols-3 gap-2.5 mb-5">
-          {PRICING_PLANS.map(plan => {
-            const isSel = selectedPlan === plan.id;
-            return (
-              <button key={plan.id} onClick={() => setSelected(isSel ? "" : plan.id)}
-                className="relative flex flex-col rounded-[14px] p-3 text-left transition-all"
+          {/* Billing toggle — DS style pill */}
+          <div className="flex justify-center mb-2">
+            <div className="relative inline-flex p-1 rounded-full" style={{ background: "#F3F4F6" }}>
+              <span className="absolute top-1/2 -translate-y-1/2 h-9 w-[108px] rounded-full bg-white transition-all duration-200"
                 style={{
-                  background: isSel ? plan.color + "0D" : "#F9FAFB",
-                  border: `2px solid ${isSel ? plan.color : "#E5E7EB"}`,
-                  transform: isSel ? "translateY(-2px)" : "none",
-                }}>
-                {plan.highlight && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[9px] font-bold text-white whitespace-nowrap"
-                    style={{ background: plan.color }}>Populer</span>
-                )}
-                <span className="text-[12px] font-bold mb-1" style={{ color: plan.color }}>{plan.name}</span>
-                <div className="flex items-baseline gap-0.5 mb-2">
-                  <span className="text-[9px] text-[#6B7280]">IDR</span>
-                  <span className="text-[17px] font-black text-[#111827]">{plan.price}k</span>
-                  <span className="text-[9px] text-[#9CA3AF]">/mo</span>
-                </div>
-                {plan.features.slice(0, 3).map(f => (
-                  <div key={f} className="flex items-start gap-1 mb-0.5">
-                    <span className="text-[9px] mt-0.5" style={{ color: plan.color }}>✓</span>
-                    <span className="text-[9px] text-[#6B7280] leading-tight">{f}</span>
-                  </div>
-                ))}
-              </button>
-            );
-          })}
-        </div>
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
+                  transform: `translateY(-50%) translateX(${billingCycle === "yearly" ? "108px" : "0px"})`,
+                }} />
+              {(["monthly", "yearly"] as const).map(c => (
+                <button key={c} onClick={() => setBilling(c)}
+                  className="relative z-10 flex h-9 w-[108px] items-center justify-center gap-1.5 text-[13px] font-medium transition-colors"
+                  style={{ color: billingCycle === c ? "#111827" : "#9CA3AF" }}>
+                  {c === "monthly" ? "Bulanan" : "Tahunan"}
+                  {c === "yearly" && (
+                    <span className="rounded-full px-1.5 py-0.5 text-[8px] font-black text-white"
+                      style={{ background: "#16A34A" }}>-8%</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          {billingCycle === "yearly" && (
+            <p className="text-center text-[11px] font-semibold mb-4" style={{ color: "#16A34A" }}>
+              🎁 Hemat 1 bulan gratis dengan bayar tahunan!
+            </p>
+          )}
 
-        <div className="flex flex-col gap-2">
-          <ContinueBtn
-            onClick={() => selectedPlan && go(6)}
-            disabled={!selectedPlan}
-            label={selectedPlan
-              ? `Lanjut dengan ${PRICING_PLANS.find(p => p.id === selectedPlan)?.name} →`
-              : "Pilih paket di atas"}
-            full
-          />
-          <button onClick={() => router.push("/getting-started")}
-            className="text-center text-[13px] text-[#9CA3AF] hover:text-[#374151] py-2">
-            Lewati, mulai tanpa berlangganan
-          </button>
+          {/* Pricing cards — DS style */}
+          <div className="flex flex-col gap-4 mb-5">
+            {PRICING_PLANS.map(plan => {
+              const isSel = selectedPlan === plan.id;
+              const isDark = !!plan.highlight;
+              const dispPrice = billingCycle === "monthly" ? plan.price_mo : plan.price_yr_mo;
+              return (
+                <div key={plan.id} className="relative" style={{ paddingTop: plan.highlight ? "14px" : "0" }}>
+                  {plan.highlight && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 rounded-full px-3 py-1 text-[10px] font-black tracking-widest text-white whitespace-nowrap"
+                      style={{ background: GV_TEAL }}>
+                      MOST POPULAR
+                    </div>
+                  )}
+                  <button onClick={() => setSelected(isSel ? "" : plan.id)}
+                    className="w-full text-left rounded-2xl p-6 transition-all"
+                    style={{
+                      background: isDark ? "#1A2B28" : "white",
+                      border: isDark ? "none" : isSel ? `2px solid ${GV_TEAL}` : "1.5px solid #E5E7EB",
+                      boxShadow: isDark
+                        ? "0 8px 24px rgba(61,107,104,0.25)"
+                        : isSel ? `0 0 0 4px ${GV_TEAL}18` : "0 1px 4px rgba(0,0,0,0.05)",
+                    }}>
+
+                    {/* Plan name */}
+                    <span className="block text-[15px] font-semibold mb-3"
+                      style={{ color: isDark ? "white" : "#111827" }}>
+                      {plan.name}
+                    </span>
+
+                    {/* Price */}
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-[42px] font-black leading-none"
+                        style={{ color: isDark ? "white" : "#111827" }}>
+                        {dispPrice}jt
+                      </span>
+                      <span className="text-[13px] pb-1.5"
+                        style={{ color: isDark ? "rgba(255,255,255,0.55)" : "#9CA3AF" }}>
+                        /bln
+                      </span>
+                    </div>
+                    <p className="text-[12px] mb-4"
+                      style={{ color: isDark ? "rgba(255,255,255,0.55)" : "#9CA3AF" }}>
+                      {billingCycle === "yearly"
+                        ? `IDR ${plan.price_yr_total}jt/tahun`
+                        : "Ditagih bulanan"}
+                    </p>
+
+                    {/* Divider */}
+                    <div className="mb-4 h-px"
+                      style={{ background: isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6" }} />
+
+                    {/* Features */}
+                    <ul className="space-y-2.5 mb-5">
+                      {plan.features.map(f => (
+                        <li key={f} className="flex items-center gap-3 text-[13px]"
+                          style={{ color: isDark ? "rgba(255,255,255,0.80)" : "#6B7280" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke={isDark ? "white" : GV_TEAL} strokeWidth="2.5" className="flex-shrink-0">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <div className="flex w-full items-center justify-center rounded-[10px] h-11 text-[14px] font-semibold transition-all"
+                      style={{
+                        background: isDark ? "white" : isSel ? GV_TEAL : "#F3F4F6",
+                        color: isDark ? "#1A2B28" : isSel ? "white" : "#374151",
+                      }}>
+                      {isSel ? "✓ Dipilih" : isDark ? "Mulai Sekarang →" : "Pilih Paket"}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Continue */}
+          <div className="flex flex-col gap-2 pb-4">
+            <ContinueBtn
+              onClick={() => selectedPlan && go(6)}
+              disabled={!selectedPlan}
+              label={selectedPlan
+                ? `Lanjut dengan ${PRICING_PLANS.find(p => p.id === selectedPlan)?.name} →`
+                : "Pilih paket di atas"}
+              full
+            />
+            <button onClick={() => router.push("/getting-started")}
+              className="text-center text-[13px] text-[#9CA3AF] hover:text-[#374151] py-2">
+              Lewati, mulai tanpa berlangganan
+            </button>
+          </div>
         </div>
       </Screen>
 
@@ -861,8 +968,10 @@ export default function OnboardingPage() {
                 style={{ background: plan.color + "08", border: `1.5px solid ${plan.color}25` }}>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[15px] font-bold text-[#111827]">Paket {plan.name}</span>
-                  <span className="text-[15px] font-bold" style={{ color: plan.color }}>
-                    IDR {plan.price}.000/bln
+                  <span className="text-[14px] font-bold" style={{ color: plan.color }}>
+                    {billingCycle === "monthly"
+                      ? `IDR ${plan.price_mo}jt/bln`
+                      : `IDR ${plan.price_yr_total}jt/thn`}
                   </span>
                 </div>
                 {plan.features.map(f => (
