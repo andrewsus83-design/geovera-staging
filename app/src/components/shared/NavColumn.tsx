@@ -37,6 +37,15 @@ const AnalyticsIcon = () => (
   </svg>
 );
 
+const RocketIcon = () => (
+  <svg viewBox="0 0 48 48" width="20" height="20" fill="none">
+    <path d="M24 8C24 8 14 18 14 28C14 33.5 18.5 38 24 38C29.5 38 34 33.5 34 28C34 18 24 8 24 8Z"
+      stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+    <circle cx="24" cy="27" r="3" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M17 34L12 39M31 34L36 39" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <circle cx="12" cy="12" r="5" />
@@ -75,6 +84,7 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 /* ── Nav items ── */
 const navItems = [
   { icon: <HomeIcon />,      name: "Home",    path: "/" },
+  { icon: <RocketIcon />,    name: "Start",   path: "/getting-started" },
   { icon: <CalendarIcon />,  name: "Tasks",   path: "/calendar" },
   { icon: <StudioIcon />,    name: "Studio",  path: "/content-studio" },
   { icon: <AnalyticsIcon />, name: "Report",  path: "/analytics" },
