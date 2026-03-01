@@ -341,8 +341,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: "var(--gv-color-bg-base, #F4F7F8)" }}>
-      {/* Left branding panel — 40% on desktop */}
-      <div className="w-[40%] flex-shrink-0" style={{ borderRadius: "0 0 0 0" }}>
+      {/* Left branding panel — 40% on desktop, hidden on mobile */}
+      <div className="hidden lg:block lg:w-[40%] flex-shrink-0">
         <LeftPanel step={step} />
       </div>
 
