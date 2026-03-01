@@ -1749,7 +1749,7 @@ Deno.serve(async (req) => {
 
   <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:16px;margin-bottom:20px;">
     <p style="margin:0;color:#16A34A;font-weight:bold;font-size:13px;">✓ Analisis AI Berhasil</p>
-    <p style="margin:6px 0 0;color:#374151;font-size:14px;">${s1.market_positioning ?? `Brand Anda di industri ${industry ?? s1.category ?? 'ini'} telah dianalisis secara mendalam.`}</p>
+    <p style="margin:6px 0 0;color:#374151;font-size:14px;">${s1.market_positioning ?? `Brand Anda di industri ${s1.category ?? industry ?? 'ini'} telah dianalisis secara mendalam.`}</p>
   </div>
 
   ${competitorList ? `<h3 style="font-size:15px;color:#111827;margin:20px 0 10px;">🏆 Kompetitor Utama Terdeteksi</h3><ul style="margin:0 0 20px;padding-left:20px;">${competitorList}</ul>` : ''}
