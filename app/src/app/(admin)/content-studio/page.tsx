@@ -13,10 +13,12 @@ const FALLBACK_BRAND_ID =
   process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const IMAGE_DAILY_LIMITS: Record<string, number> = { basic: 10, premium: 20, partner: 30 };
-const VIDEO_DAILY_LIMITS: Record<string, number> = { basic: 1, premium: 2, partner: 3 };
-const VIDEO_MAX_DURATION: Record<string, number> = { basic: 8, premium: 15, partner: 30 };
-const TRAINING_LIMITS: Record<string, number> = { basic: 5, premium: 10, partner: 15 };
+const IMAGE_DAILY_LIMITS: Record<string, number> = { basic: 10, premium: 15, partner: 30 };
+const VIDEO_DAILY_LIMITS: Record<string, number> = { basic: 0, premium: 1, partner: 2 };
+const VIDEO_MAX_DURATION: Record<string, number> = { basic: 0, premium: 10, partner: 25 };
+const TRAINING_LIMITS: Record<string, number>    = { basic: 5, premium: 10, partner: 20 };
+// Partner: 1 YouTube avatar video/month (3 min via HeyGen)
+const VIDEO_AVATAR_MONTHLY: Record<string, number> = { basic: 0, premium: 0, partner: 1 };
 
 const VIDEO_TOPICS = [
   { id: "podcast",        label: "🎙️ Podcast",               desc: "Conversational, interview style" },
@@ -877,17 +879,22 @@ function GenerateImageWizard({
 // GENERATE VIDEO WIZARD
 // ══════════════════════════════════════════════════════════════════════════════
 function GenerateVideoWizard({
-  brandId, currentTier, videosUsedToday, trainedModels, historyImages, onResult, onUsed, onGenerateStart,
+  brandId, currentTier, videosUsedToday, avatarsUsedThisMonth, trainedModels, historyImages, onResult, onUsed, onGenerateStart,
 }: {
-  brandId: string; currentTier: string; videosUsedToday: number;
+  brandId: string; currentTier: string; videosUsedToday: number; avatarsUsedThisMonth: number;
   trainedModels: TrainedModel[]; historyImages: GeneratedImage[];
   onResult: (v: GeneratedVideo) => void; onUsed: () => void;
   onGenerateStart?: () => void;
 }) {
+  const isPartner = currentTier === "partner";
+  const avatarMonthlyLimit = VIDEO_AVATAR_MONTHLY[currentTier] ?? 0;
+
   const limit = VIDEO_DAILY_LIMITS[currentTier] ?? 1;
   const maxDuration = VIDEO_MAX_DURATION[currentTier] ?? 8;
   const atLimit = videosUsedToday >= limit;
+  const atAvatarLimit = avatarsUsedThisMonth >= avatarMonthlyLimit;
 
+  const [videoMode, setVideoMode] = useState<"short" | "avatar">("short");
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [subjectType, setSubjectType] = useState<SubjectType>("product");
   const [videoInputType, setVideoInputType] = useState<VideoInputType>("text");
@@ -904,6 +911,13 @@ function GenerateVideoWizard({
   const [loading, setLoading] = useState(false);
   const [smartLoading, setSmartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Avatar video state
+  const [avatarScript, setAvatarScript] = useState("");
+  const [avatarId, setAvatarId] = useState("");
+  const [avatarVoiceId, setAvatarVoiceId] = useState("");
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     if (promptSource !== "task") return;
@@ -945,6 +959,52 @@ function GenerateVideoWizard({
     finally { setUploadingRef(false); }
   };
 
+  const handleGenerateAvatar = async () => {
+    if (!avatarScript.trim()) { setAvatarError("Enter a script for the avatar video"); return; }
+    if (atAvatarLimit) return;
+    setAvatarLoading(true); setAvatarError(null);
+    onGenerateStart?.();
+    try {
+      const res = await studioFetch({
+        action: "generate_avatar_video",
+        brand_id: brandId,
+        prompt: avatarScript.trim(),
+        avatar_id: avatarId.trim() || "default",
+        voice_id: avatarVoiceId.trim() || "default",
+      });
+      if (res.success) {
+        let finalVideoUrl: string | null = res.video_url;
+        let finalStatus: string = res.status ?? "processing";
+        if (res.task_id && !finalVideoUrl && !["failed", "error"].includes(finalStatus)) {
+          // HeyGen can take several minutes — poll up to 72×5s = 6 minutes
+          for (let i = 0; i < 72; i++) {
+            await new Promise((r) => setTimeout(r, 5000));
+            try {
+              const poll = await studioFetch({
+                action: "check_task", brand_id: brandId,
+                task_id: res.task_id, db_id: res.db_id, task_type: "video",
+                generation_mode: "heygen",
+              });
+              finalStatus = poll.status ?? finalStatus;
+              if (poll.video_url) { finalVideoUrl = poll.video_url; break; }
+              if (["failed", "error", "cancelled"].includes(finalStatus)) break;
+            } catch { break; }
+          }
+        }
+        onResult({
+          id: res.db_id ?? Date.now().toString(), hook: avatarScript.trim(),
+          video_url: finalVideoUrl, video_thumbnail_url: null,
+          video_status: finalStatus, ai_model: "heygen-avatar",
+          target_platform: "youtube", video_aspect_ratio: "16:9",
+          created_at: new Date().toISOString(),
+        });
+        onUsed();
+        setAvatarScript(""); setAvatarId(""); setAvatarVoiceId("");
+      } else { setAvatarError(res.error ?? "Avatar generation failed"); }
+    } catch { setAvatarError("Network error. Try again."); }
+    finally { setAvatarLoading(false); }
+  };
+
   const handleGenerate = async () => {
     if (!selectedTopic) { setError("Please select a topic style"); return; }
     if (atLimit) return;
@@ -970,9 +1030,11 @@ function GenerateVideoWizard({
     }
 
     try {
+      const useOpenAI = duration > 10;
+      const genMode = useOpenAI ? "openai" : "kie";
       const payload: Record<string, unknown> = {
         action: "generate_video", brand_id: brandId, prompt,
-        duration, aspect_ratio: aspectRatio, model: "sora-2", mode: "standard",
+        duration, aspect_ratio: aspectRatio, model: useOpenAI ? "sora-2" : "kling-v1", mode: "standard",
       };
       if (videoInputType === "image") {
         const imgUrl = selectedHistoryImage?.image_url ?? uploadedRefUrl;
@@ -981,10 +1043,29 @@ function GenerateVideoWizard({
 
       const res = await studioFetch(payload);
       if (res.success) {
+        // Poll for video URL if async (OpenAI Sora-2 or Kie returning task_id)
+        let finalVideoUrl: string | null = res.video_url;
+        let finalStatus: string = res.status ?? "processing";
+        if (res.task_id && !finalVideoUrl && !["failed", "error"].includes(finalStatus)) {
+          const maxPolls = useOpenAI ? 36 : 24; // 3 min for Sora-2, 2 min for Kie
+          for (let i = 0; i < maxPolls; i++) {
+            await new Promise((r) => setTimeout(r, 5000));
+            try {
+              const poll = await studioFetch({
+                action: "check_task", brand_id: brandId,
+                task_id: res.task_id, db_id: res.db_id, task_type: "video",
+                generation_mode: genMode,
+              });
+              finalStatus = poll.status ?? finalStatus;
+              if (poll.video_url) { finalVideoUrl = poll.video_url; break; }
+              if (["failed", "error", "cancelled"].includes(finalStatus)) break;
+            } catch { break; }
+          }
+        }
         onResult({
           id: res.db_id ?? Date.now().toString(), hook: prompt,
-          video_url: res.video_url, video_thumbnail_url: null,
-          video_status: res.status ?? "processing", ai_model: "sora-2",
+          video_url: finalVideoUrl, video_thumbnail_url: null,
+          video_status: finalStatus, ai_model: useOpenAI ? "sora-2" : "kling-v1",
           target_platform: "tiktok", video_aspect_ratio: aspectRatio,
           created_at: new Date().toISOString(),
         });
@@ -1003,8 +1084,90 @@ function GenerateVideoWizard({
 
   return (
     <div className="gv-card overflow-hidden">
-      <StepBar steps={["Subject", "Content", "Topic & Generate"]} current={step} />
+      {videoMode === "short" && <StepBar steps={["Subject", "Content", "Topic & Generate"]} current={step} />}
+
+      {/* Video type toggle — Partner only */}
+      {isPartner && (
+        <div className="flex items-center gap-1 px-4 pt-4">
+          {(["short", "avatar"] as const).map((mode) => (
+            <button key={mode} onClick={() => setVideoMode(mode)}
+              className="flex-1 py-2 text-xs font-semibold transition-all"
+              style={{
+                borderRadius: "var(--gv-radius-sm)",
+                background: videoMode === mode ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-100)",
+                color: videoMode === mode ? "#fff" : "var(--gv-color-neutral-600)",
+              }}>
+              {mode === "short" ? "⚡ Short Video" : "🎬 YouTube Avatar"}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="p-4 space-y-3">
+
+        {/* ── AVATAR VIDEO FORM (Partner only) ── */}
+        {videoMode === "avatar" && (
+          <div className="space-y-4">
+            <DailyQuota used={avatarsUsedThisMonth} limit={avatarMonthlyLimit} label="Avatar Videos This Month" />
+            {atAvatarLimit && (
+              <div className="p-3 text-center" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-danger-50)" }}>
+                <p className="text-xs font-semibold" style={{ color: "var(--gv-color-danger-700)" }}>Monthly limit reached (1 avatar video/month)</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-danger-500)" }}>Resets on the 1st of next month.</p>
+              </div>
+            )}
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: "var(--gv-color-neutral-700)" }}>
+                Video Script
+              </label>
+              <textarea
+                value={avatarScript}
+                onChange={(e) => setAvatarScript(e.target.value)}
+                placeholder="Write the script your avatar will speak. Up to 3 minutes of content."
+                rows={6}
+                className="w-full px-3 py-2 text-xs outline-none resize-none"
+                style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}
+              />
+              <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>Powered by HeyGen · 16:9 YouTube format · up to 3 minutes</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: "var(--gv-color-neutral-500)" }}>Avatar ID</label>
+                <input
+                  type="text"
+                  value={avatarId}
+                  onChange={(e) => setAvatarId(e.target.value)}
+                  placeholder="HeyGen avatar ID"
+                  className="w-full px-3 py-2 text-xs outline-none"
+                  style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: "var(--gv-color-neutral-500)" }}>Voice ID</label>
+                <input
+                  type="text"
+                  value={avatarVoiceId}
+                  onChange={(e) => setAvatarVoiceId(e.target.value)}
+                  placeholder="HeyGen voice ID"
+                  className="w-full px-3 py-2 text-xs outline-none"
+                  style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}
+                />
+              </div>
+            </div>
+            {avatarError && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>{avatarError}</p>}
+            <button
+              onClick={handleGenerateAvatar}
+              disabled={avatarLoading || atAvatarLimit || !avatarScript.trim()}
+              className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
+              {avatarLoading
+                ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating Avatar Video...</>
+                : "🎬 Generate YouTube Avatar Video"}
+            </button>
+          </div>
+        )}
+
+        {/* ── SHORT VIDEO WIZARD ── */}
+        {videoMode === "short" && (
+          <>
         <DailyQuota used={videosUsedToday} limit={limit} label="Videos" />
 
         {atLimit && (
@@ -1234,6 +1397,8 @@ function GenerateVideoWizard({
               className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
               {loading ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating Video...</> : <><VideoIcon className="w-4 h-4" /> Generate Video</>}
             </button>
+          </>
+        )}
           </>
         )}
       </div>
@@ -1801,6 +1966,7 @@ export default function ContentStudioPage() {
   const [historyImages, setHistoryImages] = useState<GeneratedImage[]>([]);
   const [imagesUsedToday, setImagesUsedToday] = useState(0);
   const [videosUsedToday, setVideosUsedToday] = useState(0);
+  const [avatarsUsedThisMonth, setAvatarsUsedThisMonth] = useState(0);
   const [detailItem, setDetailItem] = useState<DetailItem>(null);
   const [showGeneratingPopup, setShowGeneratingPopup] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
@@ -1827,7 +1993,7 @@ export default function ContentStudioPage() {
   const refreshUsage = useCallback(() => {
     if (!brandId) return;
     studioFetch({ action: "check_daily_usage", brand_id: brandId })
-      .then((r) => { if (r.success) { setImagesUsedToday(r.images_today ?? 0); setVideosUsedToday(r.videos_today ?? 0); } })
+      .then((r) => { if (r.success) { setImagesUsedToday(r.images_today ?? 0); setVideosUsedToday(r.videos_today ?? 0); setAvatarsUsedThisMonth(r.avatar_videos_this_month ?? 0); } })
       .catch(() => { /* quota display fails silently — non-critical */ });
   }, [brandId]);
 
@@ -1876,6 +2042,7 @@ export default function ContentStudioPage() {
         return (
           <GenerateVideoWizard
             brandId={brandId} currentTier={currentTier} videosUsedToday={videosUsedToday}
+            avatarsUsedThisMonth={avatarsUsedThisMonth}
             trainedModels={completedModels} historyImages={historyImages}
             onResult={() => setHistoryKey((k) => k + 1)}
             onUsed={() => setVideosUsedToday((c) => c + 1)}

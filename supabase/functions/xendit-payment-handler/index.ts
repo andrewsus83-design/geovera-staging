@@ -10,9 +10,9 @@ const XENDIT_API_URL = 'https://api.xendit.co';
 
 // Pricing in IDR
 const PRICING: Record<string, Record<string, number>> = {
-  BASIC:   { monthly: 5990000,  yearly: 65835000  },
-  PREMIUM: { monthly: 10485000, yearly: 115335000 },
-  PARTNER: { monthly: 16485000, yearly: 181335000 },
+  BASIC:   { monthly: 3990000,  yearly: 43890000  },
+  PREMIUM: { monthly: 6990000,  yearly: 76890000  },
+  PARTNER: { monthly: 15990000, yearly: 175890000 },
 };
 
 // Map Xendit plan key → DB subscription_tier value

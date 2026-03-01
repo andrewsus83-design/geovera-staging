@@ -75,6 +75,7 @@ const PRICING_PLANS = [
       "15 images/hari",
       "8 platform connect & auto publish",
       "1 video/hari (maks. 10 detik)",
+      "Report & Analytics",
     ],
     color: "#6D28D9", highlight: true, xendit_plan: "PREMIUM",
   },
@@ -86,9 +87,10 @@ const PRICING_PLANS = [
       "12 tasks/hari",
       "Unlimited auto reply komentar",
       "20 LoRA product/character training",
-      "20 images/hari",
+      "30 images/hari",
       "9 platform connect & auto publish",
       "2 video/hari (maks. 25 detik)",
+      "1 YouTube video/bln (3 mnt, avatar)",
       "Report & Analytics",
     ],
     color: "#B45309", xendit_plan: "PARTNER",
@@ -280,6 +282,15 @@ export default function OnboardingPage() {
   // Research
   const [researchDone, setRDone]    = useState<number[]>([]);
   const [researchCurrent, setRC]    = useState(0);
+  const [researchData, setResearchData] = useState<{
+    competitors?: string[];
+    social_media?: Record<string, string | null>;
+    market_positioning?: string;
+    unique_selling_proposition?: string;
+    key_features?: string[];
+    brand_dna?: { core_values?: string[]; personality_traits?: string[] };
+    opportunities?: string[];
+  } | null>(null);
 
   // Pricing + payment
   const [selectedPlan, setSelected]   = useState("");
@@ -360,27 +371,71 @@ export default function OnboardingPage() {
   /* ── Research animation + brand creation ────────────────────────────── */
   useEffect(() => {
     if (screen !== 3) return;
-    setRDone([]); setRC(0);
+    setRDone([]); setRC(0); setResearchData(null);
 
-    // Create brand + trigger research in parallel
+    // Coordinate: advance to screen 4 only when BOTH animation AND api complete
+    const apiDone = { current: false };
+    const animDone = { current: false };
+    const tryAdvance = () => { if (apiDone.current && animDone.current) go(4); };
+
+    // Create brand in background
     createBrand();
+
+    // Real API call with 90s timeout
+    const controller = new AbortController();
+    const apiTimeout = setTimeout(() => { controller.abort(); apiDone.current = true; tryAdvance(); }, 90000);
+
     fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand_name: form.brand_name, country: form.country, industry: form.industry }),
-    }).catch(() => {});
+      body: JSON.stringify({
+        brand_name: form.brand_name,
+        country: form.country,
+        industry: form.industry,
+        description: form.description,
+        email: userEmail,
+      }),
+      signal: controller.signal,
+    })
+      .then(r => r.json())
+      .then(data => {
+        clearTimeout(apiTimeout);
+        if (data?.metadata?.step1_indexed_data) {
+          const s1 = data.metadata.step1_indexed_data;
+          const s3 = data.metadata.step3_analysis;
+          setResearchData({
+            competitors: s1.competitors,
+            social_media: s1.social_media,
+            market_positioning: s1.market_positioning,
+            unique_selling_proposition: s1.unique_selling_proposition,
+            key_features: s1.key_features,
+            brand_dna: s3?.brand_dna,
+            opportunities: s3?.competitive_analysis?.opportunities,
+          });
+        }
+        apiDone.current = true;
+        tryAdvance();
+      })
+      .catch(() => {
+        clearTimeout(apiTimeout);
+        apiDone.current = true;
+        tryAdvance();
+      });
 
+    // Animation: each step takes ~1.6s, total ~8s for 5 steps
     const timers: ReturnType<typeof setTimeout>[] = [];
     RESEARCH_STEPS.forEach((_, i) => {
       timers.push(setTimeout(() => {
         setRC(i);
         timers.push(setTimeout(() => {
           setRDone(prev => [...prev, i]);
-          if (i === RESEARCH_STEPS.length - 1) timers.push(setTimeout(() => go(4), 800));
+          if (i === RESEARCH_STEPS.length - 1) {
+            timers.push(setTimeout(() => { animDone.current = true; tryAdvance(); }, 800));
+          }
         }, 1400));
       }, i * 1600));
     });
-    return () => timers.forEach(clearTimeout);
+    return () => { timers.forEach(clearTimeout); clearTimeout(apiTimeout); controller.abort(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
@@ -786,23 +841,66 @@ export default function OnboardingPage() {
           <span style={{ color: GV_TEAL }}>{form.brand_name}</span>!
         </h2>
         <p className="text-[14px] text-[#6B7280] mb-5">
-          Laporan lengkap akan dikirim ke <strong>{userEmail}</strong> & WhatsApp Anda.
+          {userEmail
+            ? <>Laporan lengkap telah dikirim ke <strong>{userEmail}</strong>.</>
+            : "Laporan brand intelligence siap untuk Anda."}
         </p>
 
-        {/* Insight pills */}
+        {/* Insight pills — real data from API or fallback */}
         <div className="flex flex-wrap gap-2 mb-7">
-          {[
-            { label: "AI Search: Belum terindeks", color: "#8E6FD8" },
-            { label: "8 Authority Gaps",           color: "#EF4444" },
-            { label: "Growth Potential: Tinggi",   color: "#10B981" },
-            { label: "Competitor gap terdeteksi",  color: "#F59E0B" },
-          ].map(ins => (
-            <span key={ins.label} className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
-              style={{ background: ins.color + "12", color: ins.color, border: `1px solid ${ins.color}25` }}>
-              {ins.label}
-            </span>
-          ))}
+          {(() => {
+            const pills: { label: string; color: string }[] = [];
+            if (researchData) {
+              const compCount = researchData.competitors?.length ?? 0;
+              if (compCount > 0) pills.push({ label: `${compCount} Kompetitor Terdeteksi`, color: "#F59E0B" });
+              const socialGaps = ["instagram", "tiktok", "facebook", "youtube"].filter(p => !researchData.social_media?.[p]);
+              if (socialGaps.length > 0) pills.push({ label: `${socialGaps.length} Platform Gaps`, color: "#EF4444" });
+              else if (compCount === 0) pills.push({ label: "8 Authority Gaps", color: "#EF4444" });
+              const trait = researchData.brand_dna?.personality_traits?.[0];
+              if (trait) pills.push({ label: `Brand Voice: ${trait}`, color: "#8E6FD8" });
+              else pills.push({ label: "AI Search: Belum terindeks", color: "#8E6FD8" });
+              pills.push({ label: "Growth Potential: Tinggi", color: "#10B981" });
+              const opp = researchData.opportunities?.[0];
+              if (opp) pills.push({ label: opp.length > 28 ? opp.slice(0, 28) + "…" : opp, color: "#3D6B68" });
+            } else {
+              pills.push(
+                { label: "AI Search: Belum terindeks", color: "#8E6FD8" },
+                { label: "8 Authority Gaps", color: "#EF4444" },
+                { label: "Growth Potential: Tinggi", color: "#10B981" },
+                { label: "Competitor gap terdeteksi", color: "#F59E0B" },
+              );
+            }
+            return pills.map(ins => (
+              <span key={ins.label} className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                style={{ background: ins.color + "12", color: ins.color, border: `1px solid ${ins.color}25` }}>
+                {ins.label}
+              </span>
+            ));
+          })()}
         </div>
+
+        {/* Market positioning snippet if available */}
+        {researchData?.market_positioning && (
+          <div className="rounded-xl px-4 py-3 mb-5 text-[13px] text-[#374151]"
+            style={{ background: "#F0FDF4", border: "1px solid #86EFAC" }}>
+            <span className="font-semibold text-[#16A34A]">✓ Posisi Pasar: </span>
+            {researchData.market_positioning}
+          </div>
+        )}
+
+        {/* Competitors preview if available */}
+        {researchData?.competitors && researchData.competitors.length > 0 && (
+          <div className="rounded-xl px-4 py-3 mb-5"
+            style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#92400E] mb-2">Kompetitor Utama</p>
+            <div className="flex flex-wrap gap-1.5">
+              {researchData.competitors.slice(0, 4).map(c => (
+                <span key={c} className="text-[12px] font-medium text-[#92400E] rounded-full px-2.5 py-1"
+                  style={{ background: "#FEF3C7" }}>{c}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 max-w-[380px]">
           <ContinueBtn onClick={() => go(5)} label="Lihat Paket Harga →" full />

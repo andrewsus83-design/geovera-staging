@@ -9,6 +9,8 @@ const corsHeaders = {
 const KIE_API_KEY = Deno.env.get("KIE_API_KEY") ?? "";
 const KIE_BASE = "https://api.kie.ai/v1";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
+const HEYGEN_API_KEY = Deno.env.get("HEYGEN_API_KEY") ?? "";
+const HEYGEN_BASE = "https://api.heygen.com";
 
 // Cloudflare Workers AI (Llama) — for training prompt engineering
 const CF_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
@@ -37,6 +39,67 @@ async function kieGet(path: string) {
   const res = await fetch(`${KIE_BASE}${path}`, { headers: kieHeaders() });
   if (!res.ok) throw new Error(`KIE API error ${res.status}: ${await res.text()}`);
   return res.json();
+}
+
+// OpenAI Sora-2 — video generation for long durations (> 10s)
+async function openAISoraGenerate(prompt: string, duration: number, aspectRatio: string): Promise<{ job_id: string; status: string }> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+  const sizeMap: Record<string, string> = { "9:16": "1080x1920", "16:9": "1920x1080", "1:1": "1080x1080" };
+  const size = sizeMap[aspectRatio] ?? "1080x1920";
+  const res = await fetch("https://api.openai.com/v1/video/generations", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "sora-2", prompt, n: 1, size, quality: "high", duration }),
+  });
+  if (!res.ok) throw new Error(`OpenAI Sora error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return { job_id: data.id, status: data.status ?? "queued" };
+}
+
+async function openAISoraPoll(jobId: string): Promise<{ status: string; video_url: string | null }> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+  const res = await fetch(`https://api.openai.com/v1/video/generations/${jobId}`, {
+    headers: { "Authorization": `Bearer ${OPENAI_API_KEY}` },
+  });
+  if (!res.ok) throw new Error(`OpenAI Sora poll error ${res.status}`);
+  const data = await res.json();
+  const video_url = data.generations?.[0]?.url ?? data.result?.url ?? null;
+  return { status: data.status ?? "processing", video_url };
+}
+
+// HeyGen — avatar video generation (up to 3 minutes, YouTube format)
+async function heygenGenerateAvatar(prompt: string, avatarId: string, voiceId: string): Promise<{ video_id: string }> {
+  if (!HEYGEN_API_KEY) throw new Error("HEYGEN_API_KEY not configured");
+  const res = await fetch(`${HEYGEN_BASE}/v2/video/generate`, {
+    method: "POST",
+    headers: { "x-api-key": HEYGEN_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      video_inputs: [{
+        character: { type: "avatar", avatar_id: avatarId },
+        voice: { type: "text", input_text: prompt, voice_id: voiceId },
+      }],
+      dimension: { width: 1920, height: 1080 },
+      test: false,
+    }),
+  });
+  if (!res.ok) throw new Error(`HeyGen error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  if (data.code !== 100) throw new Error(`HeyGen API error: ${data.message ?? "unknown"}`);
+  return { video_id: data.data.video_id };
+}
+
+async function heygenPoll(videoId: string): Promise<{ status: string; video_url: string | null; thumbnail_url: string | null }> {
+  if (!HEYGEN_API_KEY) throw new Error("HEYGEN_API_KEY not configured");
+  const res = await fetch(`${HEYGEN_BASE}/v1/video_status.get?video_id=${videoId}`, {
+    headers: { "x-api-key": HEYGEN_API_KEY },
+  });
+  if (!res.ok) throw new Error(`HeyGen poll error ${res.status}`);
+  const data = await res.json();
+  return {
+    status: data.data?.status ?? "processing",
+    video_url: data.data?.video_url ?? null,
+    thumbnail_url: data.data?.thumbnail_url ?? null,
+  };
 }
 
 // OpenAI — for high-quality smart prompts in image/video wizard steps
@@ -133,7 +196,10 @@ Deno.serve(async (req) => {
     // ── CHECK DAILY USAGE ────────────────────────────────────────────────────
     if (action === "check_daily_usage") {
       const midnight = todayISO();
-      const [imgRes, vidRes] = await Promise.all([
+      // First day of current month (UTC)
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const [imgRes, vidRes, avatarRes] = await Promise.all([
         supabase.from("gv_image_generations")
           .select("id", { count: "exact", head: true })
           .eq("brand_id", brand_id)
@@ -143,9 +209,16 @@ Deno.serve(async (req) => {
           .select("id", { count: "exact", head: true })
           .eq("brand_id", brand_id)
           .gte("created_at", midnight)
+          .neq("ai_model", "heygen-avatar")
+          .not("video_status", "in", '("failed","error","cancelled")'),
+        supabase.from("gv_video_generations")
+          .select("id", { count: "exact", head: true })
+          .eq("brand_id", brand_id)
+          .eq("ai_model", "heygen-avatar")
+          .gte("created_at", monthStart)
           .not("video_status", "in", '("failed","error","cancelled")'),
       ]);
-      return json({ success: true, images_today: imgRes.count ?? 0, videos_today: vidRes.count ?? 0 });
+      return json({ success: true, images_today: imgRes.count ?? 0, videos_today: vidRes.count ?? 0, avatar_videos_this_month: avatarRes.count ?? 0 });
     }
 
     // ── GENERATE SMART PROMPT (OpenAI + history learning) ────────────────────
@@ -423,70 +496,129 @@ Return ONLY a valid JSON array of ${count} prompt strings. No explanation, no ma
     }
 
     // ── GENERATE VIDEO ───────────────────────────────────────────────────────
+    // Routing: duration > 10s → OpenAI Sora-2, otherwise → Kie API
     if (action === "generate_video") {
       const { prompt, duration = 8, aspect_ratio = "9:16", model = "kling-v1", image_url = "" } = data;
       if (!prompt) return json({ error: "prompt is required" }, 400);
 
-      const payload: Record<string, unknown> = { prompt, duration, aspect_ratio, model, mode: data.mode ?? "standard" };
-      if (image_url) payload.image_url = image_url;
+      const useOpenAI = Number(duration) > 10;
+      let task_id: string | null = null;
+      let video_url: string | null = null;
+      let status = "processing";
+      let ai_model = model;
 
-      const kieRes = await kiePost("/video/generate", payload);
+      if (useOpenAI) {
+        // OpenAI Sora-2 for long-duration videos (11–25s)
+        const soraRes = await openAISoraGenerate(prompt, Number(duration), aspect_ratio);
+        task_id = soraRes.job_id;
+        status = soraRes.status;
+        ai_model = "sora-2";
+      } else {
+        // Kie API for short videos (≤ 10s)
+        const payload: Record<string, unknown> = { prompt, duration, aspect_ratio, model, mode: data.mode ?? "standard" };
+        if (image_url) payload.image_url = image_url;
+        const kieRes = await kiePost("/video/generate", payload);
+        task_id = kieRes.task_id ?? kieRes.id ?? null;
+        video_url = kieRes.video_url ?? null;
+        status = kieRes.status ?? "processing";
+        ai_model = kieRes.model ?? model;
+      }
 
       const { data: inserted, error: insertErr } = await supabase.from("gv_video_generations").insert({
         brand_id,
         target_platform: data.platform ?? "tiktok",
         hook: prompt,
-        ai_model: kieRes.model ?? model,
-        status: kieRes.status ?? "processing",
-        generation_mode: "kie",
-        runway_task_id: kieRes.task_id ?? kieRes.id ?? null,
-        video_url: kieRes.video_url ?? null,
-        video_thumbnail_url: kieRes.thumbnail_url ?? null,
+        ai_model,
+        status,
+        generation_mode: useOpenAI ? "openai" : "kie",
+        runway_task_id: task_id,
+        video_url,
+        video_thumbnail_url: null,
         video_aspect_ratio: aspect_ratio,
-        video_status: kieRes.status ?? "processing",
+        video_status: status,
       }).select("id").single();
       if (insertErr) console.error("generate_video DB insert failed:", insertErr.message);
 
-      return json({
-        success: true,
-        task_id: kieRes.task_id ?? kieRes.id ?? null,
-        video_url: kieRes.video_url ?? null,
-        status: kieRes.status ?? "processing",
-        db_id: inserted?.id ?? null,
-        raw: kieRes,
-      });
+      return json({ success: true, task_id, video_url, status, db_id: inserted?.id ?? null });
+    }
+
+    // ── GENERATE AVATAR VIDEO (HeyGen — Partner only, up to 3 min YouTube) ──
+    if (action === "generate_avatar_video") {
+      const {
+        prompt,
+        avatar_id = "default",
+        voice_id = "default",
+      } = data;
+      if (!prompt) return json({ error: "prompt is required" }, 400);
+
+      const heyRes = await heygenGenerateAvatar(String(prompt), String(avatar_id), String(voice_id));
+
+      const { data: inserted, error: insertErr } = await supabase.from("gv_video_generations").insert({
+        brand_id,
+        target_platform: "youtube",
+        hook: prompt,
+        ai_model: "heygen-avatar",
+        status: "processing",
+        generation_mode: "heygen",
+        runway_task_id: heyRes.video_id,
+        video_url: null,
+        video_thumbnail_url: null,
+        video_aspect_ratio: "16:9",
+        video_status: "processing",
+      }).select("id").single();
+      if (insertErr) console.error("generate_avatar_video DB insert failed:", insertErr.message);
+
+      return json({ success: true, task_id: heyRes.video_id, status: "processing", db_id: inserted?.id ?? null });
     }
 
     // ── CHECK TASK STATUS ────────────────────────────────────────────────────
     if (action === "check_task") {
-      const { task_id, db_id, task_type } = data;
+      const { task_id, db_id, task_type, generation_mode = "kie" } = data;
       if (!task_id) return json({ error: "task_id is required" }, 400);
 
-      const kieRes = await kieGet(`/task/${task_id}`);
-      const status = kieRes.status ?? "processing";
+      let status = "processing";
+      let image_url: string | null = null;
+      let video_url: string | null = null;
+      let thumbnail_url: string | null = null;
+
+      if (generation_mode === "openai") {
+        const pollRes = await openAISoraPoll(String(task_id));
+        status = pollRes.status;
+        video_url = pollRes.video_url;
+        // Normalize OpenAI statuses
+        if (status === "succeeded") status = "completed";
+        if (status === "failed") status = "failed";
+      } else if (generation_mode === "heygen") {
+        const pollRes = await heygenPoll(String(task_id));
+        status = pollRes.status;
+        video_url = pollRes.video_url;
+        thumbnail_url = pollRes.thumbnail_url;
+        if (status === "completed") status = "completed";
+      } else {
+        const kieRes = await kieGet(`/task/${task_id}`);
+        status = kieRes.status ?? "processing";
+        image_url = kieRes.image_url ?? kieRes.result?.image_url ?? null;
+        video_url = kieRes.video_url ?? kieRes.result?.video_url ?? null;
+        thumbnail_url = kieRes.thumbnail_url ?? null;
+      }
 
       if (db_id && ["completed", "succeeded", "success"].includes(status)) {
         if (task_type === "image") {
           await supabase.from("gv_image_generations").update({
             status: "completed",
-            image_url: kieRes.image_url ?? kieRes.result?.image_url ?? null,
-            thumbnail_url: kieRes.thumbnail_url ?? null,
+            image_url,
+            thumbnail_url,
           }).eq("id", db_id);
         } else if (task_type === "video") {
           await supabase.from("gv_video_generations").update({
             video_status: "completed",
-            video_url: kieRes.video_url ?? kieRes.result?.video_url ?? null,
-            video_thumbnail_url: kieRes.thumbnail_url ?? null,
+            video_url,
+            video_thumbnail_url: thumbnail_url,
           }).eq("id", db_id);
         }
       }
 
-      return json({
-        success: true, status,
-        image_url: kieRes.image_url ?? kieRes.result?.image_url ?? null,
-        video_url: kieRes.video_url ?? kieRes.result?.video_url ?? null,
-        raw: kieRes,
-      });
+      return json({ success: true, status, image_url, video_url });
     }
 
     // ── TRAIN PRODUCT / CHARACTER ────────────────────────────────────────────

@@ -8,26 +8,26 @@ const tiers = [
   {
     id: "basic" as const,
     name: "Basic",
-    price: "$299/mo",
+    price: "Rp 3,99jt/bln",
     agents: ["CEO"],
     loraProducts: 5,
-    extras: ["Daily strategic insights", "Budget optimization", "5 LoRA product models"],
+    extras: ["3 tasks/hari", "5 LoRA product/character training", "10 images/hari", "4 platform connect & auto publish"],
   },
   {
     id: "premium" as const,
     name: "Premium",
-    price: "$499/mo",
+    price: "Rp 6,99jt/bln",
     agents: ["CEO", "CMO"],
     loraProducts: 10,
-    extras: ["Everything in Basic", "Content strategy & creation", "Social media management", "10 LoRA product models"],
+    extras: ["6 tasks/hari", "10 LoRA product/character training", "15 images/hari", "1 video/hari (maks. 10 detik)"],
   },
   {
     id: "enterprise" as const,
     name: "Partner",
-    price: "$999/mo",
+    price: "Rp 15,99jt/bln",
     agents: ["CEO", "CMO", "Customer Support"],
-    loraProducts: 15,
-    extras: ["Everything in Premium", "24/7 auto-reply support", "Custom AI training", "15 LoRA product models"],
+    loraProducts: 20,
+    extras: ["12 tasks/hari", "20 LoRA product/character training", "30 images/hari", "2 video/hari (maks. 25 detik)"],
   },
 ];
 
