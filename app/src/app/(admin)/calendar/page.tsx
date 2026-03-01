@@ -1265,59 +1265,30 @@ export default function CalendarPage() {
                   {/* Mini gv-date card */}
                   <div
                     style={{
-                      position: "relative",
                       display: "inline-flex",
                       flexDirection: "column",
-                      borderRadius: 10,
+                      borderRadius: 12,
                       overflow: "hidden",
                       boxShadow: cardShadow,
-                      width: 40,
+                      width: 52,
                       userSelect: "none",
                     }}
                   >
-                    {/* Spiral holes */}
-                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
-                      {[0, 1].map((i) => (
-                        <div
-                          key={i}
-                          style={{
-                            width: 6,
-                            height: 10,
-                            background: spiralBg,
-                            borderRadius: "0 0 5px 5px",
-                            position: "relative",
-                          }}
-                        >
-                          <div style={{
-                            position: "absolute",
-                            top: 2,
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            width: 3,
-                            height: 3,
-                            background: "var(--gv-color-bg-base)",
-                            borderRadius: "50%",
-                          }} />
-                        </div>
-                      ))}
-                    </div>
-
                     {/* Header — month */}
                     <div
                       style={{
                         background: headerBg,
-                        padding: "8px 4px 4px",
+                        padding: "5px 6px 4px",
                         textAlign: "center",
-                        minHeight: 22,
                         display: "flex",
-                        alignItems: "flex-end",
+                        alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
                       <span style={{
                         fontFamily: "var(--gv-font-heading)",
                         fontWeight: 700,
-                        fontSize: 6,
+                        fontSize: 8,
                         color: monthColor,
                         letterSpacing: "0.12em",
                         textTransform: "uppercase" as const,
@@ -1330,18 +1301,18 @@ export default function CalendarPage() {
                     <div
                       style={{
                         background: bodyBg,
-                        padding: "3px 4px 4px",
+                        padding: "4px 6px 5px",
                         textAlign: "center",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: 0,
+                        gap: 1,
                       }}
                     >
                       <span style={{
                         fontFamily: "var(--gv-font-heading)",
                         fontWeight: 800,
-                        fontSize: 18,
+                        fontSize: 22,
                         lineHeight: 1,
                         color: dayColor,
                         letterSpacing: "-0.03em",
@@ -1351,7 +1322,7 @@ export default function CalendarPage() {
                       <span style={{
                         fontFamily: "var(--gv-font-body)",
                         fontWeight: 500,
-                        fontSize: 6,
+                        fontSize: 8,
                         color: "var(--gv-color-neutral-400)",
                         letterSpacing: "0.06em",
                         textTransform: "uppercase" as const,
