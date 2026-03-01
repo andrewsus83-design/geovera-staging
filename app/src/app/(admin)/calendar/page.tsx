@@ -1246,14 +1246,7 @@ export default function CalendarPage() {
                 : isToday
                 ? "var(--gv-color-primary-700)"
                 : "var(--gv-color-neutral-400)";
-              const cardShadow = isSelected
-                ? "0 1px 3px rgba(31,36,40,0.08), 0 8px 24px rgba(63,101,98,0.14), 0 2px 8px rgba(63,101,98,0.08)"
-                : isToday
-                ? "0 1px 3px rgba(31,36,40,0.08), 0 8px 24px rgba(63,101,98,0.14), 0 2px 8px rgba(63,101,98,0.08)"
-                : "0 1px 3px rgba(31,36,40,0.05), 0 4px 12px rgba(31,36,40,0.06)";
-              const spiralBg = (isSelected || isToday)
-                ? "var(--gv-color-neutral-700)"
-                : "var(--gv-color-neutral-400)";
+              const cardShadow = "none";
 
               return (
                 <button
