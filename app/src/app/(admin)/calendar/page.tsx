@@ -1391,9 +1391,7 @@ export default function CalendarPage() {
                   padding: "8px 16px",
                   background: isActive ? "var(--gv-color-bg-surface)" : "transparent",
                   color: isActive ? "var(--gv-color-neutral-900)" : "var(--gv-color-neutral-400)",
-                  boxShadow: isActive
-                    ? "0 1px 3px rgba(31,36,40,0.08), 0 1px 2px rgba(31,36,40,0.06)"
-                    : "none",
+                  boxShadow: "none",
                   fontFamily: "var(--gv-font-body)",
                   cursor: "pointer",
                 }}
@@ -2068,7 +2066,7 @@ export default function CalendarPage() {
                   background: isActive ? "var(--gv-color-primary-50)" : "transparent",
                   color: isActive ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-500)",
                   border: isActive ? "1px solid rgba(95,143,139,0.3)" : "1px solid transparent",
-                  boxShadow: isActive ? "var(--gv-shadow-focus)" : "none",
+                  boxShadow: "none",
                 }}
               >
                 <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{icon}</span>
