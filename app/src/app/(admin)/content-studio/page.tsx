@@ -3,6 +3,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import { supabase } from "@/lib/supabase";
+import {
+  ImageIcon, VideoIcon, UserIcon, BoxCubeIcon, ShootingStarIcon,
+  AiIcon, BoltIcon, PencilIcon, TaskIcon, ListIcon, GalleryIcon,
+  BrandIcon, BoxTapped, CreatorIcon, FolderIcon, AnimationIcon,
+} from "@/icons";
 
 const FALLBACK_BRAND_ID =
   process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
@@ -24,7 +29,8 @@ const VIDEO_TOPICS = [
 ];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type StudioSection = "generate_image" | "generate_video" | "train_product" | "train_character" | "history";
+type StudioSection = "generate_image" | "generate_video" | "assets" | "history";
+type AssetSubSection = "design_system" | "product" | "character";
 type SubjectType = "character" | "product" | "both";
 type ModelMode = "trained" | "random";
 type VideoInputType = "text" | "image";
@@ -74,16 +80,56 @@ async function uploadImage(file: File, brandId: string, folder: string, name: st
 // ── Shared sub-components ─────────────────────────────────────────────────────
 function StepBar({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="flex border-b border-gray-100 dark:border-gray-800">
+    <div className="flex items-start justify-between px-4 py-4" style={{ background: "var(--gv-color-neutral-50)" }}>
       {steps.map((label, i) => {
         const n = i + 1;
+        const isCurrent = current === n;
+        const isDone = current > n;
+        const isLast = i === steps.length - 1;
         return (
-          <div key={label} className={`flex-1 text-center py-2.5 text-[10px] font-semibold transition-colors ${
-            current === n ? "text-brand-600 dark:text-brand-400 border-b-2 border-brand-500"
-            : current > n ? "text-green-600 dark:text-green-400"
-            : "text-gray-400"
-          }`}>
-            {current > n ? "✓ " : `${n}. `}{label}
+          <div key={label} className="flex items-center" style={{ flex: isLast ? "0 0 auto" : "1 1 0" }}>
+            {/* Step circle + label */}
+            <div className="flex flex-col items-center" style={{ minWidth: 48 }}>
+              <div
+                className="flex items-center justify-center transition-all"
+                style={{
+                  width: isCurrent ? 40 : 32,
+                  height: isCurrent ? 40 : 32,
+                  borderRadius: "var(--gv-radius-full)",
+                  background: isDone ? "var(--gv-color-primary-500)" : isCurrent ? "var(--gv-color-bg-surface)" : "var(--gv-color-neutral-200)",
+                  border: isCurrent ? "3px solid var(--gv-color-primary-200)" : "none",
+                  boxShadow: isCurrent ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                  color: isDone ? "white" : isCurrent ? "var(--gv-color-primary-600)" : "var(--gv-color-neutral-400)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {isDone ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                ) : n}
+              </div>
+              <span
+                className="text-[9px] font-semibold mt-1.5 text-center leading-tight"
+                style={{
+                  color: isCurrent ? "var(--gv-color-primary-600)" : isDone ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-400)",
+                  maxWidth: 64,
+                }}
+              >
+                {label}
+              </span>
+            </div>
+            {/* Connecting line */}
+            {!isLast && (
+              <div
+                className="flex-1 mx-1"
+                style={{
+                  height: 2,
+                  marginBottom: 16,
+                  borderRadius: 1,
+                  background: isDone ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)",
+                }}
+              />
+            )}
           </div>
         );
       })}
@@ -94,18 +140,18 @@ function StepBar({ steps, current }: { steps: string[]; current: number }) {
 function DailyQuota({ used, limit, label }: { used: number; limit: number; label: string }) {
   const remaining = Math.max(0, limit - used);
   const pct = Math.min(100, (used / limit) * 100);
-  const color = remaining === 0 ? "bg-red-500" : remaining <= 2 ? "bg-amber-500" : "bg-brand-500";
+  const barColor = remaining === 0 ? "var(--gv-color-danger-500)" : remaining <= 2 ? "var(--gv-color-warning-500)" : "var(--gv-color-primary-500)";
   return (
-    <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-3">
+    <div className="px-3 py-2 flex items-center gap-3" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)" }}>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between mb-1">
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">{label} today</span>
-          <span className={`text-[10px] font-bold ${remaining === 0 ? "text-red-500" : "text-gray-700 dark:text-gray-300"}`}>
+          <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-500)" }}>{label} today</span>
+          <span className="text-[10px] font-bold" style={{ color: remaining === 0 ? "var(--gv-color-danger-500)" : "var(--gv-color-neutral-700)" }}>
             {remaining} left / {limit}
           </span>
         </div>
-        <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+        <div className="h-1 overflow-hidden" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-neutral-200)" }}>
+          <div className="h-full transition-all" style={{ width: `${pct}%`, background: barColor, borderRadius: "var(--gv-radius-full)" }} />
         </div>
       </div>
     </div>
@@ -118,9 +164,10 @@ function SmartPromptBtn({ onClick, loading }: { onClick: () => void; loading: bo
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold disabled:opacity-50 transition-colors"
+      style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-info-50)", color: "var(--gv-color-info-700)" }}
     >
-      {loading ? <span className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" /> : "✨"}
+      {loading ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--gv-color-info-500)", borderTopColor: "transparent" }} /> : "✨"}
       {loading ? "AI thinking..." : "Smart Prompt (OpenAI)"}
     </button>
   );
@@ -129,55 +176,60 @@ function SmartPromptBtn({ onClick, loading }: { onClick: () => void; loading: bo
 // ══════════════════════════════════════════════════════════════════════════════
 // CENTER — Studio Section Picker
 // ══════════════════════════════════════════════════════════════════════════════
-const SECTIONS: { id: StudioSection; icon: string; label: string; sub: string }[] = [
-  { id: "generate_image",  icon: "🖼️", label: "Generate Image",     sub: "KIE Flux · daily quota" },
-  { id: "generate_video",  icon: "🎬", label: "Generate Video",     sub: "KIE Kling · daily quota" },
-  { id: "train_product",   icon: "🏭", label: "Product Training",   sub: "LoRA · 4-side upload" },
-  { id: "train_character", icon: "👤", label: "Character Training", sub: "LoRA · persona model" },
-  { id: "history",         icon: "📋", label: "History",            sub: "All generations" },
+const SECTIONS: { id: StudioSection; icon: React.ReactNode; label: string; sub: string }[] = [
+  { id: "generate_image",  icon: <ImageIcon className="w-5 h-5" />,    label: "Generate Image",     sub: "KIE Flux · daily quota" },
+  { id: "generate_video",  icon: <VideoIcon className="w-5 h-5" />,    label: "Generate Video",     sub: "KIE Kling · daily quota" },
+  { id: "assets",          icon: <FolderIcon className="w-5 h-5" />,   label: "Assets",             sub: "Design system · product · character" },
+  { id: "history",         icon: <ListIcon className="w-5 h-5" />,     label: "History",            sub: "All generations" },
 ];
 
 function StudioSectionPicker({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
   return (
     <div className="space-y-3">
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
+        <h2 className="text-lg font-bold" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>
           Content Studio
         </h2>
-        <p className="text-[11px] text-gray-400 mt-0.5">Powered by KIE + OpenAI</p>
+        <p className="text-[11px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>Powered by KIE + OpenAI</p>
       </div>
       <div className="space-y-2">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onSelect(s.id)}
-            className={`w-full flex items-center gap-4 rounded-2xl p-4 text-left transition-all border ${
-              active === s.id
-                ? "bg-brand-50 dark:bg-brand-500/10 border-brand-300 dark:border-brand-500 shadow-sm"
-                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-brand-300 hover:shadow-sm"
-            }`}
-          >
-            <span className="text-3xl flex-shrink-0">{s.icon}</span>
-            <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${active === s.id ? "text-brand-700 dark:text-brand-400" : "text-gray-800 dark:text-gray-200"}`}>
-                {s.label}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
-            </div>
-            {active === s.id && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />}
-          </button>
-        ))}
+        {SECTIONS.map((s) => {
+          const isActive = active === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => onSelect(s.id)}
+              className="w-full flex items-center gap-4 p-4 text-left transition-all"
+              style={{
+                borderRadius: "var(--gv-radius-md)",
+                border: `1px solid ${isActive ? "var(--gv-color-primary-200)" : "var(--gv-color-neutral-200)"}`,
+                background: isActive ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+              }}
+            >
+              <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: isActive ? "var(--gv-color-primary-100)" : "var(--gv-color-neutral-50)", color: isActive ? "var(--gv-color-primary-600)" : "var(--gv-color-neutral-500)" }}>
+                {s.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold" style={{ color: isActive ? "var(--gv-color-primary-700)" : "var(--gv-color-neutral-900)" }}>
+                  {s.label}
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{s.sub}</p>
+              </div>
+              {isActive && <span className="w-2 h-2 flex-shrink-0" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+            </button>
+          );
+        })}
       </div>
-      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1.5 mt-2">
+      <div className="p-3 space-y-1.5 mt-2" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)" }}>
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-          <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">KIE API Connected</span>
+          <span className="w-2 h-2 flex-shrink-0" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-success-500)" }} />
+          <span className="text-[10px] font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>KIE API Connected</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-          <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">OpenAI Smart Prompts</span>
+          <span className="w-2 h-2 flex-shrink-0" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-info-500)" }} />
+          <span className="text-[10px] font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>OpenAI Smart Prompts</span>
         </div>
-        <p className="text-[10px] text-gray-400">Flux · Kling V1/V2 · LoRA</p>
+        <p className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Flux · Kling V1/V2 · LoRA</p>
       </div>
     </div>
   );
@@ -188,17 +240,17 @@ function StudioSectionPicker({ active, onSelect }: { active: StudioSection; onSe
 // ══════════════════════════════════════════════════════════════════════════════
 function GeneratingPopup({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="max-w-sm w-full text-center p-6" style={{ background: "var(--gv-color-bg-surface)", borderRadius: "var(--gv-radius-lg)", border: "1px solid var(--gv-color-neutral-200)", boxShadow: "var(--gv-shadow-modal)" }}>
         <div className="text-5xl mb-3 animate-bounce">⏳</div>
-        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Sedang Diproses</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+        <h3 className="text-base font-bold mb-2" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>Sedang Diproses</h3>
+        <p className="text-sm mb-5" style={{ color: "var(--gv-color-neutral-500)" }}>
           Generate sedang berlangsung di background. Hasilnya akan otomatis muncul di{" "}
-          <strong className="text-brand-600 dark:text-brand-400">History</strong> ketika sudah selesai.
+          <strong style={{ color: "var(--gv-color-primary-600)" }}>History</strong> ketika sudah selesai.
         </p>
         <button
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
+          className="gv-btn-primary w-full py-2.5 text-sm font-semibold"
         >
           OK, Mengerti
         </button>
@@ -367,10 +419,10 @@ function TrainingWizard({
 
   if (atLimit) {
     return (
-      <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-6 text-center">
+      <div className="p-6 text-center" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-warning-500)", background: "var(--gv-color-warning-50)" }}>
         <p className="text-2xl mb-2">⚠️</p>
-        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Training Quota Reached</p>
-        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+        <p className="text-sm font-semibold" style={{ color: "var(--gv-color-warning-700)" }}>Training Quota Reached</p>
+        <p className="text-xs mt-1" style={{ color: "var(--gv-color-warning-700)" }}>
           {currentTier} plan: max {limit} trained models. Upgrade to train more.
         </p>
       </div>
@@ -378,7 +430,7 @@ function TrainingWizard({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="overflow-hidden" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
       <StepBar steps={["Upload 4 Sides", "8 Synthetics", "Training"]} current={step} />
       <div className="p-4 space-y-4">
 
@@ -386,39 +438,42 @@ function TrainingWizard({
         {step === 1 && (
           <>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>
-                {trainingType === "product" ? "🏭 Product Training" : "👤 Character Training"}
+              <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>
+                {trainingType === "product" ? <BoxTapped className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> : <CreatorIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} />}
+                {trainingType === "product" ? "Product Training" : "Character Training"}
               </h3>
-              <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-500">
+              <span className="text-[10px] px-2 py-0.5" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}>
                 {totalModelCount} / {limit} models
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Dataset Name *</label>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--gv-color-neutral-500)" }}>Dataset Name *</label>
                 <input
                   value={datasetName}
                   onChange={(e) => { setDatasetName(e.target.value); if (!triggerWord) setTriggerWord(e.target.value.toLowerCase().replace(/\s+/g, "_")); }}
                   placeholder={trainingType === "product" ? "Summer Bag 2026" : "Brand Ambassador"}
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400"
+                  className="w-full px-3 py-2 text-xs outline-none"
+                  style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Trigger Word</label>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--gv-color-neutral-500)" }}>Trigger Word</label>
                 <input
                   value={triggerWord}
                   onChange={(e) => setTriggerWord(e.target.value)}
                   placeholder="summer_bag_2026"
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400"
+                  className="w-full px-3 py-2 text-xs outline-none"
+                  style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--gv-color-neutral-500)" }}>
                 Upload 4 Sides{" "}
-                <span className={`font-normal text-[10px] ${sizeError ? "text-red-500" : "text-gray-400"}`}>
+                <span className="font-normal text-[10px]" style={{ color: sizeError ? "var(--gv-color-danger-500)" : "var(--gv-color-neutral-400)" }}>
                   (total: {totalSizeMB} MB / 10 MB max)
                 </span>
               </label>
@@ -426,8 +481,8 @@ function TrainingWizard({
                 {sides.map((s) => (
                   <label
                     key={s.side}
-                    className="relative cursor-pointer rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-brand-400 dark:hover:border-brand-500 transition-colors overflow-hidden flex items-center justify-center"
-                    style={{ aspectRatio: "1", minHeight: 90 }}
+                    className="relative cursor-pointer overflow-hidden flex items-center justify-center transition-colors"
+                    style={{ aspectRatio: "1", minHeight: 90, borderRadius: "var(--gv-radius-sm)", border: "2px dashed var(--gv-color-neutral-200)" }}
                   >
                     {s.preview ? (
                       <>
@@ -439,8 +494,8 @@ function TrainingWizard({
                     ) : (
                       <div className="flex flex-col items-center gap-1 p-2 text-center">
                         <span className="text-xl">📸</span>
-                        <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{s.label}</p>
-                        <p className="text-[9px] text-gray-400">Click to upload</p>
+                        <p className="text-[10px] font-semibold" style={{ color: "var(--gv-color-neutral-500)" }}>{s.label}</p>
+                        <p className="text-[9px]" style={{ color: "var(--gv-color-neutral-400)" }}>Click to upload</p>
                       </div>
                     )}
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(s.side, e.target.files)} />
@@ -449,17 +504,17 @@ function TrainingWizard({
               </div>
             </div>
 
-            {sizeError && <p className="text-xs text-red-500">Total size exceeds 10 MB. Use smaller images.</p>}
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {sizeError && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>Total size exceeds 10 MB. Use smaller images.</p>}
+            {error && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>{error}</p>}
 
             <button
               onClick={proceedToStep2}
               disabled={!datasetName.trim() || !allUploaded || sizeError}
-              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Generate Synthetic Dataset →
             </button>
-            <p className="text-[10px] text-gray-400 text-center">
+            <p className="text-[10px] text-center" style={{ color: "var(--gv-color-neutral-400)" }}>
               GeoVera will generate 8 synthetic training variations using Llama + KIE Flux-2 Pro
             </p>
           </>
@@ -469,13 +524,13 @@ function TrainingWizard({
         {step === 2 && (
           <>
             <div className="text-center">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎨 Generating Synthetic Dataset</h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>🎨 Generating Synthetic Dataset</h3>
+              <p className="text-xs mt-1" style={{ color: "var(--gv-color-neutral-500)" }}>
                 {synthLoading ? `Building ${Math.min(synthCount + 1, 8)} of 8 AI variations...` : `${synthCount} AI variations ready · 4 originals + synthetics`}
               </p>
-              <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div className={`h-full bg-brand-500 transition-all duration-700 ${synthLoading ? "" : "bg-green-500"}`}
-                  style={{ width: `${synthLoading ? (synthCount / 8) * 100 : 100}%` }} />
+              <div className="mt-2 h-1.5 overflow-hidden" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-neutral-100)" }}>
+                <div className="h-full transition-all duration-700"
+                  style={{ width: `${synthLoading ? (synthCount / 8) * 100 : 100}%`, background: synthLoading ? "var(--gv-color-primary-500)" : "var(--gv-color-success-500)", borderRadius: "var(--gv-radius-full)" }} />
               </div>
             </div>
 
@@ -483,20 +538,20 @@ function TrainingWizard({
             <div className="grid grid-cols-4 gap-1.5">
               {/* 4 original uploads */}
               {sides.map((s) => s.preview && (
-                <div key={s.side} className="aspect-square rounded-lg overflow-hidden relative">
+                <div key={s.side} className="aspect-square overflow-hidden relative" style={{ borderRadius: "var(--gv-radius-xs)" }}>
                   <img src={s.preview} alt={s.side} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-brand-500/80 text-white text-[8px] font-bold text-center py-0.5">{s.label}</div>
+                  <div className="absolute bottom-0 left-0 right-0 text-white text-[8px] font-bold text-center py-0.5" style={{ background: "rgba(95,143,139,0.8)" }}>{s.label}</div>
                 </div>
               ))}
               {/* Synthetics */}
               {Array.from({ length: 12 }).map((_, i) => {
                 const url = synthUrls[i];
                 return (
-                  <div key={`s${i}`} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <div key={`s${i}`} className="aspect-square overflow-hidden flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-neutral-100)" }}>
                     {url ? (
                       <img src={url} alt={`synthetic-${i}`} className="w-full h-full object-cover" />
                     ) : (
-                      <div className={`w-4 h-4 rounded-full border-2 ${synthLoading && i === synthCount ? "border-brand-500 animate-spin border-t-transparent" : "border-gray-300 dark:border-gray-600"}`} />
+                      <div className={`w-4 h-4 rounded-full border-2 ${synthLoading && i === synthCount ? "animate-spin" : ""}`} style={{ borderColor: synthLoading && i === synthCount ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)", borderTopColor: synthLoading && i === synthCount ? "transparent" : undefined }} />
                     )}
                   </div>
                 );
@@ -504,62 +559,62 @@ function TrainingWizard({
             </div>
 
             {synthLoading && (
-              <p className="text-center text-xs text-purple-600 dark:text-purple-400 animate-pulse">
+              <p className="text-center text-xs animate-pulse" style={{ color: "var(--gv-color-info-700)" }}>
                 ✨ OpenAI generating training prompts → KIE Flux creating images...
               </p>
             )}
             {!synthLoading && !error && (
-              <div className="text-center text-xs text-green-600 dark:text-green-400 font-semibold">
+              <div className="text-center text-xs font-semibold" style={{ color: "var(--gv-color-success-500)" }}>
                 ✅ Synthetic dataset ready. Starting LoRA training...
               </div>
             )}
-            {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+            {error && <p className="text-xs text-center" style={{ color: "var(--gv-color-danger-500)" }}>{error}</p>}
           </>
         )}
 
         {/* ── STEP 3: Training ── */}
         {step === 3 && (
           <div className="text-center space-y-4 py-2">
-            <div className="w-14 h-14 rounded-full bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 flex items-center justify-center mx-auto" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-50)" }}>
               {["completed", "succeeded", "success"].includes(trainingStatus)
                 ? <span className="text-3xl">✅</span>
-                : <div className="w-7 h-7 rounded-full border-[3px] border-brand-500 border-t-transparent animate-spin" />}
+                : <div className="w-7 h-7 rounded-full border-[3px] animate-spin" style={{ borderColor: "var(--gv-color-primary-500)", borderTopColor: "transparent" }} />}
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>
                 {["completed", "succeeded", "success"].includes(trainingStatus) ? "Training Complete! 🎉" : "LoRA Training in Progress"}
               </h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs mt-1" style={{ color: "var(--gv-color-neutral-500)" }}>
                 {["completed", "succeeded", "success"].includes(trainingStatus)
                   ? `"${datasetName}" is ready. Use it in Generate Image & Video.`
                   : "Training takes 10–30 mins. You can leave this page safely."}
               </p>
             </div>
             {trainingId && (
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-left space-y-2">
+              <div className="p-3 text-left space-y-2" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-neutral-50)" }}>
                 <div className="flex justify-between">
-                  <span className="text-[10px] text-gray-400">Training ID</span>
-                  <span className="text-[10px] font-mono text-gray-600 dark:text-gray-400 truncate max-w-[60%]">{trainingId}</span>
+                  <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Training ID</span>
+                  <span className="text-[10px] font-mono truncate max-w-[60%]" style={{ color: "var(--gv-color-neutral-500)" }}>{trainingId}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] text-gray-400">Trigger Word</span>
-                  <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">{triggerWord || datasetName.toLowerCase().replace(/\s+/g, "_")}</span>
+                  <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Trigger Word</span>
+                  <span className="text-[10px] font-mono" style={{ color: "var(--gv-color-primary-600)" }}>{triggerWord || datasetName.toLowerCase().replace(/\s+/g, "_")}</span>
                 </div>
                 {trainingProgress > 0 && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-[10px] text-gray-400">Progress</span>
-                      <span className="text-[10px] font-semibold text-brand-600">{trainingProgress}%</span>
+                      <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Progress</span>
+                      <span className="text-[10px] font-semibold" style={{ color: "var(--gv-color-primary-600)" }}>{trainingProgress}%</span>
                     </div>
-                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-brand-500 transition-all" style={{ width: `${trainingProgress}%` }} />
+                    <div className="h-1.5 overflow-hidden" style={{ borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-neutral-200)" }}>
+                      <div className="h-full transition-all" style={{ width: `${trainingProgress}%`, background: "var(--gv-color-primary-500)", borderRadius: "var(--gv-radius-full)" }} />
                     </div>
                   </>
                 )}
               </div>
             )}
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <button onClick={resetWizard} className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
+            {error && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>{error}</p>}
+            <button onClick={resetWizard} className="text-xs hover:underline" style={{ color: "var(--gv-color-primary-600)" }}>
               + Train Another Model
             </button>
           </div>
@@ -680,40 +735,57 @@ function GenerateImageWizard({
     finally { setLoading(false); }
   };
 
-  const SUBJECT_OPTS = [
-    { id: "character" as SubjectType, icon: "👤", label: "Character Only",       desc: "Person or persona" },
-    { id: "product"   as SubjectType, icon: "📦", label: "Product Only",         desc: "Item or product" },
-    { id: "both"      as SubjectType, icon: "✨", label: "Character + Product",  desc: "Combined scene" },
+  const SUBJECT_OPTS: { id: SubjectType; icon: React.ReactNode; label: string; desc: string }[] = [
+    { id: "character", icon: <UserIcon className="w-5 h-5" />,          label: "Character Only",       desc: "Person or persona" },
+    { id: "product",   icon: <BoxCubeIcon className="w-5 h-5" />,      label: "Product Only",         desc: "Item or product" },
+    { id: "both",      icon: <ShootingStarIcon className="w-5 h-5" />, label: "Character + Product",  desc: "Combined scene" },
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="gv-card overflow-hidden">
       <StepBar steps={["Subject", "Model", "Prompt & Generate"]} current={step} />
       <div className="p-4 space-y-3">
         <DailyQuota used={imagesUsedToday} limit={limit} label="Images" />
 
         {atLimit && (
-          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-3 text-center">
-            <p className="text-xs font-semibold text-red-600 dark:text-red-400">Daily limit reached ({limit} images)</p>
-            <p className="text-[10px] text-red-500 mt-0.5">Resets tomorrow at midnight. Upgrade for more.</p>
+          <div className="p-3 text-center" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-danger-50)" }}>
+            <p className="text-xs font-semibold" style={{ color: "var(--gv-color-danger-700)" }}>Daily limit reached ({limit} images)</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-danger-500)" }}>Resets tomorrow at midnight. Upgrade for more.</p>
           </div>
         )}
 
         {/* STEP 1: Subject */}
         {step === 1 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🖼️ What to feature?</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <ImageIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> What to feature?
+            </h3>
             <div className="space-y-2">
-              {SUBJECT_OPTS.map((opt) => (
-                <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-left transition-colors">
-                  <span className="text-2xl">{opt.icon}</span>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{opt.label}</p>
-                    <p className="text-[10px] text-gray-400">{opt.desc}</p>
-                  </div>
-                </button>
-              ))}
+              {SUBJECT_OPTS.map((opt) => {
+                const sel = subjectType === opt.id;
+                return (
+                  <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                    style={{
+                      borderRadius: "var(--gv-radius-md)",
+                      border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                      background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                      boxShadow: sel ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                    }}>
+                    <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      {opt.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>{opt.label}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{opt.desc}</p>
+                    </div>
+                    {/* Radio circle */}
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                      {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -721,44 +793,73 @@ function GenerateImageWizard({
         {/* STEP 2: Model */}
         {step === 2 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              🤖 Model
-              <span className="ml-2 text-xs font-normal text-brand-600 dark:text-brand-400 capitalize">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <AiIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> Model
+              <span className="text-xs font-normal capitalize" style={{ color: "var(--gv-color-primary-600)" }}>
                 — {subjectType === "both" ? "Character + Product" : subjectType}
               </span>
             </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {(["trained", "random"] as ModelMode[]).map((mode) => (
-                <button key={mode} onClick={() => setModelMode(mode)}
-                  className={`p-3 rounded-xl border text-center transition-colors ${modelMode === mode ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                  <p className="text-xl">{mode === "trained" ? "🎓" : "🎲"}</p>
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{mode}</p>
-                  <p className="text-[10px] text-gray-400">{mode === "trained" ? "Your LoRA model" : "Base Flux AI"}</p>
-                </button>
-              ))}
+            <div className="space-y-2">
+              {(["trained", "random"] as ModelMode[]).map((mode) => {
+                const sel = modelMode === mode;
+                return (
+                  <button key={mode} onClick={() => setModelMode(mode)}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                    style={{
+                      borderRadius: "var(--gv-radius-md)",
+                      border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                      background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                      boxShadow: sel ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                    }}>
+                    <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      {mode === "trained" ? <AiIcon className="w-5 h-5" /> : <BoltIcon className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold capitalize" style={{ color: "var(--gv-color-neutral-900)" }}>{mode}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{mode === "trained" ? "Your LoRA model" : "Base Flux AI"}</p>
+                    </div>
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                      {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {modelMode === "trained" && (
               relevantModels.length === 0 ? (
-                <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-3 text-center">
-                  <p className="text-xs text-amber-600 dark:text-amber-400">No completed {subjectType} models. Train one first!</p>
+                <div className="p-3 text-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-warning-50)" }}>
+                  <p className="text-xs" style={{ color: "var(--gv-color-warning-700)" }}>No completed {subjectType} models. Train one first!</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {relevantModels.map((m) => (
-                    <button key={m.id} onClick={() => setSelectedModel(m)}
-                      className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-left transition-colors ${selectedModel?.id === m.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                      <span className="text-lg">{m.theme === "character" ? "👤" : "📦"}</span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
-                        <p className="text-[10px] text-gray-400">{m.metadata?.trigger_word}</p>
-                      </div>
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  {relevantModels.map((m) => {
+                    const sel = selectedModel?.id === m.id;
+                    return (
+                      <button key={m.id} onClick={() => setSelectedModel(m)}
+                        className="w-full flex items-center gap-3 p-2.5 text-left transition-all"
+                        style={{
+                          borderRadius: "var(--gv-radius-md)",
+                          border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                          background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                        }}>
+                        <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                          {m.theme === "character" ? <UserIcon className="w-4 h-4" /> : <BoxCubeIcon className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{m.dataset_name}</p>
+                          <p className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>{m.metadata?.trigger_word}</p>
+                        </div>
+                        <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                          {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )
             )}
             <button onClick={() => setStep(3)} disabled={modelMode === "trained" && !selectedModel && relevantModels.length > 0}
-              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors">
+              className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40">
               Next: Prompt →
             </button>
           </>
@@ -767,23 +868,34 @@ function GenerateImageWizard({
         {/* STEP 3: Prompt & Generate */}
         {step === 3 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">✍️ Prompt</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <PencilIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> Prompt
+            </h3>
             <div className="flex gap-2 flex-wrap">
-              {([["1:1","Square"],["9:16","Portrait"],["16:9","Landscape"],["4:5","Feed"]] as [string,string][]).map(([v,l]) => (
-                <button key={v} onClick={() => setAspectRatio(v)}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${aspectRatio === v ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-500 hover:border-brand-400"}`}>
-                  {l}
-                </button>
-              ))}
+              {([["1:1","Square"],["9:16","Portrait"],["16:9","Landscape"],["4:5","Feed"]] as [string,string][]).map(([v,l]) => {
+                const sel = aspectRatio === v;
+                return (
+                  <button key={v} onClick={() => setAspectRatio(v)}
+                    className="px-3 py-1.5 text-[10px] font-semibold transition-all"
+                    style={{ borderRadius: "var(--gv-radius-full)", border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "transparent", color: sel ? "var(--gv-color-primary-700)" : "var(--gv-color-neutral-500)" }}>
+                    {l}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              {([["random","🎲","Random"],["custom","✍️","Custom"],["task","📋","From Task"]] as [PromptSource,string,string][]).map(([id,icon,lbl]) => (
-                <button key={id} onClick={() => setPromptSource(id)}
-                  className={`py-2 rounded-xl border text-center text-xs font-semibold transition-colors ${promptSource === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-600 hover:border-brand-400"}`}>
-                  <span className="block text-base mb-0.5">{icon}</span>{lbl}
-                </button>
-              ))}
+              {([["random","Random"],["custom","Custom"],["task","From Task"]] as [PromptSource,string][]).map(([id,lbl]) => {
+                const sel = promptSource === id;
+                const Icon = id === "random" ? BoltIcon : id === "custom" ? PencilIcon : TaskIcon;
+                return (
+                  <button key={id} onClick={() => setPromptSource(id)}
+                    className="flex flex-col items-center gap-1 py-2.5 text-xs font-semibold transition-all"
+                    style={{ borderRadius: "var(--gv-radius-sm)", border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "transparent", color: sel ? "var(--gv-color-primary-700)" : "var(--gv-color-neutral-500)" }}>
+                    <Icon className="w-4 h-4" />{lbl}
+                  </button>
+                );
+              })}
             </div>
 
             {/* OpenAI smart prompt button (shown for random + custom) */}
@@ -791,7 +903,7 @@ function GenerateImageWizard({
               <div className="flex items-center gap-2">
                 <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
                 {promptSource === "random" && !customPrompt && (
-                  <span className="text-[10px] text-gray-400">Click to generate AI prompt</span>
+                  <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Click to generate AI prompt</span>
                 )}
               </div>
             )}
@@ -800,35 +912,41 @@ function GenerateImageWizard({
               <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="Describe the image you want to generate..."
                 rows={3}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400 resize-none" />
+                className="w-full px-3 py-2 text-xs outline-none resize-none"
+                style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }} />
             )}
 
             {promptSource === "task" && (
               <>
                 <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
                 {todayTasks.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-2">No tasks for today</p>
+                  <p className="text-xs text-center py-2" style={{ color: "var(--gv-color-neutral-400)" }}>No tasks for today</p>
                 ) : (
                   <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                    {todayTasks.map((t) => (
-                      <button key={t.id} onClick={() => setSelectedTask(t)}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-colors ${selectedTask?.id === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                        <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
-                        {t.target_platforms && <p className="text-[10px] text-gray-400 mt-0.5">{t.target_platforms.join(", ")}</p>}
-                      </button>
-                    ))}
+                    {todayTasks.map((t) => {
+                      const sel = selectedTask?.id === t.id;
+                      return (
+                        <button key={t.id} onClick={() => setSelectedTask(t)}
+                          className="w-full text-left p-2.5 text-xs transition-colors"
+                          style={{ borderRadius: "var(--gv-radius-xs)", border: `1px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)" }}>
+                          <p className="font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{t.title}</p>
+                          {t.target_platforms && <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{t.target_platforms.join(", ")}</p>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {selectedTask && customPrompt && (
                   <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
-                    rows={2} className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none resize-none" />
+                    rows={2} className="w-full px-3 py-2 text-xs outline-none resize-none"
+                    style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }} />
                 )}
               </>
             )}
 
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {error && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>{error}</p>}
             <button onClick={handleGenerate} disabled={loading || atLimit}
-              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+              className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
               {loading ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating...</> : "✨ Generate Image"}
             </button>
           </>
@@ -967,40 +1085,56 @@ function GenerateVideoWizard({
     finally { setLoading(false); }
   };
 
-  const SUBJECT_OPTS = [
-    { id: "character" as SubjectType, icon: "👤", label: "Character Only",      desc: "Person or persona" },
-    { id: "product"   as SubjectType, icon: "📦", label: "Product Only",        desc: "Item or product" },
-    { id: "both"      as SubjectType, icon: "✨", label: "Character + Product", desc: "Combined scene" },
+  const SUBJECT_OPTS: { id: SubjectType; icon: React.ReactNode; label: string; desc: string }[] = [
+    { id: "character", icon: <UserIcon className="w-5 h-5" />,          label: "Character Only",      desc: "Person or persona" },
+    { id: "product",   icon: <BoxCubeIcon className="w-5 h-5" />,      label: "Product Only",        desc: "Item or product" },
+    { id: "both",      icon: <ShootingStarIcon className="w-5 h-5" />, label: "Character + Product", desc: "Combined scene" },
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="gv-card overflow-hidden">
       <StepBar steps={["Subject", "Model", "Content", "Topic & Generate"]} current={step} />
       <div className="p-4 space-y-3">
         <DailyQuota used={videosUsedToday} limit={limit} label="Videos" />
 
         {atLimit && (
-          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-3 text-center">
-            <p className="text-xs font-semibold text-red-600 dark:text-red-400">Daily limit reached ({limit} videos)</p>
-            <p className="text-[10px] text-red-500 mt-0.5">Resets tomorrow at midnight. Upgrade for more.</p>
+          <div className="p-3 text-center" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-danger-50)" }}>
+            <p className="text-xs font-semibold" style={{ color: "var(--gv-color-danger-700)" }}>Daily limit reached ({limit} videos)</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-danger-500)" }}>Resets tomorrow at midnight. Upgrade for more.</p>
           </div>
         )}
 
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎬 What to feature?</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <VideoIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> What to feature?
+            </h3>
             <div className="space-y-2">
-              {SUBJECT_OPTS.map((opt) => (
-                <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-left transition-colors">
-                  <span className="text-2xl">{opt.icon}</span>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{opt.label}</p>
-                    <p className="text-[10px] text-gray-400">{opt.desc}</p>
-                  </div>
-                </button>
-              ))}
+              {SUBJECT_OPTS.map((opt) => {
+                const sel = subjectType === opt.id;
+                return (
+                  <button key={opt.id} onClick={() => { setSubjectType(opt.id); setStep(2); }}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                    style={{
+                      borderRadius: "var(--gv-radius-md)",
+                      border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                      background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                      boxShadow: sel ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                    }}>
+                    <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      {opt.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>{opt.label}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{opt.desc}</p>
+                    </div>
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                      {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -1008,48 +1142,77 @@ function GenerateVideoWizard({
         {/* STEP 2: Model */}
         {step === 2 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              🤖 Model — <span className="text-xs font-normal text-brand-600 dark:text-brand-400 capitalize">{subjectType === "both" ? "Char + Prod" : subjectType}</span>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <AiIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> Model — <span className="text-xs font-normal capitalize" style={{ color: "var(--gv-color-primary-600)" }}>{subjectType === "both" ? "Char + Prod" : subjectType}</span>
             </h3>
             <div>
-              <label className="text-xs font-medium text-gray-500 mb-1.5 block">Kling AI Version</label>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--gv-color-neutral-500)" }}>Kling AI Version</label>
               <div className="grid grid-cols-2 gap-2">
-                {[["kling-v1","Kling V1","Fast"],["kling-v1.5","Kling V1.5","Enhanced"],["kling-v2","Kling V2","Best quality"],["kling-v1-pro","Kling V1 Pro","Pro grade"]].map(([id,lbl,desc]) => (
-                  <button key={id} onClick={() => setKlingModel(id)}
-                    className={`p-2.5 rounded-xl border text-center transition-colors ${klingModel === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{lbl}</p>
-                    <p className="text-[10px] text-gray-400">{desc}</p>
-                  </button>
-                ))}
+                {[["kling-v1","Kling V1","Fast"],["kling-v1.5","Kling V1.5","Enhanced"],["kling-v2","Kling V2","Best quality"],["kling-v1-pro","Kling V1 Pro","Pro grade"]].map(([id,lbl,desc]) => {
+                  const sel = klingModel === id;
+                  return (
+                    <button key={id} onClick={() => setKlingModel(id)}
+                      className="p-2.5 text-center transition-all"
+                      style={{ borderRadius: "var(--gv-radius-md)", border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)" }}>
+                      <p className="text-xs font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>{lbl}</p>
+                      <p className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>{desc}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {(["trained","random"] as ModelMode[]).map((mode) => (
-                <button key={mode} onClick={() => setModelMode(mode)}
-                  className={`p-3 rounded-xl border text-center transition-colors ${modelMode === mode ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                  <p className="text-xl">{mode === "trained" ? "🎓" : "🎲"}</p>
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{mode}</p>
-                </button>
-              ))}
+            <div className="space-y-2">
+              {(["trained","random"] as ModelMode[]).map((mode) => {
+                const sel = modelMode === mode;
+                return (
+                  <button key={mode} onClick={() => setModelMode(mode)}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                    style={{
+                      borderRadius: "var(--gv-radius-md)",
+                      border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                      background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                      boxShadow: sel ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                    }}>
+                    <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      {mode === "trained" ? <AiIcon className="w-5 h-5" /> : <BoltIcon className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold capitalize" style={{ color: "var(--gv-color-neutral-900)" }}>{mode}</p>
+                    </div>
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                      {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {modelMode === "trained" && (
               relevantModels.length === 0 ? (
-                <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-3 text-center">
-                  <p className="text-xs text-amber-600 dark:text-amber-400">No completed {subjectType} models. Train one first!</p>
+                <div className="p-3 text-center" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-warning-50)" }}>
+                  <p className="text-xs" style={{ color: "var(--gv-color-warning-700)" }}>No completed {subjectType} models. Train one first!</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {relevantModels.map((m) => (
-                    <button key={m.id} onClick={() => setSelectedModel(m)}
-                      className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-left transition-colors ${selectedModel?.id === m.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                      <span className="text-lg">{m.theme === "character" ? "👤" : "📦"}</span>
-                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  {relevantModels.map((m) => {
+                    const sel = selectedModel?.id === m.id;
+                    return (
+                      <button key={m.id} onClick={() => setSelectedModel(m)}
+                        className="w-full flex items-center gap-3 p-2.5 text-left transition-all"
+                        style={{ borderRadius: "var(--gv-radius-md)", border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)" }}>
+                        <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                          {m.theme === "character" ? <UserIcon className="w-4 h-4" /> : <BoxCubeIcon className="w-4 h-4" />}
+                        </div>
+                        <p className="text-xs font-semibold truncate flex-1" style={{ color: "var(--gv-color-neutral-900)" }}>{m.dataset_name}</p>
+                        <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                          {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )
             )}
-            <button onClick={() => setStep(3)} className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+            <button onClick={() => setStep(3)} className="gv-btn-primary w-full py-2.5 text-xs font-semibold">
               Next: Content →
             </button>
           </>
@@ -1058,39 +1221,60 @@ function GenerateVideoWizard({
         {/* STEP 3: Content */}
         {step === 3 && (
           <>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">📹 Content Source</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {([["text","✍️","Text to Video","AI generates from prompt"],["image","🖼️","Image to Video","Animate an image"]] as [VideoInputType,string,string,string][]).map(([id,icon,lbl,desc]) => (
-                <button key={id} onClick={() => setVideoInputType(id)}
-                  className={`p-3 rounded-xl border text-center transition-colors ${videoInputType === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                  <p className="text-xl">{icon}</p>
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-1">{lbl}</p>
-                  <p className="text-[10px] text-gray-400">{desc}</p>
-                </button>
-              ))}
+            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--gv-color-neutral-900)" }}>
+              <AnimationIcon className="w-4 h-4" style={{ color: "var(--gv-color-primary-500)" }} /> Content Source
+            </h3>
+            <div className="space-y-2">
+              {([["text","Text to Video","AI generates from prompt"],["image","Image to Video","Animate an image"]] as [VideoInputType,string,string][]).map(([id,lbl,desc]) => {
+                const sel = videoInputType === id;
+                const Icon = id === "text" ? PencilIcon : ImageIcon;
+                return (
+                  <button key={id} onClick={() => setVideoInputType(id)}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                    style={{
+                      borderRadius: "var(--gv-radius-md)",
+                      border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`,
+                      background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                      boxShadow: sel ? "0 0 0 3px var(--gv-color-primary-50)" : "none",
+                    }}>
+                    <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>{lbl}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{desc}</p>
+                    </div>
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-full)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-300)"}` }}>
+                      {sel && <div style={{ width: 10, height: 10, borderRadius: "var(--gv-radius-full)", background: "var(--gv-color-primary-500)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-500">Duration</span>
-                  <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{duration}s</span>
+                  <span className="text-xs font-medium" style={{ color: "var(--gv-color-neutral-500)" }}>Duration</span>
+                  <span className="text-xs font-bold" style={{ color: "var(--gv-color-primary-600)" }}>{duration}s</span>
                 </div>
                 <input
                   type="range" min={1} max={maxDuration} value={Math.min(duration, maxDuration)}
                   onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full h-1.5 rounded-full appearance-none bg-gray-200 dark:bg-gray-700 accent-brand-500 cursor-pointer"
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                  style={{ accentColor: "var(--gv-color-primary-500)", background: "var(--gv-color-neutral-200)" }}
                 />
                 <div className="flex justify-between mt-0.5">
-                  <span className="text-[9px] text-gray-400">1s</span>
-                  <span className="text-[9px] text-gray-400">{maxDuration}s max</span>
+                  <span className="text-[9px]" style={{ color: "var(--gv-color-neutral-400)" }}>1s</span>
+                  <span className="text-[9px]" style={{ color: "var(--gv-color-neutral-400)" }}>{maxDuration}s max</span>
                 </div>
-                {currentTier !== "partner" && <p className="text-[9px] text-gray-400 mt-0.5">{currentTier === "basic" ? "Upgrade for up to 25s" : "Partner: up to 25s"}</p>}
+                {currentTier !== "partner" && <p className="text-[9px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{currentTier === "basic" ? "Upgrade for up to 25s" : "Partner: up to 25s"}</p>}
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Aspect Ratio</label>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--gv-color-neutral-500)" }}>Aspect Ratio</label>
                 <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none">
+                  className="w-full px-3 py-2 text-xs outline-none"
+                  style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }}>
                   <option value="9:16">9:16 Portrait (TikTok)</option>
                   <option value="16:9">16:9 Landscape (YouTube)</option>
                   <option value="1:1">1:1 Square</option>
@@ -1101,12 +1285,17 @@ function GenerateVideoWizard({
             {videoInputType === "text" && (
               <>
                 <div className="grid grid-cols-3 gap-2">
-                  {([["random","🎲","Random"],["custom","✍️","Custom"],["task","📋","From Task"]] as [PromptSource,string,string][]).map(([id,icon,lbl]) => (
-                    <button key={id} onClick={() => setPromptSource(id)}
-                      className={`py-2 rounded-xl border text-center text-xs font-semibold transition-colors ${promptSource === id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 text-gray-600 hover:border-brand-400"}`}>
-                      <span className="block text-base mb-0.5">{icon}</span>{lbl}
-                    </button>
-                  ))}
+                  {([["random","Random"],["custom","Custom"],["task","From Task"]] as [PromptSource,string][]).map(([id,lbl]) => {
+                    const sel = promptSource === id;
+                    const Icon = id === "random" ? BoltIcon : id === "custom" ? PencilIcon : TaskIcon;
+                    return (
+                      <button key={id} onClick={() => setPromptSource(id)}
+                        className="flex flex-col items-center gap-1 py-2.5 text-xs font-semibold transition-all"
+                        style={{ borderRadius: "var(--gv-radius-sm)", border: `1.5px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "transparent", color: sel ? "var(--gv-color-primary-700)" : "var(--gv-color-neutral-500)" }}>
+                        <Icon className="w-4 h-4" />{lbl}
+                      </button>
+                    );
+                  })}
                 </div>
                 {(promptSource === "random" || promptSource === "custom") && (
                   <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
@@ -1114,21 +1303,26 @@ function GenerateVideoWizard({
                 {(promptSource === "custom" || (promptSource === "random" && textPrompt)) && (
                   <textarea value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)}
                     placeholder="Describe the video scene..." rows={3}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs outline-none focus:border-brand-400 resize-none" />
+                    className="w-full px-3 py-2 text-xs outline-none resize-none"
+                    style={{ borderRadius: "var(--gv-radius-xs)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-neutral-900)" }} />
                 )}
                 {promptSource === "task" && (
                   <>
                     <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
                     {todayTasks.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-2">No tasks for today</p>
+                      <p className="text-xs text-center py-2" style={{ color: "var(--gv-color-neutral-400)" }}>No tasks for today</p>
                     ) : (
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                        {todayTasks.map((t) => (
-                          <button key={t.id} onClick={() => setSelectedTask(t)}
-                            className={`w-full text-left p-2.5 rounded-lg border text-xs transition-colors ${selectedTask?.id === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
-                          </button>
-                        ))}
+                        {todayTasks.map((t) => {
+                          const sel = selectedTask?.id === t.id;
+                          return (
+                            <button key={t.id} onClick={() => setSelectedTask(t)}
+                              className="w-full text-left p-2.5 text-xs transition-colors"
+                              style={{ borderRadius: "var(--gv-radius-xs)", border: `1px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)" }}>
+                              <p className="font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{t.title}</p>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </>
@@ -1140,29 +1334,34 @@ function GenerateVideoWizard({
               <>
                 {historyImages.length > 0 && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1.5 block">From History</label>
+                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--gv-color-neutral-500)" }}>From History</label>
                     <div className="grid grid-cols-4 gap-1.5 max-h-28 overflow-y-auto">
-                      {historyImages.map((img) => (
-                        <button key={img.id} onClick={() => { setSelectedHistoryImage(img); setUploadedRefUrl(null); }}
-                          className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${selectedHistoryImage?.id === img.id ? "border-brand-500" : "border-transparent hover:border-brand-300"}`}>
-                          {img.image_url
-                            ? <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                            : <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><span className="text-xs text-gray-400">No img</span></div>}
-                        </button>
-                      ))}
+                      {historyImages.map((img) => {
+                        const sel = selectedHistoryImage?.id === img.id;
+                        return (
+                          <button key={img.id} onClick={() => { setSelectedHistoryImage(img); setUploadedRefUrl(null); }}
+                            className="aspect-square overflow-hidden transition-colors"
+                            style={{ borderRadius: "var(--gv-radius-xs)", border: `2px solid ${sel ? "var(--gv-color-primary-500)" : "transparent"}` }}>
+                            {img.image_url
+                              ? <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                              : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--gv-color-neutral-100)" }}><span className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>No img</span></div>}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
-                <label className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-brand-400 cursor-pointer transition-colors">
+                <label className="flex flex-col items-center justify-center gap-2 p-4 cursor-pointer transition-colors"
+                  style={{ borderRadius: "var(--gv-radius-sm)", border: "2px dashed var(--gv-color-neutral-200)" }}>
                   {uploadedRefUrl
                     ? <img src={uploadedRefUrl} alt="ref" className="h-20 object-contain rounded" />
-                    : <><span className="text-2xl">{uploadingRef ? "⏳" : "📎"}</span><p className="text-xs text-gray-400">{uploadingRef ? "Uploading..." : "Upload reference image"}</p></>}
+                    : <><span className="text-2xl">{uploadingRef ? "⏳" : "📎"}</span><p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>{uploadingRef ? "Uploading..." : "Upload reference image"}</p></>}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => handleRefUpload(e.target.files)} disabled={uploadingRef} />
                 </label>
               </>
             )}
 
-            <button onClick={() => setStep(4)} className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+            <button onClick={() => setStep(4)} className="gv-btn-primary w-full py-2.5 text-xs font-semibold">
               Next: Topic Style →
             </button>
           </>
@@ -1172,32 +1371,36 @@ function GenerateVideoWizard({
         {step === 4 && (
           <>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">🎯 Topic Style</h3>
+              <h3 className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>🎯 Topic Style</h3>
               <SmartPromptBtn onClick={handleSmartPrompt} loading={smartLoading} />
             </div>
             <div className="space-y-1.5">
-              {VIDEO_TOPICS.map((t) => (
-                <button key={t.id} onClick={() => setSelectedTopic(t.id)}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selectedTopic === t.id ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-gray-200 dark:border-gray-700 hover:border-brand-400"}`}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{t.label}</p>
-                    <p className="text-[10px] text-gray-400">{t.desc}</p>
-                  </div>
-                  {selectedTopic === t.id && <span className="text-brand-500 flex-shrink-0 text-sm">●</span>}
-                </button>
-              ))}
+              {VIDEO_TOPICS.map((t) => {
+                const sel = selectedTopic === t.id;
+                return (
+                  <button key={t.id} onClick={() => setSelectedTopic(t.id)}
+                    className="w-full flex items-center gap-3 p-2.5 text-left transition-colors"
+                    style={{ borderRadius: "var(--gv-radius-sm)", border: `1px solid ${sel ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)"}`, background: sel ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)" }}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>{t.label}</p>
+                      <p className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>{t.desc}</p>
+                    </div>
+                    {sel && <span className="flex-shrink-0 text-sm" style={{ color: "var(--gv-color-primary-500)" }}>●</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {textPrompt && (
-              <div className="rounded-lg bg-purple-50 dark:bg-purple-500/10 p-2">
-                <p className="text-[10px] text-purple-500 font-semibold mb-0.5">✨ OpenAI Prompt</p>
-                <p className="text-[10px] text-purple-700 dark:text-purple-300 line-clamp-2">{textPrompt}</p>
+              <div className="p-2" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-info-50)" }}>
+                <p className="text-[10px] font-semibold mb-0.5" style={{ color: "var(--gv-color-info-500)" }}>✨ OpenAI Prompt</p>
+                <p className="text-[10px] line-clamp-2" style={{ color: "var(--gv-color-info-700)" }}>{textPrompt}</p>
               </div>
             )}
 
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {error && <p className="text-xs" style={{ color: "var(--gv-color-danger-500)" }}>{error}</p>}
             <button onClick={handleGenerate} disabled={loading || atLimit || !selectedTopic}
-              className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+              className="gv-btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
               {loading ? <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />Generating Video...</> : "🎬 Generate Video"}
             </button>
           </>
@@ -1229,23 +1432,25 @@ function HistoryCenter({ brandId, onSelectImage, onSelectVideo }: {
   }, [brandId]);
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="flex border-b border-gray-100 dark:border-gray-800">
+    <div className="overflow-hidden" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
+      <div className="flex" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
         {(["images", "videos", "models"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-3 text-xs font-semibold capitalize transition-colors ${tab === t ? "text-brand-600 dark:text-brand-400 border-b-2 border-brand-500" : "text-gray-500 hover:text-gray-700"}`}>
+            className="flex-1 py-3 text-xs font-semibold capitalize transition-colors"
+            style={{ color: tab === t ? "var(--gv-color-primary-600)" : "var(--gv-color-neutral-500)", borderBottom: tab === t ? "2px solid var(--gv-color-primary-500)" : "2px solid transparent" }}>
             {t === "images" ? `🖼️ Images (${images.length})` : t === "videos" ? `🎬 Videos (${videos.length})` : `🤖 Models (${models.length})`}
           </button>
         ))}
       </div>
       <div className="p-4">
-        {loading && <div className="text-center py-8"><div className="w-6 h-6 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" /></div>}
+        {loading && <div className="text-center py-8"><div className="w-6 h-6 rounded-full border-2 animate-spin mx-auto" style={{ borderColor: "var(--gv-color-primary-500)", borderTopColor: "transparent" }} /></div>}
         {!loading && tab === "images" && (
-          images.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No generated images yet</p> : (
+          images.length === 0 ? <p className="text-center text-xs py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No generated images yet</p> : (
             <div className="grid grid-cols-3 gap-2">
               {images.map((img) => (
                 <button key={img.id} onClick={() => onSelectImage(img)}
-                  className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 ring-brand-500 transition-all">
+                  className="aspect-square overflow-hidden transition-all"
+                  style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-100)" }}>
                   {img.image_url
                     ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-lg">{img.status === "processing" ? "⏳" : "❌"}</div>}
@@ -1255,17 +1460,18 @@ function HistoryCenter({ brandId, onSelectImage, onSelectVideo }: {
           )
         )}
         {!loading && tab === "videos" && (
-          videos.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No generated videos yet</p> : (
+          videos.length === 0 ? <p className="text-center text-xs py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No generated videos yet</p> : (
             <div className="space-y-2">
               {videos.map((vid) => (
                 <button key={vid.id} onClick={() => onSelectVideo(vid)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-400 text-left transition-colors">
-                  <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                    {vid.video_thumbnail_url ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover rounded-lg" /> : <span className="text-lg">🎬</span>}
+                  className="w-full flex items-center gap-3 p-3 text-left transition-colors"
+                  style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)" }}>
+                  <div className="w-12 h-12 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-neutral-100)" }}>
+                    {vid.video_thumbnail_url ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover" style={{ borderRadius: "var(--gv-radius-xs)" }} /> : <span className="text-lg">🎬</span>}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{vid.hook}</p>
-                    <p className="text-[10px] text-gray-400">{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{vid.hook}</p>
+                    <p className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
                   </div>
                 </button>
               ))}
@@ -1273,16 +1479,18 @@ function HistoryCenter({ brandId, onSelectImage, onSelectVideo }: {
           )
         )}
         {!loading && tab === "models" && (
-          models.length === 0 ? <p className="text-center text-xs text-gray-400 py-8">No trained models yet</p> : (
+          models.length === 0 ? <p className="text-center text-xs py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No trained models yet</p> : (
             <div className="space-y-2">
               {models.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                  <span className="text-2xl">{m.theme === "character" ? "👤" : "📦"}</span>
+                <div key={m.id} className="flex items-center gap-3 p-3" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)" }}>
+                  <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                    {m.theme === "character" ? <UserIcon className="w-5 h-5" /> : <BoxCubeIcon className="w-5 h-5" />}
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{m.dataset_name}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{m.dataset_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`text-[10px] font-medium ${m.training_status === "completed" ? "text-green-600" : "text-amber-600"}`}>{m.training_status}</span>
-                      <span className="text-[10px] text-gray-400">· {m.image_count} images</span>
+                      <span className="text-[10px] font-medium" style={{ color: m.training_status === "completed" ? "var(--gv-color-success-500)" : "var(--gv-color-warning-500)" }}>{m.training_status}</span>
+                      <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>· {m.image_count} images</span>
                     </div>
                   </div>
                 </div>
@@ -1354,12 +1562,12 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
   };
 
   const FeedbackSection = () => (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
-      <p className="text-[10px] font-semibold text-gray-500 mb-2">🧠 TRAIN THE AI — Rate this result</p>
+    <div className="p-3" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
+      <p className="text-[10px] font-semibold mb-2" style={{ color: "var(--gv-color-neutral-500)" }}>🧠 TRAIN THE AI — Rate this result</p>
       {feedbackSubmitted ? (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-500/10 px-3 py-2">
+        <div className="flex items-center gap-2 px-3 py-2" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-success-50)" }}>
           <span className="text-base">{feedback === "liked" ? "👍" : "👎"}</span>
-          <p className="text-xs font-semibold text-green-700 dark:text-green-400">
+          <p className="text-xs font-semibold" style={{ color: "var(--gv-color-success-700)" }}>
             Thanks! AI is learning from your feedback.
           </p>
         </div>
@@ -1369,14 +1577,11 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
             <button
               onClick={() => submitFeedback("liked")}
               disabled={feedbackLoading}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all ${
-                feedback === "liked"
-                  ? "border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400 hover:text-green-600"
-              } disabled:opacity-50`}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-all disabled:opacity-50"
+              style={{ borderRadius: "var(--gv-radius-xs)", border: `1px solid ${feedback === "liked" ? "var(--gv-color-success-500)" : "var(--gv-color-neutral-200)"}`, background: feedback === "liked" ? "var(--gv-color-success-50)" : "transparent", color: feedback === "liked" ? "var(--gv-color-success-500)" : "var(--gv-color-neutral-500)" }}
             >
               {feedbackLoading && feedback === "liked"
-                ? <span className="w-3 h-3 rounded-full border-2 border-green-400 border-t-transparent animate-spin" />
+                ? <span className="w-3 h-3 rounded-full border-2 animate-spin" style={{ borderColor: "var(--gv-color-success-500)", borderTopColor: "transparent" }} />
                 : "👍"
               }
               <span>Like</span>
@@ -1384,20 +1589,17 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
             <button
               onClick={() => submitFeedback("disliked")}
               disabled={feedbackLoading}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all ${
-                feedback === "disliked"
-                  ? "border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-400 hover:text-red-600"
-              } disabled:opacity-50`}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-all disabled:opacity-50"
+              style={{ borderRadius: "var(--gv-radius-xs)", border: `1px solid ${feedback === "disliked" ? "var(--gv-color-danger-500)" : "var(--gv-color-neutral-200)"}`, background: feedback === "disliked" ? "var(--gv-color-danger-50)" : "transparent", color: feedback === "disliked" ? "var(--gv-color-danger-500)" : "var(--gv-color-neutral-500)" }}
             >
               {feedbackLoading && feedback === "disliked"
-                ? <span className="w-3 h-3 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+                ? <span className="w-3 h-3 rounded-full border-2 animate-spin" style={{ borderColor: "var(--gv-color-danger-500)", borderTopColor: "transparent" }} />
                 : "👎"
               }
               <span>Dislike</span>
             </button>
           </div>
-          <p className="text-[9px] text-gray-400 mt-1.5 text-center">
+          <p className="text-[9px] mt-1.5 text-center" style={{ color: "var(--gv-color-neutral-400)" }}>
             Your ratings train the AI to generate better content for your brand
           </p>
         </>
@@ -1409,34 +1611,35 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
     return (
       <div className="h-full min-h-64 flex flex-col items-center justify-center gap-3 text-center px-6 py-12">
         <span className="text-5xl opacity-20">✨</span>
-        <p className="text-sm font-semibold text-gray-400" style={{ fontFamily: "Georgia, serif" }}>Select a result</p>
-        <p className="text-xs text-gray-400">Generate images, videos or train models — click any result to see details here.</p>
+        <p className="text-sm font-semibold" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-400)" }}>Select a result</p>
+        <p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>Generate images, videos or train models — click any result to see details here.</p>
       </div>
     );
   }
 
   if (item.type === "image") {
     const img = item.data;
+    const isComplete = ["completed","succeeded"].includes(img.status);
     return (
       <div className="space-y-3">
-        <div className="rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-square">
+        <div className="aspect-square overflow-hidden" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-100)" }}>
           {img.image_url
             ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
             : <div className="w-full h-full flex items-center justify-center text-4xl">{img.status === "processing" ? "⏳" : "🖼️"}</div>}
         </div>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 space-y-2.5">
+        <div className="p-3 space-y-2.5" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${["completed","succeeded"].includes(img.status) ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" : "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"}`}>{img.status}</span>
-            {img.ai_model && <span className="text-[10px] text-gray-400">{img.ai_model}</span>}
-            {img.style_preset && <span className="text-[10px] bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">LoRA: {img.style_preset}</span>}
+            <span className="gv-badge" style={{ background: isComplete ? "var(--gv-color-success-50)" : "var(--gv-color-warning-50)", color: isComplete ? "var(--gv-color-success-700)" : "var(--gv-color-warning-700)" }}>{img.status}</span>
+            {img.ai_model && <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>{img.ai_model}</span>}
+            {img.style_preset && <span className="gv-badge" style={{ background: "var(--gv-color-info-50)", color: "var(--gv-color-info-700)" }}>LoRA: {img.style_preset}</span>}
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-gray-500 mb-1">PROMPT</p>
-            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-4">{img.prompt_text}</p>
+            <p className="text-[10px] font-semibold mb-1" style={{ color: "var(--gv-color-neutral-500)" }}>PROMPT</p>
+            <p className="text-xs leading-relaxed line-clamp-4" style={{ color: "var(--gv-color-neutral-700)" }}>{img.prompt_text}</p>
           </div>
           {img.image_url && (
             <a href={img.image_url} target="_blank" rel="noopener noreferrer"
-              className="block w-full text-center py-2 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+              className="gv-btn-primary block w-full text-center py-2 text-xs font-semibold">
               ↓ Download Image
             </a>
           )}
@@ -1450,29 +1653,30 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
     const vid = item.data;
     const topicKey = Object.keys(TOPIC_SOUNDS).find((k) => vid.hook?.toLowerCase().includes(k)) ?? "lifestyle";
     const sounds = TOPIC_SOUNDS[topicKey] ?? TOPIC_SOUNDS.lifestyle;
+    const isVidComplete = vid.video_status === "completed";
     return (
       <div className="space-y-3">
-        <div className="rounded-xl overflow-hidden bg-gray-900 aspect-video">
+        <div className="aspect-video overflow-hidden" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-900)" }}>
           {vid.video_url
             ? <video src={vid.video_url} controls className="w-full h-full" poster={vid.video_thumbnail_url ?? undefined} />
-            : <div className="w-full h-full flex flex-col items-center justify-center gap-2"><span className="text-4xl animate-pulse">⏳</span><p className="text-xs text-gray-400">{vid.video_status ?? "Processing..."}</p></div>}
+            : <div className="w-full h-full flex flex-col items-center justify-center gap-2"><span className="text-4xl animate-pulse">⏳</span><p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>{vid.video_status ?? "Processing..."}</p></div>}
         </div>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 space-y-2.5">
+        <div className="p-3 space-y-2.5" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
           <div className="flex gap-2 flex-wrap">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${vid.video_status === "completed" ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>{vid.video_status ?? "processing"}</span>
-            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-400">{vid.ai_model}</span>
-            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-400">{vid.video_aspect_ratio}</span>
+            <span className="gv-badge" style={{ background: isVidComplete ? "var(--gv-color-success-50)" : "var(--gv-color-warning-50)", color: isVidComplete ? "var(--gv-color-success-700)" : "var(--gv-color-warning-700)" }}>{vid.video_status ?? "processing"}</span>
+            <span className="gv-badge" style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}>{vid.ai_model}</span>
+            <span className="gv-badge" style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}>{vid.video_aspect_ratio}</span>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-gray-500 mb-1">PROMPT</p>
-            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">{vid.hook}</p>
+            <p className="text-[10px] font-semibold mb-1" style={{ color: "var(--gv-color-neutral-500)" }}>PROMPT</p>
+            <p className="text-xs leading-relaxed line-clamp-3" style={{ color: "var(--gv-color-neutral-700)" }}>{vid.hook}</p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-gray-500 mb-1.5">🎵 RECOMMENDED SOUNDS</p>
+            <p className="text-[10px] font-semibold mb-1.5" style={{ color: "var(--gv-color-neutral-500)" }}>🎵 RECOMMENDED SOUNDS</p>
             <div className="space-y-1">
               {sounds.map((s) => (
-                <div key={s} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                  <span className="text-brand-500 text-sm">♪</span> {s}
+                <div key={s} className="flex items-center gap-2 text-xs" style={{ color: "var(--gv-color-neutral-500)" }}>
+                  <span className="text-sm" style={{ color: "var(--gv-color-primary-500)" }}>♪</span> {s}
                 </div>
               ))}
             </div>
@@ -1486,23 +1690,25 @@ function DetailPanel({ item, brandId }: { item: DetailItem; brandId: string }) {
   if (item.type === "model") {
     const m = item.data;
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 space-y-4">
+      <div className="p-4 space-y-4" style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
         <div className="flex items-center gap-3">
-          <span className="text-4xl">{m.theme === "character" ? "👤" : "📦"}</span>
+          <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-md)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+            {m.theme === "character" ? <UserIcon className="w-6 h-6" /> : <BoxCubeIcon className="w-6 h-6" />}
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "Georgia, serif" }}>{m.dataset_name}</h3>
-            <p className="text-xs text-gray-400 capitalize">{m.theme} model · {m.image_count} images</p>
+            <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>{m.dataset_name}</h3>
+            <p className="text-xs capitalize" style={{ color: "var(--gv-color-neutral-400)" }}>{m.theme} model · {m.image_count} images</p>
           </div>
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between"><span className="text-[10px] text-gray-400">Status</span><span className={`text-[10px] font-semibold ${m.training_status === "completed" ? "text-green-600" : "text-amber-600"}`}>{m.training_status}</span></div>
-          {m.metadata?.trigger_word && <div className="flex justify-between"><span className="text-[10px] text-gray-400">Trigger Word</span><span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">{m.metadata.trigger_word}</span></div>}
-          {m.image_count && <div className="flex justify-between"><span className="text-[10px] text-gray-400">Training Images</span><span className="text-[10px] text-gray-600 dark:text-gray-400">{m.image_count}</span></div>}
+          <div className="flex justify-between"><span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Status</span><span className="text-[10px] font-semibold" style={{ color: m.training_status === "completed" ? "var(--gv-color-success-500)" : "var(--gv-color-warning-500)" }}>{m.training_status}</span></div>
+          {m.metadata?.trigger_word && <div className="flex justify-between"><span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Trigger Word</span><span className="text-[10px] font-mono" style={{ color: "var(--gv-color-primary-600)" }}>{m.metadata.trigger_word}</span></div>}
+          {m.image_count && <div className="flex justify-between"><span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>Training Images</span><span className="text-[10px]" style={{ color: "var(--gv-color-neutral-500)" }}>{m.image_count}</span></div>}
         </div>
         {m.training_status === "completed" && (
-          <div className="rounded-lg bg-green-50 dark:bg-green-500/10 p-3">
-            <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">✅ Ready to Use</p>
-            <p className="text-[10px] text-green-600 dark:text-green-500">Select this model in Generate Image or Video → choose "Trained" mode.</p>
+          <div className="p-3" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-success-50)" }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: "var(--gv-color-success-700)" }}>✅ Ready to Use</p>
+            <p className="text-[10px]" style={{ color: "var(--gv-color-success-500)" }}>Select this model in Generate Image or Video → choose "Trained" mode.</p>
           </div>
         )}
       </div>
@@ -1542,22 +1748,30 @@ const CharTabIcon = () => (
   </svg>
 );
 
+const AssetsTabIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" />
+    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+  </svg>
+);
+
 const STUDIO_TABS: { id: StudioSection; icon: React.ReactNode; label: string }[] = [
   { id: "generate_image",  icon: <ImageTabIcon />,   label: "Image" },
   { id: "generate_video",  icon: <VideoTabIcon />,   label: "Video" },
-  { id: "train_product",   icon: <ProductTabIcon />, label: "Product" },
-  { id: "train_character", icon: <CharTabIcon />,    label: "Character" },
+  { id: "assets",          icon: <AssetsTabIcon />,  label: "Assets" },
 ];
 
 function BottomStudioTab({ active, onSelect }: { active: StudioSection; onSelect: (s: StudioSection) => void }) {
   return (
     <nav
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-[48px] border border-white/60 overflow-hidden"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 overflow-hidden"
       style={{
-        background: "rgba(255, 255, 255, 0.88)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(31,36,40,0.06)",
+        borderRadius: "var(--gv-radius-2xl)",
+        border: "1px solid var(--gv-color-glass-border)",
+        background: "var(--gv-color-glass-bg)",
+        backdropFilter: `blur(var(--gv-blur-lg))`,
+        WebkitBackdropFilter: `blur(var(--gv-blur-lg))`,
+        boxShadow: "var(--gv-shadow-sidebar)",
       }}
     >
       <div className="flex items-center px-3 py-2 gap-1">
@@ -1567,16 +1781,13 @@ function BottomStudioTab({ active, onSelect }: { active: StudioSection; onSelect
             <button
               key={tab.id}
               onClick={() => onSelect(tab.id)}
-              className={[
-                "flex items-center gap-2 h-10 px-4 rounded-[36px] transition-all duration-200",
-                isActive
-                  ? "bg-[#EDF5F4] text-[#5F8F8B]"
-                  : "text-[#4A545B] hover:bg-[#F3F4F6] hover:text-[#1F2428]",
-              ].join(" ")}
-              style={isActive ? {
-                border: "1px solid rgba(95,143,139,0.3)",
-                boxShadow: "0 0 0 3px rgba(95,143,139,0.10)",
-              } : {}}
+              className="flex items-center gap-2 h-10 px-4 transition-all duration-200"
+              style={{
+                borderRadius: "var(--gv-radius-full)",
+                background: isActive ? "var(--gv-color-primary-50)" : "transparent",
+                color: isActive ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-700)",
+                border: isActive ? "1px solid rgba(95,143,139,0.3)" : "1px solid transparent",
+              }}
             >
               <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
                 {tab.icon}
@@ -1621,24 +1832,24 @@ function HistoryRight({ brandId, historyKey, onSelect }: {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 px-5 py-4 border-b border-[#F3F4F6]">
-        <h3 className="text-[16px] font-bold text-[#1F2428]" style={{ fontFamily: "Georgia, serif" }}>
+      <div className="flex-shrink-0 px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
+        <h3 className="text-[16px] font-bold" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>
           History
         </h3>
-        <p className="text-[12px] text-[#9CA3AF] mt-0.5">Generated images, videos & models</p>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>Generated images, videos & models</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex-shrink-0 flex border-b border-[#F3F4F6]">
+      <div className="flex-shrink-0 flex" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
         {(["images", "videos", "models"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-[11px] font-semibold transition-colors ${
-              tab === t
-                ? "text-[#5F8F8B] border-b-2 border-[#5F8F8B]"
-                : "text-[#9CA3AF] hover:text-[#4A545B]"
-            }`}
+            className="flex-1 py-2.5 text-[11px] font-semibold transition-colors"
+            style={{
+              color: tab === t ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-400)",
+              borderBottom: tab === t ? "2px solid var(--gv-color-primary-500)" : "2px solid transparent",
+            }}
           >
             {t === "images" ? `🖼️ ${images.length}` : t === "videos" ? `🎬 ${videos.length}` : `🤖 ${models.length}`}
           </button>
@@ -1649,21 +1860,22 @@ function HistoryRight({ brandId, historyKey, onSelect }: {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="w-5 h-5 rounded-full border-2 border-[#5F8F8B] border-t-transparent animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--gv-color-primary-500)", borderTopColor: "transparent" }} />
           </div>
         )}
 
         {/* Images grid */}
         {!loading && tab === "images" && (
           images.length === 0
-            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No generated images yet</p>
+            ? <p className="text-center text-[12px] py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No generated images yet</p>
             : (
               <div className="grid grid-cols-2 gap-2">
                 {images.map((img) => (
                   <button
                     key={img.id}
                     onClick={() => onSelect({ type: "image", data: img })}
-                    className="aspect-square rounded-[12px] overflow-hidden bg-[#F3F4F6] hover:ring-2 ring-[#5F8F8B] transition-all"
+                    className="aspect-square overflow-hidden transition-all"
+                    style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-100)" }}
                   >
                     {img.image_url
                       ? <img src={img.image_url} alt={img.prompt_text} className="w-full h-full object-cover" />
@@ -1677,24 +1889,24 @@ function HistoryRight({ brandId, historyKey, onSelect }: {
         {/* Videos list */}
         {!loading && tab === "videos" && (
           videos.length === 0
-            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No generated videos yet</p>
+            ? <p className="text-center text-[12px] py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No generated videos yet</p>
             : (
               <div className="space-y-2">
                 {videos.map((vid) => (
                   <button
                     key={vid.id}
                     onClick={() => onSelect({ type: "video", data: vid })}
-                    className="w-full flex items-center gap-3 p-3 rounded-[12px] border border-[#E5E7EB] hover:border-[#5F8F8B] text-left transition-colors"
-                    style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-colors"
+                    style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)" }}
                   >
-                    <div className="w-10 h-10 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--gv-radius-xs)", background: "var(--gv-color-neutral-100)" }}>
                       {vid.video_thumbnail_url
-                        ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover rounded-[10px]" />
+                        ? <img src={vid.video_thumbnail_url} alt="" className="w-full h-full object-cover" style={{ borderRadius: "var(--gv-radius-xs)" }} />
                         : <span className="text-base">🎬</span>}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-[#1F2428] truncate">{vid.hook}</p>
-                      <p className="text-[10px] text-[#9CA3AF] mt-0.5">{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
+                      <p className="text-[12px] font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{vid.hook}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{vid.ai_model} · {vid.video_aspect_ratio} · {vid.video_status}</p>
                     </div>
                   </button>
                 ))}
@@ -1705,22 +1917,24 @@ function HistoryRight({ brandId, historyKey, onSelect }: {
         {/* Models list */}
         {!loading && tab === "models" && (
           models.length === 0
-            ? <p className="text-center text-[12px] text-[#9CA3AF] py-8">No trained models yet</p>
+            ? <p className="text-center text-[12px] py-8" style={{ color: "var(--gv-color-neutral-400)" }}>No trained models yet</p>
             : (
               <div className="space-y-2">
                 {models.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => onSelect({ type: "model", data: m })}
-                    className="w-full flex items-center gap-3 p-3 rounded-[12px] border border-[#E5E7EB] hover:border-[#5F8F8B] text-left transition-colors"
-                    style={{ boxShadow: "0 1px 4px rgba(31,36,40,0.04)" }}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-colors"
+                    style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)" }}
                   >
-                    <span className="text-xl">{m.theme === "character" ? "👤" : "📦"}</span>
+                    <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                      {m.theme === "character" ? <UserIcon className="w-4 h-4" /> : <BoxCubeIcon className="w-4 h-4" />}
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-[#1F2428] truncate">{m.dataset_name}</p>
+                      <p className="text-[12px] font-semibold truncate" style={{ color: "var(--gv-color-neutral-900)" }}>{m.dataset_name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-[10px] font-medium ${m.training_status === "completed" ? "text-[#16a34a]" : "text-[#d97706]"}`}>{m.training_status}</span>
-                        <span className="text-[10px] text-[#9CA3AF]">· {m.image_count} images</span>
+                        <span className="text-[10px] font-medium" style={{ color: m.training_status === "completed" ? "var(--gv-color-success-500)" : "var(--gv-color-warning-500)" }}>{m.training_status}</span>
+                        <span className="text-[10px]" style={{ color: "var(--gv-color-neutral-400)" }}>· {m.image_count} images</span>
                       </div>
                     </div>
                   </button>
@@ -1740,6 +1954,7 @@ export default function ContentStudioPage() {
   const [brandId, setBrandId] = useState(FALLBACK_BRAND_ID);
   const [currentTier, setCurrentTier] = useState("basic");
   const [activeSection, setActiveSection] = useState<StudioSection>("generate_image");
+  const [assetSubSection, setAssetSubSection] = useState<AssetSubSection | null>(null);
   const [trainedModels, setTrainedModels] = useState<TrainedModel[]>([]);
   const [historyImages, setHistoryImages] = useState<GeneratedImage[]>([]);
   const [imagesUsedToday, setImagesUsedToday] = useState(0);
@@ -1797,6 +2012,12 @@ export default function ContentStudioPage() {
 
   const handleGenerateStart = () => setShowGeneratingPopup(true);
 
+  const ASSET_OPTIONS: { id: AssetSubSection; icon: React.ReactNode; label: string; desc: string }[] = [
+    { id: "design_system",  icon: <BrandIcon className="w-5 h-5" />,    label: "Design System",       desc: "Brand guidelines & visual identity" },
+    { id: "product",        icon: <BoxTapped className="w-5 h-5" />,    label: "Product Training",    desc: "LoRA · 4-side product upload" },
+    { id: "character",      icon: <CreatorIcon className="w-5 h-5" />,  label: "Character Training",  desc: "LoRA · persona model" },
+  ];
+
   const wizardContent = () => {
     switch (activeSection) {
       case "generate_image":
@@ -1819,21 +2040,65 @@ export default function ContentStudioPage() {
             onGenerateStart={handleGenerateStart}
           />
         );
-      case "train_product":
+      case "assets":
+        if (!assetSubSection) {
+          return (
+            <div className="space-y-3">
+              {ASSET_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setAssetSubSection(opt.id)}
+                  className="w-full flex items-center gap-4 p-4 text-left transition-all"
+                  style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-neutral-50)", color: "var(--gv-color-primary-500)" }}>
+                    {opt.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>{opt.label}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{opt.desc}</p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--gv-color-neutral-300)", flexShrink: 0 }}>
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          );
+        }
+        if (assetSubSection === "design_system") {
+          return (
+            <div className="space-y-4">
+              <button onClick={() => setAssetSubSection(null)} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "var(--gv-color-primary-500)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                Back to Assets
+              </button>
+              <div className="p-6 text-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-primary-50)", border: "1px solid var(--gv-color-primary-200)" }}>
+                <div className="inline-flex items-center justify-center w-14 h-14 mb-3" style={{ borderRadius: "var(--gv-radius-md)", background: "var(--gv-color-primary-100)", color: "var(--gv-color-primary-600)" }}>
+                  <BrandIcon className="w-7 h-7" />
+                </div>
+                <h3 className="text-sm font-bold mb-1" style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}>Design System</h3>
+                <p className="text-xs" style={{ color: "var(--gv-color-neutral-500)" }}>Brand guidelines, color palette, typography, and visual identity assets will be managed here.</p>
+                <p className="text-[10px] mt-3" style={{ color: "var(--gv-color-neutral-400)" }}>Coming soon</p>
+              </div>
+            </div>
+          );
+        }
         return (
-          <TrainingWizard
-            brandId={brandId} trainingType="product" currentTier={currentTier} totalModelCount={totalModelCount}
-            pastDatasets={trainedModels}
-            onDone={(m) => { setTrainedModels((p) => [...p, m]); setHistoryKey((k) => k + 1); }}
-          />
-        );
-      case "train_character":
-        return (
-          <TrainingWizard
-            brandId={brandId} trainingType="character" currentTier={currentTier} totalModelCount={totalModelCount}
-            pastDatasets={trainedModels}
-            onDone={(m) => { setTrainedModels((p) => [...p, m]); setHistoryKey((k) => k + 1); }}
-          />
+          <div className="space-y-4">
+            <button onClick={() => setAssetSubSection(null)} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "var(--gv-color-primary-500)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+              Back to Assets
+            </button>
+            <TrainingWizard
+              brandId={brandId}
+              trainingType={assetSubSection === "product" ? "product" : "character"}
+              currentTier={currentTier}
+              totalModelCount={totalModelCount}
+              pastDatasets={trainedModels}
+              onDone={(m) => { setTrainedModels((p) => [...p, m]); setHistoryKey((k) => k + 1); }}
+            />
+          </div>
         );
       default:
         return null;
@@ -1854,12 +2119,13 @@ export default function ContentStudioPage() {
               <>
                 {/* Back bar */}
                 <div
-                  className="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-b border-[#F3F4F6]"
+                  className="flex-shrink-0 flex items-center gap-3 px-5 py-4"
+                  style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}
                 >
                   <button
                     onClick={() => setDetailItem(null)}
                     className="flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
-                    style={{ color: "var(--gv-color-primary-500, #5F8F8B)" }}
+                    style={{ color: "var(--gv-color-primary-500)" }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -1876,18 +2142,17 @@ export default function ContentStudioPage() {
               /* ── WIZARD VIEW ── */
               <>
                 {/* Header */}
-                <div className="flex-shrink-0 px-5 py-4 border-b border-[#F3F4F6]">
+                <div className="flex-shrink-0 px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
                   <h3
-                    className="text-[16px] font-bold text-[#1F2428]"
-                    style={{ fontFamily: "Georgia, serif" }}
+                    className="text-[16px] font-bold"
+                    style={{ fontFamily: "var(--gv-font-heading)", color: "var(--gv-color-neutral-900)" }}
                   >
-                    {activeTabLabel} {activeSection === "generate_image" ? "Generation" : activeSection === "generate_video" ? "Generation" : "Training"}
+                    {activeTabLabel} {activeSection === "generate_image" ? "Generation" : activeSection === "generate_video" ? "Generation" : activeSection === "assets" ? "Library" : ""}
                   </h3>
-                  <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>
                     {activeSection === "generate_image" && "Powered by KIE Flux AI"}
                     {activeSection === "generate_video" && "Powered by KIE Kling AI"}
-                    {activeSection === "train_product" && "LoRA model training — 4-side product upload"}
-                    {activeSection === "train_character" && "LoRA model training — persona character"}
+                    {activeSection === "assets" && "Design system · product · character training"}
                   </p>
                 </div>
                 {/* Wizard scrollable content */}
@@ -1911,7 +2176,7 @@ export default function ContentStudioPage() {
       {showGeneratingPopup && <GeneratingPopup onClose={() => setShowGeneratingPopup(false)} />}
 
       {/* Bottom floating studio tab bar — same pill style as NavColumn */}
-      <BottomStudioTab active={activeSection} onSelect={(s) => { setActiveSection(s); setDetailItem(null); }} />
+      <BottomStudioTab active={activeSection} onSelect={(s) => { setActiveSection(s); setDetailItem(null); setAssetSubSection(null); }} />
     </>
   );
 }
