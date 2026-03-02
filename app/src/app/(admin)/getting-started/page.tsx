@@ -1749,6 +1749,13 @@ export default function GettingStartedPage() {
                       onClick={() => {
                         const lateId = platformId === "x_twitter" ? "twitter" : platformId === "google_business" ? "google" : platformId;
                         window.open(`https://app.getlate.io/connect/${lateId}`, "_blank");
+                        // Mark as connected when user initiates OAuth
+                        setDone(prev => {
+                          const next = new Set(prev);
+                          next.add(platformId);
+                          try { localStorage.setItem(LS_KEY, JSON.stringify([...next])); } catch {}
+                          return next;
+                        });
                       }}
                       className="flex-1 h-7 flex items-center justify-center gap-1.5 rounded-[var(--gv-radius-xs)] text-[11px] font-semibold text-white transition-all hover:opacity-80"
                       style={{ background: guide ? `linear-gradient(135deg,${guide.color},${guide.color}BB)` : "var(--gv-gradient-primary)" }}
