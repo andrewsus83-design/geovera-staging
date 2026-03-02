@@ -260,10 +260,9 @@ export default function NavColumn({ children: _children }: { children?: React.Re
               {DEMO_USER.initials}
             </span>
             {showUserMenu && (
-              <ChevronIcon
-                className="rotate-180 mt-0.5"
-                style={{ color: "var(--gv-color-neutral-400)" } as React.CSSProperties}
-              />
+              <span style={{ color: "var(--gv-color-neutral-400)" }}>
+                <ChevronIcon className="rotate-180 mt-0.5" />
+              </span>
             )}
           </button>
 
