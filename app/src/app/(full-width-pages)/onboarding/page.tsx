@@ -314,22 +314,40 @@ export default function OnboardingPage() {
     } catch { /* ignore */ }
 
     // Check if user is already logged in (e.g., returning OAuth)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
         setUserEmail(session.user.email || "");
-        // If they're already on screen 0 and just returned from OAuth, advance
-        setScreen(s => s === 0 ? 1 : s);
+        // If user already has a brand, go straight to dashboard
+        const { data: brands } = await supabase
+          .from("brand_users")
+          .select("brand_id")
+          .eq("user_id", session.user.id)
+          .limit(1);
+        if (brands && brands.length > 0) {
+          router.push("/calendar");
+        } else {
+          setScreen(s => s === 0 ? 1 : s);
+        }
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
         setUserId(session.user.id);
         setUserEmail(session.user.email || "");
         setAuthError("");
-        // Auto-advance past auth screen
-        setScreen(s => s <= 0 ? 1 : s);
+        // If user already has a brand, go straight to dashboard
+        const { data: brands } = await supabase
+          .from("brand_users")
+          .select("brand_id")
+          .eq("user_id", session.user.id)
+          .limit(1);
+        if (brands && brands.length > 0) {
+          router.push("/calendar");
+        } else {
+          setScreen(s => s <= 0 ? 1 : s);
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -445,7 +463,7 @@ export default function OnboardingPage() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(form)); } catch {}
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "https://app.geovera.xyz/onboarding" },
+      options: { redirectTo: window.location.origin + "/onboarding" },
     });
   };
 
@@ -455,7 +473,7 @@ export default function OnboardingPage() {
     setAuthLoading(true); setAuthError("");
     const { error } = await supabase.auth.signUp({
       email: emailInput.trim(), password: passInput,
-      options: { emailRedirectTo: "https://app.geovera.xyz/onboarding" },
+      options: { emailRedirectTo: window.location.origin + "/onboarding" },
     });
     if (error) setAuthError(error.message);
     else setAuthError("✓ Cek email Anda untuk konfirmasi akun, lalu kembali ke sini.");
@@ -469,7 +487,8 @@ export default function OnboardingPage() {
     const { error } = await supabase.auth.signInWithPassword({
       email: emailInput.trim(), password: passInput,
     });
-    if (error) setAuthError(error.message);
+    if (error) { setAuthError(error.message); setAuthLoading(false); return; }
+    // onAuthStateChange will fire SIGNED_IN and handle redirect/advance
     setAuthLoading(false);
   };
 

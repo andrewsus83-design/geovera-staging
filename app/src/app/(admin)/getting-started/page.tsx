@@ -25,7 +25,7 @@ interface CheckItem {
   icon: string;
   title: string;
   subtitle: string;
-  category: "profile" | "platform" | "connect" | "faq" | "research" | "ideation";
+  category: "profile" | "platform" | "connect" | "faq" | "research" | "ideation" | "training";
 }
 
 const ITEMS: CheckItem[] = [
@@ -39,8 +39,10 @@ const ITEMS: CheckItem[] = [
   { id: "faq_general",    icon: "❓", title: "Create General FAQ",               subtitle: "Brand, company & contact basics",                 category: "faq"       },
   { id: "faq_product",    icon: "📦", title: "Create Product/Service FAQ",       subtitle: "What you offer, pricing & how to buy",            category: "faq"       },
   { id: "faq_geo",        icon: "🤖", title: "Create AI/GEO-Optimized FAQ",      subtitle: "Structured for Perplexity, Gemini & ChatGPT",    category: "faq"       },
+  { id: "build_training", icon: "🦙", title: "Build & Train Brand AI",            subtitle: "Cloudflare Llama + KIE Flux 2 Pro LoRA training", category: "training"  },
   { id: "tasks_ideation", icon: "🧠", title: "Tasks Ideation",                   subtitle: "Research results + trends + priority filter",     category: "ideation"  },
   { id: "tasks_audit",    icon: "📋", title: "Tasks Audit",                      subtitle: "Score completed tasks + impact analysis (Claude)",  category: "ideation"  },
+  { id: "llm_learning",  icon: "🔄", title: "LLM Learning Process",               subtitle: "Llama + Perplexity + Claude — daily trends & QA cycle", category: "training"  },
 ];
 
 /* ── Platform guide data ────────────────────────────────────────────────── */
@@ -511,6 +513,145 @@ function BrandProfileGuide() {
   );
 }
 
+/* ── Build & Train Brand AI guide panel ─────────────────────────────────── */
+function BuildTrainingGuide() {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="rounded-[16px] p-5" style={{ background: "linear-gradient(135deg, #F5F3FF, #FFF7ED)", border: "1px solid #C4B5FD" }}>
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#7C3AED] mb-1">Build & Train Your Brand AI</p>
+        <p className="text-[14px] text-[#374151] leading-relaxed">
+          Feed your brand's voice, assets, and style into two AI systems — <strong>Cloudflare Llama</strong> for text intelligence and <strong>KIE Flux 2 Pro</strong> for visual consistency. Your brand AI gets smarter every cycle.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#F5742220", color: "#F57422" }}>🦙 CF Workers AI</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#7C3AED20", color: "#7C3AED" }}>⚡ KIE Flux 2 Pro</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#16A34A20", color: "#16A34A" }}>🔄 Auto-updates monthly</span>
+        </div>
+      </div>
+
+      {/* Part 1: Cloudflare Llama — Brand Voice */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[20px]">🦙</span>
+          <p className="text-[14px] font-bold text-[#111827]">1. Brand Voice Training — Cloudflare Llama</p>
+        </div>
+        <p className="text-[11px] font-bold text-[#9CA3AF] mb-3">Llama 3.3-70B · Edge-deployed · Private inference</p>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          GeoVera uses your FAQ content, brand profile, and sample posts to fine-tune a <strong>Llama model on Cloudflare Workers AI</strong> — running at the edge for speed and privacy. This powers your CEO & CMO agents' writing voice.
+        </p>
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Training Data Sources</p>
+        {[
+          { icon: "❓", label: "General FAQ", desc: "Brand personality, tone, and contact information" },
+          { icon: "📦", label: "Product/Service FAQ", desc: "Pricing, features, objection handling language" },
+          { icon: "🤖", label: "GEO-Optimized FAQ", desc: "AI-structured sentences — the highest signal for LLM tone" },
+          { icon: "🏷️", label: "Brand Profile", desc: "Mission, values, target audience, unique positioning" },
+        ].map((item) => (
+          <div key={item.label} className="flex items-start gap-3 mt-3 rounded-[10px] p-3" style={{ background: "white", border: "1px solid #F3F4F6" }}>
+            <span className="text-[16px] flex-shrink-0">{item.icon}</span>
+            <div>
+              <p className="text-[12px] font-bold text-[#374151]">{item.label}</p>
+              <p className="text-[11px] text-[#9CA3AF]">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+        <div className="mt-3 rounded-[10px] px-3 py-2" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE" }}>
+          <p className="text-[12px] font-bold text-[#7C3AED]">Output: Your Brand AI Agent</p>
+          <p className="text-[11px] text-[#6B7280] mt-1">CEO agent writes strategy memos in your brand voice. CMO agent generates captions that sound like you — not generic AI.</p>
+        </div>
+      </div>
+
+      {/* Part 2: KIE Flux 2 Pro — Visual Training */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[20px]">⚡</span>
+          <p className="text-[14px] font-bold text-[#111827]">2. Visual Asset Training — KIE Flux 2 Pro</p>
+        </div>
+        <p className="text-[11px] font-bold text-[#9CA3AF] mb-3">LoRA fine-tuning · 1,000 training steps · Flux 2 Pro base</p>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          Upload photos of your products or brand character to train a custom <strong>LoRA model on Flux 2 Pro</strong>. Once trained, GeoVera can generate unlimited consistent product images for any platform — Instagram, TikTok, YouTube thumbnails.
+        </p>
+
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Training Types</p>
+        {[
+          {
+            type: "Product LoRA",
+            icon: "📦",
+            color: "#3B82F6",
+            steps: [
+              "Upload 4 product photos (front, left, back, right angle)",
+              "GeoVera generates 8 synthetic training images via Flux 2 Pro",
+              "Training job starts: 1,000 steps on KIE API",
+              "Done in ~10 min — use trigger word to generate product images",
+            ],
+          },
+          {
+            type: "Character LoRA",
+            icon: "🧑",
+            color: "#8B5CF6",
+            steps: [
+              "Upload 4 consistent photos of your mascot or brand character",
+              "GeoVera generates 8 diverse synthetic poses",
+              "Training job: 1,000 steps on KIE Flux 2 Pro base",
+              "Generate your character in any setting, style, or platform format",
+            ],
+          },
+        ].map((t) => (
+          <div key={t.type} className="mt-3 rounded-[14px] p-4" style={{ background: "white", border: `1.5px solid ${t.color}20` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[18px]">{t.icon}</span>
+              <p className="text-[13px] font-bold" style={{ color: t.color }}>{t.type}</p>
+            </div>
+            {t.steps.map((s, i) => (
+              <div key={i} className="flex items-start gap-2 mt-1.5">
+                <span className="text-[11px] font-bold w-4 flex-shrink-0 mt-0.5" style={{ color: t.color }}>{i + 1}.</span>
+                <p className="text-[12px] text-[#374151]">{s}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <div className="mt-3 flex gap-2 flex-wrap">
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#3B82F620", color: "#3B82F6" }}>Basic: 5 LoRA models</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#8B5CF620", color: "#8B5CF6" }}>Premium: 10 LoRA models</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#F59E0B20", color: "#D97706" }}>Partner: 20 LoRA models</span>
+        </div>
+      </div>
+
+      {/* Flow: Training → Image Gen → Publish */}
+      <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #F5F3FF, #F0FDF4)", border: "1px solid #DDD6FE" }}>
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#7C3AED] mb-3">Full Pipeline After Training</p>
+        {[
+          { step: "1", label: "LoRA trained", desc: "Your product/character LoRA is ready in Studio" },
+          { step: "2", label: "Task comes in", desc: "Tasks Ideation generates a content task (e.g. 'post product Reel')" },
+          { step: "3", label: "Generate image/video", desc: "Studio auto-uses your LoRA + Flux 2 Pro to create on-brand visuals" },
+          { step: "4", label: "Publish via Late API", desc: "One click → Late API posts to Instagram, TikTok, YouTube" },
+        ].map((row) => (
+          <div key={row.step} className="flex items-start gap-3 mt-3">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+              style={{ background: "#7C3AED20", color: "#7C3AED" }}>
+              {row.step}
+            </div>
+            <div>
+              <p className="text-[12px] font-bold text-[#374151]">{row.label}</p>
+              <p className="text-[11px] text-[#9CA3AF]">{row.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => router.push("/content-studio")}
+        className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white"
+        style={{ background: "linear-gradient(135deg, #7C3AED, #F57422)" }}
+      >
+        Go to Content Studio → Start Training
+      </button>
+    </div>
+  );
+}
+
 /* ── Tasks Ideation guide panel ─────────────────────────────────────────── */
 function TasksIdeationGuide() {
   const router = useRouter();
@@ -615,7 +756,7 @@ function TasksIdeationGuide() {
       </div>
 
       <button
-        onClick={() => router.push("/tasks")}
+        onClick={() => router.push("/calendar")}
         className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white"
         style={{ background: "linear-gradient(135deg, #7C3AED, #8E6FD8)" }}
       >
@@ -740,6 +881,106 @@ function TasksAuditGuide() {
         style={{ background: "linear-gradient(135deg, #EA580C, #F97316)" }}
       >
         View Report & Analytics →
+      </button>
+    </div>
+  );
+}
+
+/* ── LLM Learning Process guide panel (Step 15) ─────────────────────────── */
+function LlmLearningGuide() {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col gap-5">
+      <div>
+        <p className="text-[22px] font-bold text-[#111827] leading-tight">LLM Learning Process</p>
+        <p className="text-[13px] text-[#6B7280] mt-1 leading-relaxed">
+          At the end of each cycle, GeoVera re-trains its understanding of your brand using three AI layers — so every next cycle is smarter than the last.
+        </p>
+      </div>
+
+      {/* Stack overview */}
+      <div className="grid gap-3">
+        {[
+          {
+            label: "Cloudflare Llama",
+            sub: "Core re-training engine",
+            desc: "Llama 3.3-70B re-ingests your updated Brand DNA, completed task outcomes, and new FAQ content. The brand voice model is updated with this cycle's performance data.",
+            color: "#F97316",
+            bg: "#FFF7ED",
+            border: "#FED7AA",
+          },
+          {
+            label: "Perplexity",
+            sub: "Daily trend injection",
+            desc: "Perplexity adds fresh daily trend signals — emerging keywords, new competitor moves, and AI search changes — so your next Deep Research starts with current market intelligence.",
+            color: "#7C3AED",
+            bg: "#FAF5FF",
+            border: "#DDD6FE",
+          },
+          {
+            label: "Claude",
+            sub: "QA, optimizer & cycle analyzer",
+            desc: "Claude processes your monthly QA results, biweekly/monthly reports, and comment/sentiment data to generate an optimization brief: what to fix, double down on, or drop next cycle.",
+            color: "#3D6B68",
+            bg: "#F0FDF4",
+            border: "#BBF7D0",
+          },
+        ].map((tool) => (
+          <div key={tool.label} className="rounded-[14px] p-4" style={{ background: tool.bg, border: `1px solid ${tool.border}` }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <p className="text-[13px] font-bold" style={{ color: tool.color }}>{tool.label}</p>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: "white", color: tool.color, border: `1px solid ${tool.border}` }}>{tool.sub}</span>
+            </div>
+            <p className="text-[12px] text-[#374151] leading-relaxed">{tool.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* What feeds the re-training */}
+      <div className="rounded-[16px] p-4" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+        <p className="text-[13px] font-bold text-[#111827] mb-3">Data Inputs Per Cycle</p>
+        <div className="space-y-2">
+          {[
+            { label: "Daily Trend Updates", source: "Perplexity", desc: "Keyword shifts, viral formats, AI search spikes" },
+            { label: "Monthly QA Results", source: "Claude", desc: "Deep Research score delta, content quality grades" },
+            { label: "Biweekly/Monthly Reports", source: "Claude", desc: "Engagement, reach, conversion, and GEO metrics" },
+            { label: "Comments & Sentiments", source: "Claude + Late API", desc: "Tone calibration from real audience feedback" },
+            { label: "Completed Tasks Impact", source: "Tasks Audit", desc: "Which task types drove the most measurable growth" },
+          ].map((row) => (
+            <div key={row.label} className="flex items-start gap-3">
+              <div className="mt-0.5 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: "#3D6B68", marginTop: "6px" }} />
+              <div>
+                <p className="text-[12px] font-semibold text-[#111827]">{row.label} <span className="font-normal text-[#6B7280]">— {row.source}</span></p>
+                <p className="text-[11px] text-[#6B7280]">{row.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Output */}
+      <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)", border: "1px solid #BBF7D0" }}>
+        <p className="text-[13px] font-bold text-[#16A34A] mb-2">Output: Smarter Next Cycle</p>
+        {[
+          "Updated brand voice model with this cycle's learnings",
+          "Pre-loaded trend context for next Deep Research",
+          "Optimization brief: what to prioritize, fix, or drop",
+          "Recalibrated AI CMO agent for next Tasks Ideation",
+          "Re-ranked keyword targets based on QA + sentiment data",
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-2 mt-2">
+            <span className="text-[#16A34A] text-[12px]">✓</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => router.push("/analytics")}
+        className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white"
+        style={{ background: "linear-gradient(135deg, #3D6B68, #5F8F8B)" }}
+      >
+        View Analytics & Reports →
       </button>
     </div>
   );
@@ -1163,8 +1404,10 @@ export default function GettingStartedPage() {
           {selected === "faq_geo" && (
             <FAQBuilder type="geo" pairs={faqGeo} onChange={setFaqGeo} />
           )}
+          {selected === "build_training" && <BuildTrainingGuide />}
           {selected === "tasks_ideation" && <TasksIdeationGuide />}
           {selected === "tasks_audit" && <TasksAuditGuide />}
+          {selected === "llm_learning" && <LlmLearningGuide />}
         </div>
       )}
     </div>
@@ -1204,11 +1447,14 @@ export default function GettingStartedPage() {
       <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)", border: "1px solid #BAE6FD" }}>
         <p className="text-[12px] font-bold uppercase tracking-widest text-[#0369A1] mb-3">After Setup</p>
         {[
-          { step: "Step 8",  label: "Deep Research Scan",        icon: "🔍" },
-          { step: "Step 9",  label: "Tasks Ideation",            icon: "🧠" },
-          { step: "Step 10", label: "Tasks Execution",           icon: "📋" },
-          { step: "Step 11", label: "Tasks Audit (Claude)",      icon: "📊" },
-          { step: "Step 12", label: "Biweekly/Monthly Report",   icon: "📈" },
+          { step: "Step 8",  label: "Deep Research",              icon: "🔍" },
+          { step: "Step 9",  label: "Tasks Ideation",             icon: "🧠" },
+          { step: "Step 10", label: "Tasks → Image/Video",        icon: "🎬" },
+          { step: "Step 11", label: "Publish (Late API)",         icon: "📤" },
+          { step: "Step 12", label: "Auto Reply (Late API)",      icon: "💬" },
+          { step: "Step 13", label: "Tasks Audit (Claude)",       icon: "📊" },
+          { step: "Step 14", label: "Biweekly/Monthly Report",    icon: "📈" },
+          { step: "Step 15", label: "LLM Learning (Llama + Perplexity + Claude)", icon: "🔄" },
         ].map((s) => (
           <div key={s.step} className="flex items-center gap-3 mt-3">
             <span className="text-[16px]">{s.icon}</span>
