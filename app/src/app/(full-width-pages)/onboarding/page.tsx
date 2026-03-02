@@ -366,6 +366,8 @@ export default function OnboardingPage() {
       if (!session?.user) return null;
       // Sync userId state if not yet set (e.g. OAuth return race condition)
       if (!userId) setUserId(session.user.id);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
       const res = await fetch("/api/brands/create", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
@@ -379,7 +381,9 @@ export default function OnboardingPage() {
           target_audience: form.target_audience,
           whatsapp: form.whatsapp,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (data.brand_id) { setBrandId(data.brand_id); return data.brand_id; }
     } catch { /* ignore */ }
@@ -496,6 +500,8 @@ export default function OnboardingPage() {
     if (!bid) bid = await createBrand();
     if (!bid) { setPayError("Gagal membuat profil brand. Coba lagi."); setPayLoading(false); return; }
 
+    const payController = new AbortController();
+    const payTimeout = setTimeout(() => payController.abort(), 30000);
     try {
       const res = await fetch("/api/payment", {
         method: "POST",
@@ -509,12 +515,15 @@ export default function OnboardingPage() {
           customer_email: userEmail,
           customer_name: form.brand_name,
         }),
+        signal: payController.signal,
       });
+      clearTimeout(payTimeout);
       const data = await res.json();
       const url = data.invoice?.invoice_url || data.invoice_url || data.checkout_url;
       if (url) { try { localStorage.removeItem(LS_KEY); } catch {} window.location.href = url; }
       else { router.push("/getting-started"); }
     } catch {
+      clearTimeout(payTimeout);
       setPayError("Gagal memuat halaman pembayaran. Silakan coba lagi.");
     } finally {
       setPayLoading(false);
