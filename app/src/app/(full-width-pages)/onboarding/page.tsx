@@ -463,7 +463,7 @@ export default function OnboardingPage() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(form)); } catch {}
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/onboarding" },
+      options: { redirectTo: window.location.origin + "/auth/callback" },
     });
   };
 
@@ -473,7 +473,7 @@ export default function OnboardingPage() {
     setAuthLoading(true); setAuthError("");
     const { error } = await supabase.auth.signUp({
       email: emailInput.trim(), password: passInput,
-      options: { emailRedirectTo: window.location.origin + "/onboarding" },
+      options: { emailRedirectTo: window.location.origin + "/auth/callback" },
     });
     if (error) setAuthError(error.message);
     else setAuthError("✓ Cek email Anda untuk konfirmasi akun, lalu kembali ke sini.");

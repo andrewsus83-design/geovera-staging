@@ -37,7 +37,7 @@ export default function SignUpForm() {
       email: email.trim(),
       password,
       options: {
-        emailRedirectTo: window.location.origin + "/onboarding",
+        emailRedirectTo: window.location.origin + "/auth/callback",
         data: { first_name: firstName, last_name: lastName },
       },
     });

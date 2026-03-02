@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   "/reset-password",
   "/two-step-verification",
   "/oauth-done",
+  "/auth/callback",
   "/payment",
   "/report",
   "/rss",
