@@ -1778,69 +1778,191 @@ export default function GettingStartedPage() {
   const rightCol = (
     <div className="h-full overflow-y-auto p-5 flex flex-col gap-4">
 
-      {/* ── Overall progress ── */}
-      <div className="rounded-[var(--gv-radius-md)] p-4"
-        style={{ background: "var(--gv-color-bg-surface)", border: "1px solid var(--gv-color-neutral-200)", boxShadow: "var(--gv-shadow-card)" }}>
-        <div className="flex items-center gap-4">
-          <ProgressRing done={doneCount} total={totalCount} />
-          <div className="flex-1">
-            <p className="text-[14px] font-bold" style={{ color: "var(--gv-color-neutral-800)" }}>
-              {allDone ? "Setup Selesai! 🎉" : "Setup Progress"}
-            </p>
-            <p className="text-[12px] mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>
-              {doneCount} dari {totalCount} langkah selesai
-            </p>
-            {/* Platform progress bar */}
-            <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--gv-color-neutral-100)" }}>
+      {/* ═══════════════════════════════════════════════════
+          CARD 1 — PROGRESS HERO (dark teal, floating bubbles)
+      ═══════════════════════════════════════════════════ */}
+      <div
+        className="rounded-[var(--gv-radius-md)] overflow-hidden relative"
+        style={{
+          background: "linear-gradient(145deg, #1a3835 0%, #274f4c 55%, #3D6B68 100%)",
+          boxShadow: "0 8px 32px rgba(61,107,104,0.40)",
+          minHeight: 160,
+        }}
+      >
+        {/* Dot-grid decoration */}
+        <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none", opacity: 0.08 }}>
+          <defs>
+            <pattern id="rc-dots" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.4" fill="white" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#rc-dots)" />
+        </svg>
+
+        {/* Concentric ring decoration (top-right) */}
+        <svg className="absolute" style={{ top: -40, right: -40, width: 160, height: 160, opacity: 0.08, pointerEvents: "none" }}>
+          <circle cx="80" cy="80" r="60" fill="none" stroke="white" strokeWidth="1.5" />
+          <circle cx="80" cy="80" r="40" fill="none" stroke="white" strokeWidth="1" />
+          <circle cx="80" cy="80" r="20" fill="none" stroke="white" strokeWidth="0.8" />
+        </svg>
+
+        <div className="relative z-10 p-5">
+          {/* Floating platform bubble row */}
+          <div className="flex items-center gap-1.5 mb-4">
+            {[
+              { ico: "📸", bg: "linear-gradient(135deg,#E1306C,#F56040)" },
+              { ico: "🎵", bg: "#111" },
+              { ico: "▶️", bg: "#FF0000" },
+              { ico: "💼", bg: "#0077B5" },
+              { ico: "𝕏",  bg: "#000" },
+              { ico: "📘", bg: "#1877F2" },
+            ].map((p, i) => (
               <div
-                className="h-full rounded-full transition-all duration-500"
+                key={i}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[13px] flex-shrink-0"
                 style={{
-                  width: `${platformPct}%`,
-                  background: platformReady
-                    ? "linear-gradient(90deg, #16A34A, #22C55E)"
-                    : "var(--gv-gradient-primary)",
+                  background: p.bg,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                  border: "1.5px solid rgba(255,255,255,0.12)",
                 }}
-              />
+              >
+                {p.ico}
+              </div>
+            ))}
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.2)" }}
+            >
+              +4
             </div>
-            <p className="text-[11px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>
-              {platformDone}/{platformTotal} platform aktif
-              {platformReady ? " — Deep Research unlocked ✓" : ""}
-            </p>
+            <div className="flex-1" />
+            <span
+              className="text-[10px] font-bold rounded-full px-2 py-0.5"
+              style={{
+                background: platformReady ? "#22C55E22" : "rgba(255,255,255,0.1)",
+                color: platformReady ? "#86EFAC" : "rgba(255,255,255,0.5)",
+                border: `1px solid ${platformReady ? "#22C55E44" : "rgba(255,255,255,0.15)"}`,
+              }}
+            >
+              {platformDone}/{platformTotal} aktif
+            </span>
           </div>
+
+          {/* Ring + stats row */}
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <ProgressRing done={doneCount} total={totalCount} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold text-white leading-tight">
+                {allDone ? "Setup Selesai! 🎉" : "Setup Progress"}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {doneCount} dari {totalCount} langkah selesai
+              </p>
+              {/* Platform bar */}
+              <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${platformPct}%`,
+                    background: platformReady
+                      ? "linear-gradient(90deg,#22C55E,#86EFAC)"
+                      : "linear-gradient(90deg,rgba(255,255,255,0.75),rgba(255,255,255,0.5))",
+                  }}
+                />
+              </div>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
+                {platformPct}% platform setup{platformReady ? " — Deep Research unlocked ✓" : ""}
+              </p>
+            </div>
+          </div>
+
+          {/* CTA: unlock button */}
+          {allDone ? (
+            <button
+              onClick={() => { setSelected("research"); setMRO(true); }}
+              className="w-full mt-4 py-2.5 rounded-[10px] font-bold text-[13px] transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              style={{ background: "linear-gradient(135deg,#22C55E,#16A34A)", color: "white", boxShadow: "0 4px 16px rgba(34,197,94,0.4)" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+              Launch Very Deep Research
+            </button>
+          ) : (
+            <div className="mt-4 flex items-center gap-2 rounded-[10px] px-3 py-2"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px dashed rgba(255,255,255,0.2)" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                Selesaikan semua platform untuk unlock Deep Research
+              </p>
+            </div>
+          )}
         </div>
-        {allDone && (
-          <button
-            onClick={() => { setSelected("research"); setMRO(true); }}
-            className="w-full mt-3 py-2.5 rounded-[var(--gv-radius-sm)] font-bold text-white text-[13px] transition-all hover:opacity-90"
-            style={{ background: "linear-gradient(135deg, var(--gv-color-primary-700), var(--gv-color-primary-500))" }}
-          >
-            🚀 Launch Very Deep Research
-          </button>
-        )}
       </div>
 
-      {/* ── Why Multi-Platform? ── */}
+      {/* ═══════════════════════════════════════════════════
+          CARD 2 — WHY MULTI-PLATFORM (illustrated SVG icons)
+      ═══════════════════════════════════════════════════ */}
       <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
         style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)", boxShadow: "var(--gv-shadow-card)" }}>
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)", background: "var(--gv-color-primary-50)" }}>
-          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--gv-color-primary-700)" }}>
-            💡 Mengapa Semua Platform?
-          </p>
+
+        {/* Header */}
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)" }}>
+          <div
+            className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "linear-gradient(135deg,#3D6B68,#5F8F8B)", boxShadow: "0 3px 10px rgba(61,107,104,0.3)" }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold" style={{ color: "var(--gv-color-neutral-800)" }}>Mengapa Semua Platform?</p>
+            <p className="text-[11px]" style={{ color: "var(--gv-color-neutral-400)" }}>Strategi multi-channel = dominasi market</p>
+          </div>
         </div>
+
         <div className="p-4 flex flex-col gap-3">
-          {[
-            { icon: "🌐", title: "Jangkauan Lebih Luas", desc: "Setiap platform punya audiens berbeda. Instagram untuk visual, LinkedIn untuk B2B, TikTok untuk Gen-Z, Reddit untuk komunitas niche — hadir di semua = tidak ada peluang yang terlewat." },
-            { icon: "🔍", title: "Authority & SEO", desc: "Google memberi nilai lebih pada brand yang hadir di banyak platform. Google Business Profile + website + media sosial aktif = dominasi halaman pertama search." },
-            { icon: "🛡️", title: "Brand Protection", desc: "Claim nama brand Anda di semua platform sekarang, sebelum orang lain melakukannya. Presence = kepercayaan & konsistensi brand." },
-            { icon: "📈", title: "Traffic Berlapis", desc: "Setiap platform adalah saluran traffic ke website Anda. Lebih banyak saluran = lebih banyak pelanggan potensial, tanpa bergantung pada satu platform saja." },
-          ].map((tip) => (
-            <div key={tip.title} className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[16px] flex-shrink-0"
-                style={{ background: "var(--gv-color-primary-50)" }}>
-                {tip.icon}
+          {([
+            {
+              svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+              color: "#3D6B68", bg: "#E8F5F4",
+              title: "Jangkauan Lebih Luas",
+              desc: "Audiens berbeda di setiap platform. Hadir di semua = tidak ada peluang yang terlewat.",
+            },
+            {
+              svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+              color: "#0EA5E9", bg: "#E0F2FE",
+              title: "Authority & SEO",
+              desc: "Presence aktif di banyak platform = dominasi halaman pertama Google.",
+            },
+            {
+              svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+              color: "#7C3AED", bg: "#EDE9FE",
+              title: "Brand Protection",
+              desc: "Claim nama brand Anda sekarang, sebelum orang lain melakukannya.",
+            },
+            {
+              svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+              color: "#D97706", bg: "#FEF3C7",
+              title: "Traffic Berlapis",
+              desc: "Lebih banyak saluran = lebih banyak pelanggan, tanpa bergantung satu platform.",
+            },
+          ] as { svg: React.ReactNode; color: string; bg: string; title: string; desc: string }[]).map((tip, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <div
+                className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                style={{ background: tip.bg, color: tip.color, flexShrink: 0 }}
+              >
+                {tip.svg}
               </div>
               <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
                 <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>{tip.desc}</p>
               </div>
             </div>
@@ -1848,58 +1970,183 @@ export default function GettingStartedPage() {
         </div>
       </div>
 
-      {/* ── GeoVera Unified Platform ── */}
-      <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
-        style={{ border: "1px solid #BAE6FD", background: "#F0F9FF", boxShadow: "var(--gv-shadow-card)" }}>
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid #BAE6FD" }}>
-          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--gv-color-primary-700)" }}>
-            🚀 GeoVera Unified Platform
-          </p>
-        </div>
-        <div className="p-4 flex flex-col gap-3">
-          <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-primary-800)" }}>
-            Kelola Semua dari Satu Tempat
-          </p>
-          <p className="text-[12px] leading-relaxed" style={{ color: "var(--gv-color-primary-700)" }}>
-            Setelah semua platform terhubung, GeoVera secara otomatis:
-          </p>
-          {[
-            "📅 Jadwalkan & publish konten ke semua platform sekaligus",
-            "💬 Auto-reply komentar & DM dengan AI brand voice Anda",
-            "📊 Analitik terpadu — lihat performa semua platform di satu dashboard",
-            "🤖 Deep Research AI — audit brand, kompetitor & tren otomatis",
-            "🎯 Rekomendasi konten berbasis data real-time dari semua channel",
-          ].map((feat, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <p className="text-[12px] leading-relaxed" style={{ color: "var(--gv-color-primary-800)" }}>{feat}</p>
+      {/* ═══════════════════════════════════════════════════
+          CARD 3 — GEOVERA HUB (dark, SVG spoke illustration)
+      ═══════════════════════════════════════════════════ */}
+      <div
+        className="rounded-[var(--gv-radius-md)] overflow-hidden relative"
+        style={{
+          background: "linear-gradient(160deg, #0D1F1E 0%, #1a3835 60%, #243f3c 100%)",
+          border: "1px solid rgba(61,107,104,0.4)",
+          boxShadow: "var(--gv-shadow-card)",
+        }}
+      >
+        {/* Subtle grid lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none", opacity: 0.05 }}>
+          <defs>
+            <pattern id="rc-grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M32 0L0 0 0 32" fill="none" stroke="white" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#rc-grid)" />
+        </svg>
+
+        <div className="relative z-10 p-5">
+          {/* Hub spoke illustration */}
+          <div className="relative mx-auto mb-4" style={{ width: "100%", height: 110 }}>
+            <svg viewBox="0 0 280 110" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+              {/* Spoke lines from center (140,55) to each satellite */}
+              {[
+                [30, 18], [90, 8], [140, 0], [190, 8], [250, 18],
+                [30, 90], [90, 100], [190, 100], [250, 90],
+              ].map(([x, y], i) => (
+                <line key={i} x1={x} y1={y} x2={140} y2={55}
+                  stroke="#3D6B68" strokeWidth="1.2" strokeDasharray="4 3" opacity="0.65" />
+              ))}
+              {/* Outer glow ring */}
+              <circle cx="140" cy="55" r="26" fill="none" stroke="rgba(61,107,104,0.35)" strokeWidth="1.5" />
+              <circle cx="140" cy="55" r="36" fill="none" stroke="rgba(61,107,104,0.18)" strokeWidth="1" strokeDasharray="4 4" />
+            </svg>
+
+            {/* Center GeoVera hub */}
+            <div
+              className="absolute flex items-center justify-center font-bold text-white text-[18px]"
+              style={{
+                left: "50%", top: "50%",
+                transform: "translate(-50%,-50%)",
+                width: 48, height: 48,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg,#3D6B68,#5F8F8B)",
+                boxShadow: "0 0 28px rgba(61,107,104,0.7), 0 0 8px rgba(61,107,104,0.5)",
+                border: "2px solid rgba(255,255,255,0.15)",
+                zIndex: 10,
+              }}
+            >
+              G
             </div>
-          ))}
+
+            {/* Satellite platform bubbles — top row */}
+            {[
+              { ico: "📸", bg: "linear-gradient(135deg,#E1306C,#F56040)", x: "3%",  y: "5%"  },
+              { ico: "🎵", bg: "#111",                                      x: "26%", y: "0%"  },
+              { ico: "▶️", bg: "#FF0000",                                   x: "50%", y: "-4%", tx: "-50%" },
+              { ico: "💼", bg: "#0077B5",                                   x: "auto", y: "0%", r: "26%" },
+              { ico: "𝕏",  bg: "#111",                                      x: "auto", y: "5%", r: "3%"  },
+            ].map((p, i) => (
+              <div
+                key={i}
+                className="absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px]"
+                style={{
+                  background: p.bg,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  border: "1.5px solid rgba(255,255,255,0.1)",
+                  left: p.x !== "auto" ? p.x : undefined,
+                  right: p.r,
+                  top: p.y,
+                  transform: p.tx ? `translateX(${p.tx})` : undefined,
+                }}
+              >
+                {p.ico}
+              </div>
+            ))}
+
+            {/* Satellite platform bubbles — bottom row */}
+            {[
+              { ico: "📘", bg: "#1877F2", x: "3%",  b: "5%"  },
+              { ico: "📌", bg: "#BD081C", x: "26%", b: "0%"  },
+              { ico: "🔴", bg: "#FF4500", x: "auto",b: "0%",  r: "26%" },
+              { ico: "📍", bg: "#4285F4", x: "auto",b: "5%",  r: "3%"  },
+            ].map((p, i) => (
+              <div
+                key={i}
+                className="absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px]"
+                style={{
+                  background: p.bg,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  border: "1.5px solid rgba(255,255,255,0.1)",
+                  left: p.x !== "auto" ? p.x : undefined,
+                  right: p.r,
+                  bottom: p.b,
+                }}
+              >
+                {p.ico}
+              </div>
+            ))}
+          </div>
+
+          {/* Title */}
+          <p className="text-[14px] font-bold text-white text-center">GeoVera: Satu Hub, Semua Channel</p>
+          <p className="text-[11px] text-center mt-0.5 mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Hubungkan semua akun — kelola dari satu dashboard AI
+          </p>
+
+          {/* Feature pills */}
+          <div className="flex flex-col gap-1.5">
+            {[
+              { ico: "📅", txt: "Jadwalkan & publish ke semua platform sekaligus" },
+              { ico: "💬", txt: "Auto-reply komentar & DM dengan AI brand voice" },
+              { ico: "📊", txt: "Analitik terpadu — semua platform, satu view" },
+              { ico: "🤖", txt: "Deep Research AI — brand, kompetitor & tren otomatis" },
+              { ico: "🎯", txt: "Rekomendasi konten dari data real-time" },
+            ].map((f, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2.5 rounded-[9px] px-3 py-2"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                <span className="text-[14px] flex-shrink-0">{f.ico}</span>
+                <p className="text-[11px] leading-snug" style={{ color: "rgba(255,255,255,0.72)" }}>{f.txt}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── Tips & Tricks ── */}
+      {/* ═══════════════════════════════════════════════════
+          CARD 4 — TIPS & TRICKS (colorful numbered tiles)
+      ═══════════════════════════════════════════════════ */}
       <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
         style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)", boxShadow: "var(--gv-shadow-card)" }}>
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)", background: "#FFFBEB" }}>
-          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "#D97706" }}>
-            ⚡ Tips & Tricks
-          </p>
+
+        {/* Header */}
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)" }}>
+          <div
+            className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "linear-gradient(135deg,#F59E0B,#FBBF24)", boxShadow: "0 3px 10px rgba(245,158,11,0.35)" }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold" style={{ color: "var(--gv-color-neutral-800)" }}>Tips & Tricks</p>
+            <p className="text-[11px]" style={{ color: "var(--gv-color-neutral-400)" }}>Shortcut menuju brand yang kuat</p>
+          </div>
         </div>
+
+        {/* Decorative wave strip */}
+        <div style={{ height: 6, background: "linear-gradient(90deg,#3D6B68,#0EA5E9,#7C3AED,#D97706,#DC2626)", opacity: 0.7 }} />
+
         <div className="p-4 flex flex-col gap-3">
           {[
-            { title: "Gunakan nama yang sama", desc: "Pakai username / handle yang sama di semua platform untuk kemudahan pencarian dan konsistensi brand." },
-            { title: "Foto profil konsisten", desc: "Logo brand dengan ukuran & warna yang sama di setiap platform meningkatkan brand recall 3x lebih cepat." },
-            { title: "Connect dulu, optimalkan nanti", desc: "Tidak perlu konten sempurna dulu. Yang penting akun terhubung ke GeoVera, AI akan membantu optimasi bertahap." },
-            { title: "Google Business = wajib lokal", desc: "Bisnis dengan Google Business Profile mendapat 7x lebih banyak klik dibanding yang tidak punya." },
-            { title: "Website = aset permanen", desc: "Platform bisa tutup, algoritma bisa berubah — website adalah satu-satunya aset digital yang 100% milik Anda." },
+            { num: "01", color: "#3D6B68", bg: "#E8F5F4", title: "Nama yang sama di semua platform", desc: "Konsistensi username = mudah dicari, mudah diingat, susah ditiru." },
+            { num: "02", color: "#0EA5E9", bg: "#E0F2FE", title: "Foto profil & logo konsisten", desc: "Logo sama di setiap platform meningkatkan brand recall 3× lebih cepat." },
+            { num: "03", color: "#7C3AED", bg: "#EDE9FE", title: "Connect dulu, optimalkan nanti", desc: "Terhubung ke GeoVera dulu — AI bantu optimasi konten secara bertahap." },
+            { num: "04", color: "#D97706", bg: "#FEF3C7", title: "Google Business = wajib lokal", desc: "Bisnis dengan GBP mendapat 7× lebih banyak klik dari Google Search & Maps." },
+            { num: "05", color: "#DC2626", bg: "#FEE2E2", title: "Website = aset permanen", desc: "Platform bisa tutup, algoritma berubah — website 100% milik Anda selamanya." },
           ].map((tip, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5"
-                style={{ background: "#FEF3C7", color: "#D97706" }}>
-                {i + 1}
+            <div key={i} className="flex items-start gap-3">
+              <div
+                className="flex-shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center text-[11px] font-extrabold"
+                style={{ background: tip.bg, color: tip.color }}
+              >
+                {tip.num}
               </div>
-              <div>
-                <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
+              <div className="pt-0.5">
+                <p className="text-[12px] font-semibold leading-tight" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
                 <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>{tip.desc}</p>
               </div>
             </div>
