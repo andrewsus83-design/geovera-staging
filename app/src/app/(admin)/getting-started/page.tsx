@@ -409,6 +409,26 @@ function PlatformGuide({ itemId, onConnectClick }: { itemId: string; onConnectCl
   );
 }
 
+/* ── Platform external URLs ─────────────────────────────────────────────── */
+const PLATFORM_URLS: Record<string, string> = {
+  instagram:        "https://www.instagram.com/accounts/emailsignup/",
+  tiktok:           "https://www.tiktok.com/signup",
+  youtube:          "https://www.youtube.com/create_channel",
+  linkedin:         "https://www.linkedin.com/company/setup/new/",
+  x_twitter:        "https://x.com/i/flow/signup",
+  facebook:         "https://www.facebook.com/pages/create",
+  pinterest:        "https://www.pinterest.com/business/create/",
+  google_business:  "https://business.google.com/create",
+  reddit:           "https://www.reddit.com/register/",
+  website:          "https://vercel.com/new",
+};
+
+/* Late API connectable platforms */
+const LATE_API_IDS = ["instagram", "facebook", "tiktok", "linkedin", "youtube", "x_twitter", "pinterest", "google_business"];
+
+/* Platform items (show Open + Connect buttons) */
+const PLATFORM_SETUP_IDS = ["instagram", "tiktok", "youtube", "linkedin", "x_twitter", "facebook", "pinterest", "google_business", "reddit", "website"];
+
 const MIN_PLATFORMS_BASIC = 3;
 
 /* ── Connect guide panel ─────────────────────────────────────────────────── */
@@ -1363,6 +1383,131 @@ function ResearchTrigger({ onLaunch, connectedCount = 0 }: { onLaunch: () => voi
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   PlatformPopup — How-to modal for opening a platform account
+══════════════════════════════════════════════════════════════════════════ */
+function PlatformPopup({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  const guide = PLATFORM_GUIDES[itemId];
+  const url   = PLATFORM_URLS[itemId];
+  const item  = ITEMS.find(i => i.id === itemId);
+  if (!guide || !item) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[480px] max-h-[85vh] overflow-y-auto rounded-[var(--gv-radius-2xl)] p-6 flex flex-col gap-4"
+        style={{
+          background: "var(--gv-color-bg-surface)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.18)",
+          border: "1px solid var(--gv-color-neutral-200)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-11 h-11 rounded-[14px] flex items-center justify-center text-[24px]"
+              style={{ background: `${guide.color}18` }}
+            >
+              {item.icon}
+            </div>
+            <div>
+              <h3 className="text-[17px] font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>
+                How to Open {guide.platform}
+              </h3>
+              <p className="text-[12px]" style={{ color: "var(--gv-color-neutral-400)" }}>
+                Create your business account
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-[10px] transition-colors hover:opacity-80"
+            style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}
+            aria-label="Close"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Why this platform */}
+        <div
+          className="rounded-[14px] p-4"
+          style={{ background: `${guide.color}12`, border: `1.5px solid ${guide.color}30` }}
+        >
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: guide.color }}>
+            Mengapa {guide.platform}?
+          </p>
+          <p className="text-[13px] leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>
+            {guide.why}
+          </p>
+        </div>
+
+        {/* Steps */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[13px] font-bold" style={{ color: "var(--gv-color-neutral-800)" }}>
+            Langkah-langkah Membuat Akun
+          </p>
+          {guide.steps.map((step, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold mt-0.5"
+                style={{ background: `${guide.color}18`, color: guide.color }}
+              >
+                {i + 1}
+              </div>
+              <p className="text-[13px] leading-relaxed" style={{ color: "var(--gv-color-neutral-600)" }}>{step}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Pro Tips */}
+        {guide.tips && guide.tips.length > 0 && (
+          <div
+            className="rounded-[14px] p-4"
+            style={{ background: "var(--gv-color-primary-50)", border: "1px solid var(--gv-color-primary-100)" }}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--gv-color-primary-700)" }}>
+              💡 Pro Tips
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {guide.tips.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-[12px] leading-relaxed" style={{ color: "var(--gv-color-primary-800)" }}>
+                  <span className="mt-0.5 flex-shrink-0 font-bold">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* CTA — Open Platform */}
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 rounded-[var(--gv-radius-md)] font-bold text-white text-[14px] text-center transition-all flex items-center justify-center gap-2 hover:opacity-90"
+            style={{ background: `linear-gradient(135deg, ${guide.color}, ${guide.color}CC)` }}
+          >
+            Open {guide.platform}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+            </svg>
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Main page
 ══════════════════════════════════════════════════════════════════════════ */
 export default function GettingStartedPage() {
@@ -1372,6 +1517,7 @@ export default function GettingStartedPage() {
   const [mobileRightOpen, setMRO]       = useState(false);
   const [researchDone, setRD]           = useState(false);
   const [connectedPlatformCount, setCPC] = useState(0);
+  const [popupItem, setPopupItem]        = useState<string | null>(null);
 
   // FAQ state per type
   const [faqGeneral, setFaqGeneral] = useState<FAQPair[]>([{ q: "", a: "" }]);
@@ -1434,39 +1580,104 @@ export default function GettingStartedPage() {
         </div>
 
         {ITEMS.map((item, idx) => {
-          const isSelected = selected === item.id;
-          const isDone     = done.has(item.id);
+          const isSelected    = selected === item.id;
+          const isDone        = done.has(item.id);
+          const isPlatformItem = PLATFORM_SETUP_IDS.includes(item.id);
+          const isLateAPI      = LATE_API_IDS.includes(item.id);
+          const guide          = PLATFORM_GUIDES[item.id];
+
           return (
-            <button
+            <div
               key={item.id}
-              onClick={() => { setSelected(item.id); setMRO(true); }}
-              className="w-full flex items-center gap-3 rounded-[14px] px-3 py-3 text-left transition-all"
+              className="w-full rounded-[14px] px-3 py-2.5 transition-all"
               style={{
                 background: isSelected ? "var(--gv-color-primary-50, #F0F9FF)" : "transparent",
                 border: `1.5px solid ${isSelected ? "var(--gv-color-primary-200, #BAE6FD)" : "transparent"}`,
               }}
             >
-              {/* Number / check */}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold transition-all"
-                style={{
-                  background: isDone ? "#DCFCE7" : isSelected ? "var(--gv-color-primary-100, #E0F2FE)" : "var(--gv-color-neutral-100, #F3F4F6)",
-                  color: isDone ? "#16A34A" : isSelected ? "var(--gv-color-primary-700, #0369A1)" : "var(--gv-color-neutral-500, #6B7280)",
-                }}
+              {/* Top row: number, icon+title */}
+              <button
+                className="w-full flex items-center gap-3 text-left"
+                onClick={() => { setSelected(item.id); setMRO(true); }}
               >
-                {isDone ? "✓" : idx + 1}
-              </div>
+                {/* Number / check */}
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold transition-all"
+                  style={{
+                    background: isDone ? "#DCFCE7" : isSelected ? "var(--gv-color-primary-100, #E0F2FE)" : "var(--gv-color-neutral-100, #F3F4F6)",
+                    color: isDone ? "#16A34A" : isSelected ? "var(--gv-color-primary-700, #0369A1)" : "var(--gv-color-neutral-500, #6B7280)",
+                  }}
+                >
+                  {isDone ? "✓" : idx + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="text-[13px] font-semibold truncate"
+                    style={{ color: isSelected ? "var(--gv-color-primary-700, #0369A1)" : isDone ? "#16A34A" : "var(--gv-color-neutral-700, #374151)" }}
+                  >
+                    {item.icon} {item.title}
+                  </p>
+                  <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--gv-color-neutral-400, #9CA3AF)" }}>
+                    {item.subtitle}
+                  </p>
+                </div>
+              </button>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold truncate"
-                  style={{ color: isSelected ? "var(--gv-color-primary-700, #0369A1)" : isDone ? "#16A34A" : "var(--gv-color-neutral-700, #374151)" }}>
-                  {item.icon} {item.title}
-                </p>
-                <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--gv-color-neutral-400, #9CA3AF)" }}>
-                  {item.subtitle}
-                </p>
-              </div>
-            </button>
+              {/* Open + Connect buttons (platform items only) */}
+              {isPlatformItem && (
+                <div className="flex gap-1.5 mt-2 pl-11">
+                  {/* Open button */}
+                  <button
+                    onClick={() => setPopupItem(item.id)}
+                    className="flex-1 flex items-center justify-center gap-1 rounded-[8px] px-2 py-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
+                    style={{
+                      background: guide ? `${guide.color}15` : "var(--gv-color-neutral-100)",
+                      color: guide ? guide.color : "var(--gv-color-neutral-600)",
+                      border: `1px solid ${guide ? `${guide.color}30` : "var(--gv-color-neutral-200)"}`,
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+                    </svg>
+                    Open
+                  </button>
+
+                  {/* Connect button (Late API platforms only) */}
+                  {isLateAPI && (
+                    <button
+                      onClick={() => {
+                        const lateId = item.id === "x_twitter" ? "twitter" : item.id === "google_business" ? "google" : item.id;
+                        window.open(`https://app.getlate.io/connect/${lateId}`, "_blank");
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1 rounded-[8px] px-2 py-1.5 text-[11px] font-semibold text-white transition-all hover:opacity-80"
+                      style={{
+                        background: guide ? `linear-gradient(135deg, ${guide.color}, ${guide.color}CC)` : "var(--gv-gradient-primary)",
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                      </svg>
+                      Connect
+                    </button>
+                  )}
+
+                  {/* Website: no Connect button, just Open */}
+                  {!isLateAPI && (
+                    <button
+                      onClick={() => { setSelected(item.id); setMRO(true); }}
+                      className="flex-1 flex items-center justify-center gap-1 rounded-[8px] px-2 py-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
+                      style={{
+                        background: "var(--gv-color-neutral-100)",
+                        color: "var(--gv-color-neutral-500)",
+                        border: "1px solid var(--gv-color-neutral-200)",
+                      }}
+                    >
+                      View Guide
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
 
@@ -1567,114 +1778,145 @@ export default function GettingStartedPage() {
   const rightCol = (
     <div className="h-full overflow-y-auto p-5 flex flex-col gap-4">
 
-      {/* ── Overall progress ring ── */}
-      <div className="flex flex-col items-center py-3">
-        <ProgressRing done={doneCount} total={totalCount} />
-        {allDone && (
-          <div className="mt-3 rounded-full px-3 py-1"
-            style={{ background: "var(--gv-color-success-50)", border: "1px solid #BBF7D0" }}>
-            <p className="text-[12px] font-bold" style={{ color: "var(--gv-color-success-700)" }}>
-              All steps complete! 🎉
+      {/* ── Overall progress ── */}
+      <div className="rounded-[var(--gv-radius-md)] p-4"
+        style={{ background: "var(--gv-color-bg-surface)", border: "1px solid var(--gv-color-neutral-200)", boxShadow: "var(--gv-shadow-card)" }}>
+        <div className="flex items-center gap-4">
+          <ProgressRing done={doneCount} total={totalCount} />
+          <div className="flex-1">
+            <p className="text-[14px] font-bold" style={{ color: "var(--gv-color-neutral-800)" }}>
+              {allDone ? "Setup Selesai! 🎉" : "Setup Progress"}
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>
+              {doneCount} dari {totalCount} langkah selesai
+            </p>
+            {/* Platform progress bar */}
+            <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--gv-color-neutral-100)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${platformPct}%`,
+                  background: platformReady
+                    ? "linear-gradient(90deg, #16A34A, #22C55E)"
+                    : "var(--gv-gradient-primary)",
+                }}
+              />
+            </div>
+            <p className="text-[11px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>
+              {platformDone}/{platformTotal} platform aktif
+              {platformReady ? " — Deep Research unlocked ✓" : ""}
             </p>
           </div>
+        </div>
+        {allDone && (
+          <button
+            onClick={() => { setSelected("research"); setMRO(true); }}
+            className="w-full mt-3 py-2.5 rounded-[var(--gv-radius-sm)] font-bold text-white text-[13px] transition-all hover:opacity-90"
+            style={{ background: "linear-gradient(135deg, var(--gv-color-primary-700), var(--gv-color-primary-500))" }}
+          >
+            🚀 Launch Very Deep Research
+          </button>
         )}
       </div>
 
-      {/* ── Platform & Channel Setup ── */}
+      {/* ── Why Multi-Platform? ── */}
       <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
         style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)", boxShadow: "var(--gv-shadow-card)" }}>
-
-        {/* Header */}
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)" }}>
-          <div className="flex items-center justify-between">
-            <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--gv-color-neutral-400)" }}>
-              Platforms & Channels
-            </p>
-            <span className="text-[11px] font-bold rounded-full px-2 py-0.5"
-              style={{
-                background: platformReady ? "var(--gv-color-success-50)" : "var(--gv-color-primary-50)",
-                color: platformReady ? "var(--gv-color-success-700)" : "var(--gv-color-primary-700)",
-              }}>
-              {platformDone}/{platformTotal}
-            </span>
-          </div>
-
-          {/* Progress bar */}
-          <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--gv-color-neutral-100)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${platformPct}%`,
-                background: platformReady
-                  ? "linear-gradient(90deg, var(--gv-color-success-500), #22C55E)"
-                  : "var(--gv-gradient-primary)",
-              }}
-            />
-          </div>
-          <p className="text-[11px] mt-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>
-            {platformReady ? "All platforms ready — Deep Research unlocked ✓" : `${platformPct}% complete — set up remaining platforms`}
+        <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)", background: "var(--gv-color-primary-50)" }}>
+          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--gv-color-primary-700)" }}>
+            💡 Mengapa Semua Platform?
           </p>
         </div>
-
-        {/* Platform list */}
-        <div className="flex flex-col divide-y" style={{ borderColor: "var(--gv-color-neutral-100)" }}>
-          {PLATFORM_ITEMS.map((item) => {
-            const isDone = done.has(item.id);
-            const isActive = selected === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setSelected(item.id); setMRO(true); }}
-                className="flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors"
-                style={{
-                  background: isActive ? "var(--gv-color-primary-50)" : "transparent",
-                }}
-              >
-                <span className="text-[18px] flex-shrink-0 leading-none">{item.icon}</span>
-                <p className="flex-1 text-[13px] font-medium truncate"
-                  style={{ color: isDone ? "var(--gv-color-success-700)" : "var(--gv-color-neutral-700)" }}>
-                  {item.title}
-                </p>
-                <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{
-                    background: isDone ? "var(--gv-color-success-50)" : "var(--gv-color-neutral-100)",
-                    color: isDone ? "var(--gv-color-success-700)" : "var(--gv-color-neutral-400)",
-                    border: `1.5px solid ${isDone ? "#BBF7D0" : "var(--gv-color-neutral-200)"}`,
-                  }}>
-                  {isDone ? "✓" : ""}
-                </span>
-              </button>
-            );
-          })}
+        <div className="p-4 flex flex-col gap-3">
+          {[
+            { icon: "🌐", title: "Jangkauan Lebih Luas", desc: "Setiap platform punya audiens berbeda. Instagram untuk visual, LinkedIn untuk B2B, TikTok untuk Gen-Z, Reddit untuk komunitas niche — hadir di semua = tidak ada peluang yang terlewat." },
+            { icon: "🔍", title: "Authority & SEO", desc: "Google memberi nilai lebih pada brand yang hadir di banyak platform. Google Business Profile + website + media sosial aktif = dominasi halaman pertama search." },
+            { icon: "🛡️", title: "Brand Protection", desc: "Claim nama brand Anda di semua platform sekarang, sebelum orang lain melakukannya. Presence = kepercayaan & konsistensi brand." },
+            { icon: "📈", title: "Traffic Berlapis", desc: "Setiap platform adalah saluran traffic ke website Anda. Lebih banyak saluran = lebih banyak pelanggan potensial, tanpa bergantung pada satu platform saja." },
+          ].map((tip) => (
+            <div key={tip.title} className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[16px] flex-shrink-0"
+                style={{ background: "var(--gv-color-primary-50)" }}>
+                {tip.icon}
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
+                <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>{tip.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── Deep Research unlock (when all platforms ready) ── */}
-      {platformReady ? (
-        <button
-          onClick={() => { setSelected("research"); setMRO(true); }}
-          className="w-full py-3.5 rounded-[var(--gv-radius-md)] font-bold text-white text-[14px] transition-all"
-          style={{
-            background: "linear-gradient(135deg, var(--gv-color-primary-700), var(--gv-color-primary-500))",
-            boxShadow: "var(--gv-shadow-sidebar)",
-          }}
-        >
-          🚀 Next Step: Very Deep Research
-        </button>
-      ) : (
-        <div className="rounded-[var(--gv-radius-sm)] px-4 py-3 text-center"
-          style={{ background: "var(--gv-color-neutral-100)", border: "1px dashed var(--gv-color-neutral-300)" }}>
-          <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-400)" }}>
-            🔒 Set up all platforms to unlock Very Deep Research
+      {/* ── GeoVera Unified Platform ── */}
+      <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
+        style={{ border: "1px solid #BAE6FD", background: "#F0F9FF", boxShadow: "var(--gv-shadow-card)" }}>
+        <div className="px-4 py-3" style={{ borderBottom: "1px solid #BAE6FD" }}>
+          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--gv-color-primary-700)" }}>
+            🚀 GeoVera Unified Platform
           </p>
         </div>
-      )}
+        <div className="p-4 flex flex-col gap-3">
+          <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-primary-800)" }}>
+            Kelola Semua dari Satu Tempat
+          </p>
+          <p className="text-[12px] leading-relaxed" style={{ color: "var(--gv-color-primary-700)" }}>
+            Setelah semua platform terhubung, GeoVera secara otomatis:
+          </p>
+          {[
+            "📅 Jadwalkan & publish konten ke semua platform sekaligus",
+            "💬 Auto-reply komentar & DM dengan AI brand voice Anda",
+            "📊 Analitik terpadu — lihat performa semua platform di satu dashboard",
+            "🤖 Deep Research AI — audit brand, kompetitor & tren otomatis",
+            "🎯 Rekomendasi konten berbasis data real-time dari semua channel",
+          ].map((feat, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <p className="text-[12px] leading-relaxed" style={{ color: "var(--gv-color-primary-800)" }}>{feat}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Tips & Tricks ── */}
+      <div className="rounded-[var(--gv-radius-md)] overflow-hidden"
+        style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)", boxShadow: "var(--gv-shadow-card)" }}>
+        <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gv-color-neutral-100)", background: "#FFFBEB" }}>
+          <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "#D97706" }}>
+            ⚡ Tips & Tricks
+          </p>
+        </div>
+        <div className="p-4 flex flex-col gap-3">
+          {[
+            { title: "Gunakan nama yang sama", desc: "Pakai username / handle yang sama di semua platform untuk kemudahan pencarian dan konsistensi brand." },
+            { title: "Foto profil konsisten", desc: "Logo brand dengan ukuran & warna yang sama di setiap platform meningkatkan brand recall 3x lebih cepat." },
+            { title: "Connect dulu, optimalkan nanti", desc: "Tidak perlu konten sempurna dulu. Yang penting akun terhubung ke GeoVera, AI akan membantu optimasi bertahap." },
+            { title: "Google Business = wajib lokal", desc: "Bisnis dengan Google Business Profile mendapat 7x lebih banyak klik dibanding yang tidak punya." },
+            { title: "Website = aset permanen", desc: "Platform bisa tutup, algoritma bisa berubah — website adalah satu-satunya aset digital yang 100% milik Anda." },
+          ].map((tip, i) => (
+            <div key={i} className="flex items-start gap-2.5">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5"
+                style={{ background: "#FEF3C7", color: "#D97706" }}>
+                {i + 1}
+              </div>
+              <div>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{tip.title}</p>
+                <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "var(--gv-color-neutral-500)" }}>{tip.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
     </div>
   );
 
   return (
     <div className="flex flex-col h-full">
+      {/* Platform popup modal */}
+      {popupItem && (
+        <PlatformPopup itemId={popupItem} onClose={() => setPopupItem(null)} />
+      )}
+
       <div className="flex-1 min-h-0">
         <ThreeColumnLayout
           left={leftCol}
