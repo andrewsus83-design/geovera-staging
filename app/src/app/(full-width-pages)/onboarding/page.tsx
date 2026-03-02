@@ -392,17 +392,13 @@ export default function OnboardingPage() {
     if (screen !== 3) return;
     setRDone([]); setRC(0); setResearchData(null);
 
-    // Coordinate: advance to screen 4 only when BOTH animation AND api complete
-    const apiDone = { current: false };
-    const animDone = { current: false };
-    const tryAdvance = () => { if (apiDone.current && animDone.current) go(4); };
-
     // Create brand in background
     createBrand();
 
-    // Real API call with 90s timeout
+    // Real API call — best-effort, updates researchData if it returns in time.
+    // Screen advancement is driven by animation only (not gated on this API).
     const controller = new AbortController();
-    const apiTimeout = setTimeout(() => { controller.abort(); apiDone.current = true; tryAdvance(); }, 90000);
+    const apiTimeout = setTimeout(() => { controller.abort(); }, 30000);
 
     fetch("/api/onboarding", {
       method: "POST",
@@ -432,16 +428,10 @@ export default function OnboardingPage() {
             opportunities: s3?.competitive_analysis?.opportunities,
           });
         }
-        apiDone.current = true;
-        tryAdvance();
       })
-      .catch(() => {
-        clearTimeout(apiTimeout);
-        apiDone.current = true;
-        tryAdvance();
-      });
+      .catch(() => { clearTimeout(apiTimeout); });
 
-    // Animation: each step takes ~1.6s, total ~8s for 5 steps
+    // Animation: ~8.6s total. After it finishes, advance to screen 4 immediately.
     const timers: ReturnType<typeof setTimeout>[] = [];
     RESEARCH_STEPS.forEach((_, i) => {
       timers.push(setTimeout(() => {
@@ -449,7 +439,7 @@ export default function OnboardingPage() {
         timers.push(setTimeout(() => {
           setRDone(prev => [...prev, i]);
           if (i === RESEARCH_STEPS.length - 1) {
-            timers.push(setTimeout(() => { animDone.current = true; tryAdvance(); }, 800));
+            timers.push(setTimeout(() => { go(4); }, 800));
           }
         }, 1400));
       }, i * 1600));
