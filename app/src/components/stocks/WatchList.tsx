@@ -22,7 +22,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$4,008.65",
     change: "11.01%",
     changeDirection: "up",
-    brandImage: "./images/brand/brand-07.svg",
+    brandImage: "/images/brand/brand-07.svg",
   },
   {
     symbol: "SPOT",
@@ -30,7 +30,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$11,689.00",
     change: "9.48%",
     changeDirection: "up",
-    brandImage: "./images/brand/brand-11.svg",
+    brandImage: "/images/brand/brand-11.svg",
   },
   {
     symbol: "ABNB",
@@ -38,7 +38,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$32,227.00",
     change: "0.29%",
     changeDirection: "down",
-    brandImage: "./images/brand/brand-12.svg",
+    brandImage: "/images/brand/brand-12.svg",
   },
   {
     symbol: "ENVT",
@@ -46,7 +46,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$13,895.00",
     change: "3.79%",
     changeDirection: "up",
-    brandImage: "./images/brand/brand-13.svg",
+    brandImage: "/images/brand/brand-13.svg",
   },
   {
     symbol: "QIWI",
@@ -54,7 +54,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$4,008.65",
     change: "4.52%",
     changeDirection: "down",
-    brandImage: "./images/brand/brand-14.svg",
+    brandImage: "/images/brand/brand-14.svg",
   },
   {
     symbol: "APPL",
@@ -62,7 +62,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$4,523.00",
     change: "3.12%",
     changeDirection: "up",
-    brandImage: "./images/brand/brand-07.svg",
+    brandImage: "/images/brand/brand-07.svg",
   },
   {
     symbol: "SPOT",
@@ -70,7 +70,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$11,689.00",
     change: "9.48%",
     changeDirection: "up",
-    brandImage: "./images/brand/brand-11.svg",
+    brandImage: "/images/brand/brand-11.svg",
   },
   {
     symbol: "ABNB",
@@ -78,7 +78,7 @@ const watchlistData: WatchlistItemProps[] = [
     price: "$32,227.00",
     change: "0.29%",
     changeDirection: "down",
-    brandImage: "./images/brand/brand-12.svg",
+    brandImage: "/images/brand/brand-12.svg",
   },
 ];
 
