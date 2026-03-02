@@ -19,22 +19,22 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
-  /* ── Typography ── */
-  --text-title-2xl: 72px;
+  /* ── Typography — GeoVera DS v5.8 (+10% font scale) ── */
+  --text-title-2xl: 79px;
   --text-title-2xl--line-height: 90px;
-  --text-title-xl: 60px;
+  --text-title-xl: 66px;
   --text-title-xl--line-height: 72px;
-  --text-title-lg: 48px;
+  --text-title-lg: 53px;
   --text-title-lg--line-height: 60px;
-  --text-title-md: 36px;
+  --text-title-md: 40px;
   --text-title-md--line-height: 44px;
-  --text-title-sm: 30px;
+  --text-title-sm: 33px;
   --text-title-sm--line-height: 38px;
-  --text-theme-xl: 20px;
+  --text-theme-xl: 22px;
   --text-theme-xl--line-height: 32px;
-  --text-theme-sm: 14px;
+  --text-theme-sm: 15px;
   --text-theme-sm--line-height: 22px;
-  --text-theme-xs: 12px;
+  --text-theme-xs: 13px;
   --text-theme-xs--line-height: 18px;
 
   --color-current: currentColor;
@@ -301,7 +301,7 @@
   }
 
   html {
-    font-size: 16px;
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -382,7 +382,7 @@
   background-color: var(--gv-color-primary-500);
   color: white;
   font-family: var(--gv-font-body);
-  font-size: 15px;
+  font-size: 17px;
   border: none;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -404,7 +404,7 @@
   background-color: white;
   color: var(--gv-color-neutral-700);
   font-family: var(--gv-font-body);
-  font-size: 15px;
+  font-size: 17px;
   border: 1px solid var(--gv-color-neutral-200);
   cursor: pointer;
   transition: all var(--gv-duration-normal) var(--gv-easing-default);
@@ -424,7 +424,7 @@
   background-color: transparent;
   color: var(--gv-color-neutral-500);
   font-family: var(--gv-font-body);
-  font-size: 14px;
+  font-size: 15px;
   border: none;
   cursor: pointer;
   transition: all var(--gv-duration-fast) var(--gv-easing-default);
@@ -444,7 +444,7 @@
   background-color: var(--gv-color-primary-500);
   color: white;
   font-family: var(--gv-font-body);
-  font-size: 14px;
+  font-size: 15px;
   border: none;
   cursor: pointer;
   transition: all var(--gv-duration-normal) var(--gv-easing-default);
@@ -481,7 +481,7 @@
   border-radius: var(--gv-radius-md);
   background-color: var(--gv-color-danger-500);
   color: white;
-  font-size: 15px;
+  font-size: 17px;
   border: none;
   cursor: pointer;
   transition: all var(--gv-duration-normal);
@@ -499,7 +499,7 @@
   border-radius: var(--gv-radius-sm);
   border: 1px solid var(--gv-color-neutral-200);
   font-family: var(--gv-font-body);
-  font-size: 15px;
+  font-size: 17px;
   color: var(--gv-color-neutral-900);
   background: white;
   outline: none;
@@ -520,7 +520,7 @@
   border-radius: var(--gv-radius-sm);
   border: 1px solid var(--gv-color-neutral-200);
   font-family: var(--gv-font-body);
-  font-size: 15px;
+  font-size: 17px;
   color: var(--gv-color-neutral-900);
   background: white;
   outline: none;
@@ -543,7 +543,7 @@
   height: 24px;
   padding: 0 10px;
   border-radius: var(--gv-radius-full);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   gap: 4px;
 }
@@ -586,7 +586,7 @@
 @utility gv-tab {
   padding-bottom: 12px;
   font-family: var(--gv-font-body);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 500;
   color: var(--gv-color-neutral-500);
   border-bottom: 2px solid transparent;
@@ -614,7 +614,7 @@
   color: white;
   padding: 6px 12px;
   border-radius: var(--gv-radius-xs);
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--gv-font-body);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -1306,7 +1306,7 @@ pre[class*="language-"] {
   text-shadow: none;
   color: #344054;
   overflow: hidden !important;
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
   padding: 0;
   white-space: pre-wrap;
@@ -1327,7 +1327,7 @@ pre[class*="language-"] {
 }
 .token {
   text-shadow: none;
-  font-size: 14px;
+  font-size: 15px;
 }
 .token.doctype-tag,
 .token.name {
