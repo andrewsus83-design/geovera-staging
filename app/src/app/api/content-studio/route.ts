@@ -16,6 +16,7 @@ export async function OPTIONS() {
 const ALLOWED_ACTIONS = new Set([
   "generate_image",
   "generate_video",
+  "generate_avatar_video",
   "check_task",
   "train_product",
   "train_character",

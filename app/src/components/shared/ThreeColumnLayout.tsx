@@ -39,7 +39,7 @@ export default function ThreeColumnLayout({
 
   return (
     <div
-      className="flex h-[100dvh] overflow-hidden"
+      className="flex h-full overflow-hidden"
       style={{ background: "var(--gv-color-bg-base)" }}
     >
       {/* ── DESKTOP: Sidebar spacer (pill nav renders as `fixed` inside) ── */}

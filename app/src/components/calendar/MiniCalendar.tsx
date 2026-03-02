@@ -5,10 +5,11 @@ interface MiniCalendarProps {
   taskDates?: string[];
   onDateSelect?: (date: string) => void;
   selectedDate?: string | null;
-  maxDate?: string; // days after this are locked/grayed (72H window)
+  maxDate?: string; // days after this are locked
+  minDate?: string; // days before this are locked (defaults to today)
 }
 
-export default function MiniCalendar({ taskDates = [], onDateSelect, selectedDate, maxDate }: MiniCalendarProps) {
+export default function MiniCalendar({ taskDates = [], onDateSelect, selectedDate, maxDate, minDate }: MiniCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Count tasks per date
@@ -99,7 +100,8 @@ export default function MiniCalendar({ taskDates = [], onDateSelect, selectedDat
               const dateStr = getDateStr(day);
               const isToday = dateStr === today;
               const isSelected = dateStr === selectedDate;
-              const isLocked = dateStr < today || (maxDate != null && dateStr > maxDate);
+              const effectiveMin = minDate ?? today;
+              const isLocked = dateStr < effectiveMin || (maxDate != null && dateStr > maxDate);
               const taskCount = taskCountMap[dateStr] || 0;
 
               return (
@@ -107,7 +109,7 @@ export default function MiniCalendar({ taskDates = [], onDateSelect, selectedDat
                   key={day}
                   onClick={() => !isLocked && onDateSelect?.(dateStr)}
                   disabled={isLocked}
-                  title={isLocked ? "Content locked beyond 72H window" : undefined}
+                  title={isLocked ? (maxDate != null && dateStr > maxDate ? "Beyond 3-day window" : "Beyond 3-day past window") : undefined}
                   className={`relative h-9 rounded-lg text-xs font-medium transition-all mx-0.5 flex flex-col items-center justify-center
                     ${isLocked
                       ? "text-gray-300 dark:text-gray-700 cursor-not-allowed"

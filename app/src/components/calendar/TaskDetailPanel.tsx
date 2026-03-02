@@ -466,13 +466,16 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+          <div
+            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ background: "var(--gv-color-neutral-100)" }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gv-color-neutral-400)" }}>
               <path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Select a task to see details</p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click on any task in the center panel</p>
+          <p className="text-sm font-medium" style={{ color: "var(--gv-color-neutral-500)" }}>Select a task to see details</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>Click on any task in the center panel</p>
         </div>
       </div>
     );
@@ -483,18 +486,19 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
     return (
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="border-b border-gray-200 p-4 dark:border-gray-800">
+        <div className="p-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-400">
-              🔗 Late
-            </span>
-            <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
+            <span className="gv-badge gv-badge-primary">🔗 Late</span>
+            <span
+              className="gv-badge"
+              style={{ background: "var(--gv-color-primary-50)", color: "var(--gv-color-primary-700)" }}
+            >
               {task.agent}
             </span>
             <ImpactFireIcons level={task.impact} />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">{task.title}</h3>
-          <p className="text-xs text-gray-400 mt-1">{task.description}</p>
+          <h3 className="text-sm font-semibold leading-snug" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "var(--gv-font-heading)" }}>{task.title}</h3>
+          <p className="text-xs mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>{task.description}</p>
         </div>
         {/* Reply queue */}
         <div className="flex-1 overflow-hidden p-4">
@@ -513,37 +517,46 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-gray-200 p-4 dark:border-gray-800">
+      <div className="p-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-              task.priority === "high" ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400" :
-              task.priority === "medium" ? "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400" :
-              "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-            }`}>
+            <span
+              className="gv-badge"
+              style={
+                task.priority === "high" ? { background: "var(--gv-color-danger-50)", color: "var(--gv-color-danger-700)" } :
+                task.priority === "medium" ? { background: "var(--gv-color-warning-50)", color: "var(--gv-color-warning-700)" } :
+                { background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }
+              }
+            >
               {task.priority}
             </span>
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-              task.agent === "CEO"
-                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                : "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
-            }`}>
+            <span
+              className="gv-badge"
+              style={
+                task.agent === "CEO"
+                  ? { background: "var(--gv-color-info-50)", color: "var(--gv-color-info-700)" }
+                  : { background: "var(--gv-color-primary-50)", color: "var(--gv-color-primary-700)" }
+              }
+            >
               {task.agent}
             </span>
             {task.platform && (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              <span
+                className="gv-badge"
+                style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)" }}
+              >
                 {task.platform}
               </span>
             )}
           </div>
           <ImpactFireIcons level={task.impact} />
         </div>
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{task.title}</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Due: {task.dueDate}</p>
+        <h3 className="text-base font-semibold" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "var(--gv-font-heading)" }}>{task.title}</h3>
+        <p className="text-sm mt-1" style={{ color: "var(--gv-color-neutral-500)" }}>Due: {task.dueDate}</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {(task.content?.imageUrl || task.imageUrl) && (
           <div className="rounded-lg overflow-hidden">
             <img
@@ -555,14 +568,14 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
         )}
 
         <div>
-          <h4 className="text-sm font-medium text-gray-400 mb-1.5">What to do</h4>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{task.description}</p>
+          <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>What to do</h4>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>{task.description}</p>
         </div>
 
         {task.content?.caption && (
           <div>
-            <h4 className="text-sm font-medium text-gray-400 mb-1.5">Caption</h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Caption</h4>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--gv-color-neutral-700)" }}>
               {task.content.caption}
             </p>
           </div>
@@ -570,10 +583,10 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
 
         {task.content?.hashtags && task.content.hashtags.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-gray-400 mb-1.5">Hashtags</h4>
+            <h4 className="text-sm font-medium mb-1.5" style={{ color: "var(--gv-color-neutral-400)" }}>Hashtags</h4>
             <div className="flex flex-wrap gap-1.5">
               {task.content.hashtags.map((tag, i) => (
-                <span key={i} className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-sm text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                <span key={i} className="gv-badge gv-badge-primary" style={{ fontSize: "12px" }}>
                   {tag}
                 </span>
               ))}
@@ -585,14 +598,20 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
         {task.platform && task.platform !== "Blog" && (
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <h4 className="text-sm font-medium text-gray-400">Upload Media</h4>
+              <h4 className="text-sm font-medium" style={{ color: "var(--gv-color-neutral-400)" }}>Upload Media</h4>
               {isInstagram && (
-                <span className="inline-flex items-center rounded-full bg-pink-50 px-1.5 py-0.5 text-xs font-medium text-pink-600 dark:bg-pink-500/10 dark:text-pink-400">
+                <span
+                  className="gv-badge"
+                  style={{ background: "var(--gv-color-danger-50)", color: "var(--gv-color-danger-700)", fontSize: "10px", height: "20px", padding: "0 6px" }}
+                >
                   Carousel up to 10
                 </span>
               )}
               {isVideoTask && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                <span
+                  className="gv-badge"
+                  style={{ background: "var(--gv-color-neutral-100)", color: "var(--gv-color-neutral-500)", fontSize: "10px", height: "20px", padding: "0 6px" }}
+                >
                   9:16 video only
                 </span>
               )}
@@ -607,18 +626,24 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 text-center hover:border-brand-300 dark:hover:border-brand-600 transition-colors">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-2 text-gray-300">
+                <div
+                  className="p-4 text-center transition-colors"
+                  style={{
+                    borderRadius: "var(--gv-radius-md)",
+                    border: "2px dashed var(--gv-color-neutral-200)",
+                  }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-2" style={{ color: "var(--gv-color-neutral-300)" }}>
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm" style={{ color: "var(--gv-color-neutral-400)" }}>
                     {isVideoTask
                       ? "Click to upload 9:16 video (MP4)"
                       : isInstagram
                       ? "Click to upload images (single or carousel)"
                       : "Click to upload image"}
                   </p>
-                  <p className="text-xs text-gray-300 dark:text-gray-600 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: "var(--gv-color-neutral-300)" }}>
                     {isVideoTask ? "Landscape video will be cropped to 9:16" : "PNG, JPG, WebP"}
                   </p>
                 </div>
@@ -699,7 +724,7 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
         {/* ── Rejection dialog ── */}
         {showRejectDialog && (
           <div className="pt-1">
-            <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
+            <p className="text-sm font-semibold mb-2" style={{ color: "var(--gv-color-danger-700)" }}>
               ❓ What&apos;s not suitable?
             </p>
             <div className="space-y-1.5">
@@ -707,16 +732,26 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
                 <button
                   key={reason}
                   onClick={() => handleRejectWithReason(reason)}
-                  className="w-full text-left rounded-lg border border-red-200 dark:border-red-500/20 px-3 py-2 hover:border-red-400 hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors"
+                  className="w-full text-left px-3 py-2 transition-all"
+                  style={{
+                    borderRadius: "var(--gv-radius-sm)",
+                    border: "1px solid var(--gv-color-danger-50)",
+                  }}
                 >
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
-                  <p className="text-xs text-gray-400">{desc}</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--gv-color-neutral-900)" }}>{label}</p>
+                  <p className="text-xs" style={{ color: "var(--gv-color-neutral-400)" }}>{desc}</p>
                 </button>
               ))}
             </div>
             <button
               onClick={() => setShowRejectDialog(false)}
-              className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-700 py-1.5 text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="mt-2 w-full py-1.5 text-sm transition-all"
+              style={{
+                borderRadius: "var(--gv-radius-sm)",
+                border: "1px solid var(--gv-color-neutral-200)",
+                color: "var(--gv-color-neutral-500)",
+                background: "var(--gv-color-bg-surface)",
+              }}
             >
               Cancel
             </button>
@@ -725,19 +760,21 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
 
         {showScheduler && (
           <div className="pt-1">
-            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Schedule Publish</h4>
+            <h4 className="text-sm font-medium mb-2" style={{ color: "var(--gv-color-neutral-700)" }}>Schedule Publish</h4>
             <div className="flex gap-2 mb-2">
               <input
                 type="date"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                className="gv-input flex-1"
+                style={{ height: "36px", fontSize: "12px" }}
               />
               <input
                 type="time"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
-                className="w-24 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                className="gv-input w-24"
+                style={{ height: "36px", fontSize: "12px" }}
               />
             </div>
             <div className="flex gap-2">
@@ -747,7 +784,8 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
                   doPublish({ publishNow: false, scheduledFor });
                 }}
                 disabled={!scheduleDate || !scheduleTime || publishLoading}
-                className="flex-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                className="gv-btn-sm flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ height: "32px", fontSize: "12px" }}
               >
                 {publishLoading ? (
                   <>
@@ -761,7 +799,13 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
               </button>
               <button
                 onClick={() => setShowScheduler(false)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400"
+                className="px-3 py-1.5 text-xs font-medium transition-all"
+                style={{
+                  borderRadius: "var(--gv-radius-sm)",
+                  border: "1px solid var(--gv-color-neutral-200)",
+                  color: "var(--gv-color-neutral-500)",
+                  background: "var(--gv-color-bg-surface)",
+                }}
               >
                 Cancel
               </button>
@@ -770,40 +814,43 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+      {/* Action buttons — sticky bottom */}
+      <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}>
         {rejected || isRejected ? (
-          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 py-2.5 text-center">
-            <p className="text-sm font-medium text-red-700 dark:text-red-400">✕ Content Rejected</p>
-            <p className="text-xs text-red-500 dark:text-red-500/70 mt-0.5">Added to AI training data</p>
+          <div className="py-2.5 text-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-danger-50)" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--gv-color-danger-700)" }}>✕ Content Rejected</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--gv-color-danger-500)" }}>Added to AI training data</p>
           </div>
         ) : published ? (
-          <div className="rounded-lg bg-green-50 dark:bg-green-500/10 py-2.5 text-center">
-            <p className="text-sm font-medium text-green-700 dark:text-green-400">✓ Published successfully</p>
-            <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">Moved to Done section</p>
+          <div className="py-2.5 text-center" style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-success-50)" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--gv-color-success-700)" }}>✓ Published successfully</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--gv-color-success-500)" }}>Moved to Done section</p>
           </div>
         ) : !isConnected ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div className="p-4 text-center" style={{ borderRadius: "var(--gv-radius-md)", border: "1px solid var(--gv-color-neutral-200)" }}>
+            <p className="text-sm font-medium mb-1" style={{ color: "var(--gv-color-neutral-700)" }}>
               {task.platform} belum terhubung
             </p>
-            <p className="text-xs text-gray-400 mb-3">Hubungkan di halaman Home terlebih dahulu</p>
-            <a href="/" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+            <p className="text-xs mb-3" style={{ color: "var(--gv-color-neutral-400)" }}>Hubungkan di halaman Home terlebih dahulu</p>
+            <a href="/" className="gv-btn-sm" style={{ display: "inline-flex" }}>
               → Ke Halaman Home
             </a>
           </div>
         ) : (
           <div className="space-y-2">
             {publishError && (
-              <p className="text-xs text-red-500 text-center">{publishError}</p>
+              <p className="text-xs text-center" style={{ color: "var(--gv-color-danger-500)" }}>{publishError}</p>
             )}
             <div className="flex gap-2">
               <button
                 onClick={() => doPublish({ publishNow: true })}
                 disabled={publishLoading}
-                className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2 ${
-                  isTikTok ? "bg-[#FE2C55] hover:bg-[#e0264c]" : "bg-brand-500 hover:bg-brand-600"
-                }`}
+                className="flex-1 px-4 py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                style={{
+                  borderRadius: "var(--gv-radius-md)",
+                  background: isTikTok ? "#FE2C55" : "var(--gv-color-primary-500)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+                }}
               >
                 {publishLoading ? (
                   <>
@@ -820,14 +867,26 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
               <button
                 onClick={() => doPublish({ publishNow: false })}
                 disabled={publishLoading}
-                className="rounded-xl border border-brand-200 px-3 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors dark:border-brand-500/30 dark:text-brand-400 disabled:opacity-50"
+                className="px-3 py-3 text-sm font-medium transition-all disabled:opacity-50"
+                style={{
+                  borderRadius: "var(--gv-radius-md)",
+                  border: "1px solid var(--gv-color-primary-200)",
+                  color: "var(--gv-color-primary-600)",
+                  background: "var(--gv-color-bg-surface)",
+                }}
                 title={`Auto publish at best time on ${task.dueDate}`}
               >
                 Auto
               </button>
               <button
                 onClick={() => setShowScheduler(!showScheduler)}
-                className="rounded-xl border border-gray-200 px-3 py-3 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                className="px-3 py-3 transition-all"
+                style={{
+                  borderRadius: "var(--gv-radius-md)",
+                  border: "1px solid var(--gv-color-neutral-200)",
+                  color: "var(--gv-color-neutral-500)",
+                  background: "var(--gv-color-bg-surface)",
+                }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -837,11 +896,13 @@ export default function TaskDetailPanel({ task, isConnected = true, onPublish, o
             {/* Reject button */}
             <button
               onClick={() => setShowRejectDialog(!showRejectDialog)}
-              className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-                showRejectDialog
-                  ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-400"
-                  : "border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 dark:border-gray-700 dark:hover:border-red-500/30"
-              }`}
+              className="w-full py-2.5 text-sm font-medium transition-all"
+              style={{
+                borderRadius: "var(--gv-radius-md)",
+                border: showRejectDialog ? "1px solid var(--gv-color-danger-500)" : "1px solid var(--gv-color-neutral-200)",
+                background: showRejectDialog ? "var(--gv-color-danger-50)" : "var(--gv-color-bg-surface)",
+                color: showRejectDialog ? "var(--gv-color-danger-700)" : "var(--gv-color-neutral-500)",
+              }}
             >
               {showRejectDialog ? "✕ Cancel Rejection" : "Reject Content"}
             </button>

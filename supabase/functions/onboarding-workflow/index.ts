@@ -1655,7 +1655,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brand_name, country } = await req.json();
+    const { brand_name, country, email, industry, description } = await req.json();
 
     if (!brand_name) {
       throw new Error('brand_name is required');
@@ -1710,6 +1710,88 @@ Deno.serve(async (req) => {
     });
 
     console.log(`✅ Static HTML generated: ${slug}.html (${staticHTML.length} bytes)\n`);
+
+    // Send brand intelligence email report (fire-and-forget, don't block response)
+    if (email) {
+      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
+      if (RESEND_API_KEY) {
+        try {
+          const s1 = step1Data as { competitors?: string[]; social_media?: Record<string, string | null>; market_positioning?: string; unique_selling_proposition?: string; key_features?: string[]; category?: string };
+          const s3 = step3Data as { brand_dna?: { core_values?: string[]; personality_traits?: string[] }; competitive_analysis?: { opportunities?: string[] } };
+
+          const competitorList = (s1.competitors ?? []).slice(0, 5)
+            .map(c => `<li style="margin:4px 0;color:#374151;font-size:14px;">${c}</li>`).join('');
+
+          const socialGaps = ['instagram', 'tiktok', 'facebook', 'youtube']
+            .filter(p => !s1.social_media?.[p]);
+          const gapChips = socialGaps
+            .map(p => `<span style="background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:20px;padding:4px 12px;font-size:12px;margin:2px;display:inline-block;">${p}</span>`)
+            .join(' ');
+
+          const traitChips = (s3.brand_dna?.personality_traits ?? []).slice(0, 5)
+            .map(t => `<span style="background:#EDF5F4;color:#3D6B68;border-radius:20px;padding:4px 10px;font-size:12px;margin:2px;display:inline-block;">${t}</span>`)
+            .join(' ');
+
+          const oppList = (s3.competitive_analysis?.opportunities ?? []).slice(0, 3)
+            .map(o => `<li style="margin:4px 0;color:#374151;font-size:14px;">${o}</li>`).join('');
+
+          const emailHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;background:#FAFAF9;padding:0;">
+<div style="background:linear-gradient(135deg,#3D6B68,#5F8F8B);padding:32px 24px;text-align:center;">
+  <div style="font-size:26px;color:white;font-weight:bold;margin-bottom:4px;">✦ GeoVera</div>
+  <p style="color:rgba(255,255,255,0.85);margin:0;font-size:13px;">AI Brand Intelligence Report</p>
+</div>
+<div style="padding:32px 24px;">
+  <h1 style="font-size:22px;color:#111827;margin:0 0 6px 0;">Laporan Digital Presence</h1>
+  <h2 style="font-size:26px;color:#3D6B68;margin:0 0 8px 0;font-weight:900;">${brand_name}</h2>
+  <p style="color:#6B7280;margin:0 0 24px 0;font-size:13px;">Dianalisis menggunakan Perplexity AI, Gemini &amp; Claude — ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+  <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:16px;margin-bottom:20px;">
+    <p style="margin:0;color:#16A34A;font-weight:bold;font-size:13px;">✓ Analisis AI Berhasil</p>
+    <p style="margin:6px 0 0;color:#374151;font-size:14px;">${s1.market_positioning ?? `Brand Anda di industri ${s1.category ?? industry ?? 'ini'} telah dianalisis secara mendalam.`}</p>
+  </div>
+
+  ${competitorList ? `<h3 style="font-size:15px;color:#111827;margin:20px 0 10px;">🏆 Kompetitor Utama Terdeteksi</h3><ul style="margin:0 0 20px;padding-left:20px;">${competitorList}</ul>` : ''}
+
+  ${socialGaps.length > 0 ? `
+  <h3 style="font-size:15px;color:#111827;margin:0 0 8px;">⚠️ Digital Presence Gaps</h3>
+  <p style="color:#6B7280;font-size:13px;margin:0 0 10px;">Platform yang belum dioptimalkan — peluang besar untuk brand Anda:</p>
+  <div style="margin-bottom:20px;">${gapChips}</div>` : ''}
+
+  ${traitChips ? `<h3 style="font-size:15px;color:#111827;margin:0 0 8px;">🧬 Brand DNA</h3><div style="margin-bottom:20px;">${traitChips}</div>` : ''}
+
+  ${s1.unique_selling_proposition ? `<div style="background:#EDF5F4;border-left:3px solid #3D6B68;padding:12px 16px;margin-bottom:20px;border-radius:0 8px 8px 0;"><p style="margin:0;font-size:14px;color:#374151;font-style:italic;">"${s1.unique_selling_proposition}"</p></div>` : ''}
+
+  ${oppList ? `<h3 style="font-size:15px;color:#111827;margin:0 0 10px;">🚀 Peluang Teridentifikasi</h3><ul style="margin:0 0 20px;padding-left:20px;">${oppList}</ul>` : ''}
+
+  <div style="background:#1A2B28;border-radius:16px;padding:28px 24px;text-align:center;margin-top:28px;">
+    <h2 style="color:white;margin:0 0 8px;font-size:18px;">Tingkatkan Visibilitas Digital Anda</h2>
+    <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0 0 20px;">GeoVera membantu brand Anda terindeks di AI search, membuat konten viral, dan tumbuh di semua platform sekaligus.</p>
+    <a href="https://app.geovera.xyz/onboarding" style="background:linear-gradient(135deg,#3D6B68,#5F8F8B);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:bold;display:inline-block;">Mulai 7 Hari Gratis →</a>
+  </div>
+</div>
+<div style="text-align:center;padding:16px;color:#9CA3AF;font-size:11px;">
+  <p style="margin:0;">© 2025 GeoVera · <a href="https://geovera.xyz" style="color:#9CA3AF;">geovera.xyz</a> · <a href="https://app.geovera.xyz" style="color:#9CA3AF;">Dashboard</a></p>
+</div>
+</body></html>`;
+
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'GeoVera <hello@geovera.xyz>',
+              to: [email],
+              subject: `Laporan Brand Intelligence: ${brand_name} — GeoVera AI`,
+              html: emailHtml,
+            }),
+          });
+          console.log(`📧 Brand intelligence email sent to ${email}`);
+        } catch (emailErr) {
+          console.error('Email send failed (non-fatal):', emailErr instanceof Error ? emailErr.message : emailErr);
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({

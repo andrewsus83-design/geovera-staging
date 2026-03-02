@@ -23,14 +23,14 @@ export default function ComingSoon() {
           <Link href="/" className="inline-block mb-6">
             <Image
               className="dark:hidden"
-              src="./images/logo/logo.svg"
+              src="/images/logo/logo.png"
               alt="Logo"
               width={154}
               height={32}
             />
             <Image
               className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
+              src="/images/logo/logo-dark.png"
               alt="Logo"
               width={154}
               height={32}
