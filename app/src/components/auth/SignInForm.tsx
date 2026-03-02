@@ -43,7 +43,7 @@ export default function SignInForm() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       const { data: brands } = await supabase
-        .from("brand_users")
+        .from("user_brands")
         .select("brand_id")
         .eq("user_id", session.user.id)
         .limit(1);

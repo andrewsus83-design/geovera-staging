@@ -22,7 +22,7 @@ export default function AuthCallbackPage() {
 
       // Check if user already has a brand → go to dashboard
       const { data: brands } = await supabase
-        .from("brand_users")
+        .from("user_brands")
         .select("brand_id")
         .eq("user_id", session.user.id)
         .limit(1);

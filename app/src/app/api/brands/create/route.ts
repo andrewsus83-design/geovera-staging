@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already has a brand
     const { data: existing } = await admin
-      .from("brand_users")
+      .from("user_brands")
       .select("brand_id")
       .eq("user_id", user.id)
       .maybeSingle();
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Link user to brand as owner
-    await admin.from("brand_users").insert({
+    await admin.from("user_brands").insert({
       user_id: user.id,
       brand_id: brand.id,
       role: "owner",

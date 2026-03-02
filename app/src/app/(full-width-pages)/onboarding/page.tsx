@@ -320,7 +320,7 @@ export default function OnboardingPage() {
         setUserEmail(session.user.email || "");
         // If user already has a brand, go straight to dashboard
         const { data: brands } = await supabase
-          .from("brand_users")
+          .from("user_brands")
           .select("brand_id")
           .eq("user_id", session.user.id)
           .limit(1);
@@ -339,7 +339,7 @@ export default function OnboardingPage() {
         setAuthError("");
         // If user already has a brand, go straight to dashboard
         const { data: brands } = await supabase
-          .from("brand_users")
+          .from("user_brands")
           .select("brand_id")
           .eq("user_id", session.user.id)
           .limit(1);
