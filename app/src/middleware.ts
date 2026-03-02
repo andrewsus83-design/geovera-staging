@@ -34,26 +34,8 @@ function isPublic(pathname: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Always allow public routes + static files
-  if (isPublic(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Check for Supabase auth session cookie
-  const authToken =
-    request.cookies.get(SUPABASE_COOKIE)?.value ||
-    request.cookies.get(`${SUPABASE_COOKIE}.0`)?.value ||
-    request.cookies.get(`${SUPABASE_COOKIE}.1`)?.value;
-
-  if (!authToken) {
-    // Not authenticated → redirect to onboarding
-    const url = request.nextUrl.clone();
-    url.pathname = "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
+  // AUTH DISABLED FOR PRESENTATION — re-enable after demo
+  void request;
   return NextResponse.next();
 }
 
