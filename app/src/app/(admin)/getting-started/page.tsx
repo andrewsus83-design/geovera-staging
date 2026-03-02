@@ -25,7 +25,7 @@ interface CheckItem {
   icon: string;
   title: string;
   subtitle: string;
-  category: "profile" | "platform" | "connect" | "faq" | "research";
+  category: "profile" | "platform" | "connect" | "faq" | "research" | "ideation";
 }
 
 const ITEMS: CheckItem[] = [
@@ -39,6 +39,8 @@ const ITEMS: CheckItem[] = [
   { id: "faq_general",    icon: "❓", title: "Create General FAQ",               subtitle: "Brand, company & contact basics",                 category: "faq"       },
   { id: "faq_product",    icon: "📦", title: "Create Product/Service FAQ",       subtitle: "What you offer, pricing & how to buy",            category: "faq"       },
   { id: "faq_geo",        icon: "🤖", title: "Create AI/GEO-Optimized FAQ",      subtitle: "Structured for Perplexity, Gemini & ChatGPT",    category: "faq"       },
+  { id: "tasks_ideation", icon: "🧠", title: "Tasks Ideation",                   subtitle: "Research results + trends + priority filter",     category: "ideation"  },
+  { id: "tasks_audit",    icon: "📋", title: "Tasks Audit",                      subtitle: "Score completed tasks + impact analysis (Claude)",  category: "ideation"  },
 ];
 
 /* ── Platform guide data ────────────────────────────────────────────────── */
@@ -509,6 +511,240 @@ function BrandProfileGuide() {
   );
 }
 
+/* ── Tasks Ideation guide panel ─────────────────────────────────────────── */
+function TasksIdeationGuide() {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="rounded-[16px] p-5" style={{ background: "linear-gradient(135deg, #FAF5FF, #FFF7ED)", border: "1px solid #DDD6FE" }}>
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#7C3AED] mb-1">What is Tasks Ideation?</p>
+        <p className="text-[14px] text-[#374151] leading-relaxed">
+          Before executing tasks, GeoVera synthesizes your Deep Research results, current trends, and business priorities to generate a focused, ranked task list — so you always work on what matters most.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#7C3AED20", color: "#7C3AED" }}>🔍 Research Results</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#F59E0B20", color: "#D97706" }}>📈 Trend Alignments</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#EF444420", color: "#EF4444" }}>🎯 Priority Filter</span>
+        </div>
+      </div>
+
+      {/* 1. Deep Research Results */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">🔍</span>
+          <p className="text-[14px] font-bold text-[#111827]">1. Deep Research Results</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          GeoVera pulls insights from your latest Deep Research cycle — SEO gaps, GEO opportunities, and social performance — and converts them into actionable tasks.
+        </p>
+        {[
+          "SEO gaps: missing schema, broken links, thin content pages",
+          "GEO opportunities: questions AI engines ask about your niche",
+          "Social gaps: underperforming formats & optimal posting times",
+          "Competitor moves: what competitors published this month",
+          "Brand citation gaps: where your brand should be mentioned but isn't",
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-2 mt-2">
+            <span className="text-[11px] font-bold text-[#3D6B68] w-5 flex-shrink-0">{i + 1}.</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* 2. Trend Alignments */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">📈</span>
+          <p className="text-[14px] font-bold text-[#111827]">2. Trend Alignments</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          GeoVera cross-references your brand niche with trending topics on TikTok, Instagram Reels, YouTube Shorts, and AI search — surfacing trends you can authentically align with this cycle.
+        </p>
+        {[
+          "Trending hashtags in your niche (Apify + TikTok API)",
+          "Viral content formats performing in your industry right now",
+          "Emerging keywords spiking in AI search this week",
+          "Seasonal & event-based content opportunities",
+          "Competitor trend adoption — what's working for them",
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-2 mt-2">
+            <span className="text-[11px] font-bold text-[#8E6FD8] w-5 flex-shrink-0">{i + 1}.</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. Priority Tasks Filter */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">🎯</span>
+          <p className="text-[14px] font-bold text-[#111827]">3. Priority Tasks Filter</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          All generated tasks are scored by impact × effort. Your AI agents surface only the highest-ROI tasks first — so you never waste time on low-impact work.
+        </p>
+        {[
+          { label: "🔴 Critical", desc: "Must-do this week — SEO fixes, broken elements, urgent GEO opportunities" },
+          { label: "🟡 High", desc: "High-impact content aligned with current trends and competitor gaps" },
+          { label: "🟢 Medium", desc: "Content creation, FAQ updates, platform optimization & A/B tests" },
+          { label: "⚪ Low", desc: "Nice-to-have improvements, long-term experiments, and backlog items" },
+        ].map((priority, i) => (
+          <div key={i} className="flex items-start gap-3 mt-3 rounded-[10px] p-3" style={{ background: "white", border: "1px solid #F3F4F6" }}>
+            <p className="text-[12px] font-bold w-20 flex-shrink-0 mt-0.5">{priority.label}</p>
+            <p className="text-[12px] text-[#6B7280] leading-relaxed">{priority.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Output */}
+      <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #FAF5FF, #F0FDF4)", border: "1px solid #DDD6FE" }}>
+        <p className="text-[13px] font-bold text-[#7C3AED] mb-2">Output: Your Prioritized Task Board</p>
+        {[
+          "Top 5 critical tasks (must do this week)",
+          "10–15 content tasks aligned with this cycle's trends",
+          "SEO + GEO fix list derived from deep research",
+          "Platform-specific action items per connected account",
+          "Monthly content calendar skeleton (ready to execute)",
+        ].map((item) => (
+          <div key={item} className="flex items-start gap-2 mt-2">
+            <span className="text-[#7C3AED]">✓</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => router.push("/tasks")}
+        className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white"
+        style={{ background: "linear-gradient(135deg, #7C3AED, #8E6FD8)" }}
+      >
+        Go to Tasks Board →
+      </button>
+    </div>
+  );
+}
+
+/* ── Tasks Audit guide panel ─────────────────────────────────────────────── */
+function TasksAuditGuide() {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="rounded-[16px] p-5" style={{ background: "linear-gradient(135deg, #FFF7ED, #FEF2F2)", border: "1px solid #FED7AA" }}>
+        <p className="text-[12px] font-bold uppercase tracking-widest text-[#EA580C] mb-1">Tasks Audit — End of Cycle Scoring</p>
+        <p className="text-[14px] text-[#374151] leading-relaxed">
+          Before your biweekly/monthly report, GeoVera uses <strong>Claude</strong> to score how many tasks were completed, analyze the implications of what was done (and what wasn't), and predict the impact on your next research cycle's results.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#EA580C20", color: "#EA580C" }}>📊 Completion Score</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#7C3AED20", color: "#7C3AED" }}>🤖 Claude Analysis</span>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: "#16A34A20", color: "#16A34A" }}>📈 Impact Prediction</span>
+        </div>
+      </div>
+
+      {/* Completion Scoring */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">📊</span>
+          <p className="text-[14px] font-bold text-[#111827]">1. Completion Scoring</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          GeoVera tallies all tasks generated in the previous Tasks Ideation cycle and calculates your completion rate across each category.
+        </p>
+        {[
+          { label: "SEO Tasks", example: "12 / 15 done (80%)" },
+          { label: "GEO Tasks", example: "8 / 10 done (80%)" },
+          { label: "Content Tasks", example: "20 / 30 done (67%)" },
+          { label: "Social Tasks", example: "14 / 14 done (100%)" },
+          { label: "Overall Score", example: "54 / 69 done (78%)" },
+        ].map((row) => (
+          <div key={row.label} className="flex items-center justify-between mt-2 rounded-[10px] px-3 py-2" style={{ background: "white", border: "1px solid #F3F4F6" }}>
+            <p className="text-[13px] font-semibold text-[#374151]">{row.label}</p>
+            <span className="text-[12px] font-bold text-[#6B7280]">{row.example}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Implications: Completed */}
+      <div className="rounded-[16px] p-5" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">✅</span>
+          <p className="text-[14px] font-bold text-[#111827]">2. Completed Tasks — Impact on Results</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          Claude analyzes which completed tasks already impacted your metrics — and projects how they'll improve your next Deep Research score.
+        </p>
+        {[
+          "Fixed LLM.txt → Perplexity citation rate projected +12%",
+          "Published 3 GEO FAQ articles → AI brand mention score improving",
+          "Added schema markup → Core Web Vitals passed (was failing)",
+          "Posted 5 trending Reels → Avg reach +40% this period",
+          "Replied to top 50 competitor mentions → Brand awareness signal up",
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-2 mt-2">
+            <span className="text-[#16A34A]">✓</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Implications: Incomplete */}
+      <div className="rounded-[16px] p-5" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[20px]">⚠️</span>
+          <p className="text-[14px] font-bold text-[#111827]">3. Incomplete Tasks — Missed Opportunities</p>
+        </div>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-3">
+          Claude flags what you skipped and quantifies the cost — carried-over tasks get re-prioritized as Critical in the next ideation cycle.
+        </p>
+        {[
+          "Skipped 10 content tasks → estimated -15% organic reach this period",
+          "Didn't update Google Business Profile → GBP score stagnant",
+          "No YouTube Shorts published → missed 3 trending audio opportunities",
+          "Competitor gap report not acted on → 2 keywords lost to competitor",
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-2 mt-2">
+            <span className="text-[#EF4444]">✕</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+        <div className="mt-3 rounded-[10px] px-3 py-2" style={{ background: "#FEE2E2", border: "1px solid #FECACA" }}>
+          <p className="text-[12px] font-bold text-[#B91C1C]">→ Incomplete tasks are automatically carried over to the next Tasks Ideation cycle as Critical priority.</p>
+        </div>
+      </div>
+
+      {/* Claude Analysis */}
+      <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #FAF5FF, #F0FDF4)", border: "1px solid #DDD6FE" }}>
+        <p className="text-[13px] font-bold text-[#7C3AED] mb-2">🤖 Claude — Cycle Impact Summary</p>
+        <p className="text-[13px] text-[#374151] leading-relaxed mb-2">
+          At the end of each cycle, Claude generates a written impact summary:
+        </p>
+        {[
+          "Overall cycle performance grade (A → F)",
+          "Top 3 wins: tasks that had the highest measured impact",
+          "Top 3 misses: highest-cost incomplete tasks",
+          "Prediction: expected score changes in next Deep Research",
+          "Recommended focus areas for the next ideation cycle",
+        ].map((item) => (
+          <div key={item} className="flex items-start gap-2 mt-2">
+            <span className="text-[#7C3AED]">✦</span>
+            <p className="text-[13px] text-[#374151]">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => router.push("/analytics")}
+        className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white"
+        style={{ background: "linear-gradient(135deg, #EA580C, #F97316)" }}
+      >
+        View Report & Analytics →
+      </button>
+    </div>
+  );
+}
+
 /* ── Research trigger panel (Step 8) ────────────────────────────────────── */
 function ResearchTrigger({ onLaunch, connectedCount = 0 }: { onLaunch: () => void; connectedCount?: number }) {
   const [launched, setLaunched] = useState(false);
@@ -927,6 +1163,8 @@ export default function GettingStartedPage() {
           {selected === "faq_geo" && (
             <FAQBuilder type="geo" pairs={faqGeo} onChange={setFaqGeo} />
           )}
+          {selected === "tasks_ideation" && <TasksIdeationGuide />}
+          {selected === "tasks_audit" && <TasksAuditGuide />}
         </div>
       )}
     </div>
@@ -966,9 +1204,11 @@ export default function GettingStartedPage() {
       <div className="rounded-[16px] p-4" style={{ background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)", border: "1px solid #BAE6FD" }}>
         <p className="text-[12px] font-bold uppercase tracking-widest text-[#0369A1] mb-3">After Setup</p>
         {[
-          { step: "Step 8", label: "Deep Research Scan", icon: "🔍" },
-          { step: "Step 9", label: "Daily To-Do Workflow", icon: "📋" },
-          { step: "Step 10", label: "Monthly Analytics Report", icon: "📊" },
+          { step: "Step 8",  label: "Deep Research Scan",        icon: "🔍" },
+          { step: "Step 9",  label: "Tasks Ideation",            icon: "🧠" },
+          { step: "Step 10", label: "Tasks Execution",           icon: "📋" },
+          { step: "Step 11", label: "Tasks Audit (Claude)",      icon: "📊" },
+          { step: "Step 12", label: "Biweekly/Monthly Report",   icon: "📈" },
         ].map((s) => (
           <div key={s.step} className="flex items-center gap-3 mt-3">
             <span className="text-[16px]">{s.icon}</span>
