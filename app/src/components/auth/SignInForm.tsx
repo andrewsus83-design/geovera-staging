@@ -27,11 +27,16 @@ export default function SignInForm() {
 
   const handleGoogleSignIn = async () => {
     setError("");
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/auth/callback" },
-    });
-    if (oauthError) setError(oauthError.message);
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/auth/callback" },
+      });
+      if (oauthError) setError(oauthError.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Google sign-in gagal. Coba lagi.";
+      setError(msg);
+    }
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -39,30 +44,35 @@ export default function SignInForm() {
     if (!email.trim() || !password.trim() || loading) return;
     setLoading(true);
     setError("");
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
-    }
-    // Check if user already has a brand → go to dashboard, else onboarding
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: brands } = await supabase
-        .from("user_brands")
-        .select("brand_id")
-        .eq("user_id", session.user.id)
-        .limit(1);
-      if (brands && brands.length > 0) {
-        router.push("/calendar");
-      } else {
-        router.push("/onboarding");
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (authError) {
+        setError(authError.message);
+        return;
       }
+      // Check if user already has a brand → go to dashboard, else onboarding
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: brands } = await supabase
+          .from("user_brands")
+          .select("brand_id")
+          .eq("user_id", session.user.id)
+          .limit(1);
+        if (brands && brands.length > 0) {
+          router.push("/calendar");
+        } else {
+          router.push("/onboarding");
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login gagal. Coba lagi.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
