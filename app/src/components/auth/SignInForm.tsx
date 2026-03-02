@@ -5,12 +5,13 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [email, setEmail] = useState("");
@@ -18,11 +19,19 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Show OAuth error if redirected back from /auth/callback with ?error=
+  useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (oauthError) setError(decodeURIComponent(oauthError));
+  }, [searchParams]);
+
   const handleGoogleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
+    setError("");
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin + "/auth/callback" },
     });
+    if (oauthError) setError(oauthError.message);
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

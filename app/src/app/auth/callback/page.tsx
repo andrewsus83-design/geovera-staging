@@ -12,6 +12,15 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Check for OAuth error in URL params (e.g., user denied access)
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error");
+    if (oauthError) {
+      const desc = params.get("error_description") || oauthError;
+      router.replace("/signin?error=" + encodeURIComponent(desc));
+      return;
+    }
+
     // supabase-js v2 with detectSessionInUrl:true auto-exchanges ?code=
     // when getSession() is called — no manual exchange needed
     supabase.auth.getSession().then(async ({ data: { session } }) => {
