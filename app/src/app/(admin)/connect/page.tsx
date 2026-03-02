@@ -28,6 +28,8 @@ const CURRENT_PLAN = "premium";
 const planOrder: Record<string, number> = { basic: 0, premium: 1, enterprise: 2 };
 const planLabel: Record<string, string> = { basic: "Basic", premium: "Premium", enterprise: "Enterprise" };
 
+const MIN_PLATFORMS_FOR_BASIC = 3;
+
 const DEFAULT_PLATFORMS: Platform[] = [
   { id: "instagram", name: "Instagram",      icon: "📸", connected: false, plan: "basic" },
   { id: "facebook",  name: "Facebook Page",  icon: "📘", connected: false, plan: "basic" },
@@ -336,6 +338,50 @@ function ConnectPageInner() {
       )}
 
       <div>
+        {/* Deep Research Requirement Banner */}
+        {!loading && (
+          <div
+            className="mb-4 rounded-[14px] px-4 py-3"
+            style={{
+              background: connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#F0FDF4" : "#FFFBEB",
+              border: `1.5px solid ${connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#BBF7D0" : "#FDE68A"}`,
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[12px] font-bold uppercase tracking-widest"
+                style={{ color: connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#16A34A" : "#D97706" }}>
+                {connectedCount >= MIN_PLATFORMS_FOR_BASIC
+                  ? "✓ Deep Research Ready"
+                  : "⚡ Deep Research Requirement"}
+              </p>
+              <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5"
+                style={{
+                  background: connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#DCFCE7" : "#FEF3C7",
+                  color: connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#16A34A" : "#D97706",
+                }}>
+                {connectedCount} / {MIN_PLATFORMS_FOR_BASIC} min
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 rounded-full bg-white/60 overflow-hidden mb-2">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min((connectedCount / MIN_PLATFORMS_FOR_BASIC) * 100, 100)}%`,
+                  background: connectedCount >= MIN_PLATFORMS_FOR_BASIC
+                    ? "linear-gradient(90deg, #16A34A, #22C55E)"
+                    : "linear-gradient(90deg, #F59E0B, #FCD34D)",
+                }}
+              />
+            </div>
+            <p className="text-[12px]" style={{ color: connectedCount >= MIN_PLATFORMS_FOR_BASIC ? "#15803D" : "#92400E" }}>
+              {connectedCount >= MIN_PLATFORMS_FOR_BASIC
+                ? "Semua tier plan siap menggunakan Deep Research GeoVera."
+                : `Plan Basic memerlukan minimal ${MIN_PLATFORMS_FOR_BASIC} platform terhubung agar Deep Research berjalan maksimal. Hubungkan ${MIN_PLATFORMS_FOR_BASIC - connectedCount} platform lagi.`}
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-1 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">

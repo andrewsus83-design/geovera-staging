@@ -290,15 +290,57 @@ function PlatformGuide({ itemId, onConnectClick }: { itemId: string; onConnectCl
   );
 }
 
+const MIN_PLATFORMS_BASIC = 3;
+
 /* ── Connect guide panel ─────────────────────────────────────────────────── */
-function ConnectGuide() {
+function ConnectGuide({ connectedCount = 0 }: { connectedCount?: number }) {
   const router = useRouter();
+  const platformsMet = connectedCount >= MIN_PLATFORMS_BASIC;
   return (
     <div className="flex flex-col gap-5">
+      {/* Deep Research Requirement */}
+      <div
+        className="rounded-[16px] p-4"
+        style={{
+          background: platformsMet ? "#F0FDF4" : "#FFFBEB",
+          border: `1.5px solid ${platformsMet ? "#BBF7D0" : "#FDE68A"}`,
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[12px] font-bold uppercase tracking-widest"
+            style={{ color: platformsMet ? "#16A34A" : "#D97706" }}>
+            {platformsMet ? "✓ Deep Research Ready" : "⚡ Syarat Deep Research"}
+          </p>
+          <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5"
+            style={{
+              background: platformsMet ? "#DCFCE7" : "#FEF3C7",
+              color: platformsMet ? "#16A34A" : "#D97706",
+            }}>
+            {connectedCount} / {MIN_PLATFORMS_BASIC}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/60 overflow-hidden mb-2">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.min((connectedCount / MIN_PLATFORMS_BASIC) * 100, 100)}%`,
+              background: platformsMet
+                ? "linear-gradient(90deg, #16A34A, #22C55E)"
+                : "linear-gradient(90deg, #F59E0B, #FCD34D)",
+            }}
+          />
+        </div>
+        <p className="text-[12px]" style={{ color: platformsMet ? "#15803D" : "#92400E" }}>
+          {platformsMet
+            ? "Semua platform sudah terhubung. Deep Research GeoVera siap berjalan penuh."
+            : `Plan Basic memerlukan minimal ${MIN_PLATFORMS_BASIC} platform. Hubungkan ${MIN_PLATFORMS_BASIC - connectedCount} lagi agar Deep Research berjalan maksimal.`}
+        </p>
+      </div>
+
       <div className="rounded-[16px] p-5" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
         <p className="text-[13px] font-bold text-[#0369A1] mb-1">Why connect your platforms?</p>
         <p className="text-[14px] text-[#374151] leading-relaxed">
-          Connecting your platforms lets GeoVera's AI agents publish, monitor, and reply on your behalf — turning your social presence into a 24/7 automated marketing machine.
+          Connecting your platforms lets GeoVera's AI agents publish, monitor, and reply on your behalf — turning your social presence into a 24/7 automated marketing machine. Semakin banyak platform terhubung, semakin akurat Deep Research GeoVera.
         </p>
       </div>
 
@@ -468,11 +510,14 @@ function BrandProfileGuide() {
 }
 
 /* ── Research trigger panel (Step 8) ────────────────────────────────────── */
-function ResearchTrigger({ onLaunch }: { onLaunch: () => void }) {
+function ResearchTrigger({ onLaunch, connectedCount = 0 }: { onLaunch: () => void; connectedCount?: number }) {
   const [launched, setLaunched] = useState(false);
   const [loading, setLoading]   = useState(false);
+  const router = useRouter();
+  const platformsReady = connectedCount >= MIN_PLATFORMS_BASIC;
 
   const handle = async () => {
+    if (!platformsReady) { router.push("/connect"); return; }
     setLoading(true);
     try {
       // 1. Trigger analytics sync (Late API + Claude scoring — existing route)
@@ -641,18 +686,59 @@ function ResearchTrigger({ onLaunch }: { onLaunch: () => void }) {
         ))}
       </div>
 
+      {/* Platform gate warning */}
+      {!platformsReady && (
+        <div className="rounded-[16px] px-5 py-4" style={{ background: "#FEF3C7", border: "1.5px solid #FDE68A" }}>
+          <p className="text-[13px] font-bold text-[#D97706] mb-1">⚡ Hubungkan Platform Dulu</p>
+          <p className="text-[13px] text-[#92400E] mb-3">
+            Deep Research memerlukan minimal <strong>{MIN_PLATFORMS_BASIC} platform</strong> terhubung agar data sosial & konten dapat dianalisis secara penuh. Saat ini Anda baru menghubungkan <strong>{connectedCount} platform</strong>.
+          </p>
+          <div className="h-1.5 rounded-full bg-amber-100 overflow-hidden mb-3">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.min((connectedCount / MIN_PLATFORMS_BASIC) * 100, 100)}%`,
+                background: "linear-gradient(90deg, #F59E0B, #FCD34D)",
+              }}
+            />
+          </div>
+          <button
+            onClick={() => router.push("/connect")}
+            className="w-full py-2.5 rounded-[12px] text-[13px] font-bold"
+            style={{ background: "#3D6B68", color: "white" }}
+          >
+            Hubungkan {MIN_PLATFORMS_BASIC - connectedCount} Platform Lagi →
+          </button>
+        </div>
+      )}
+
       <button
         onClick={handle}
         disabled={launched || loading}
         className="w-full py-4 rounded-[16px] text-[15px] font-bold text-white transition-all"
         style={{
-          background: launched ? "#6B7280" : "linear-gradient(135deg, #3D6B68 0%, #5F8F8B 40%, #8E6FD8 100%)",
-          cursor: launched ? "default" : "pointer",
+          background: !platformsReady
+            ? "#D1D5DB"
+            : launched
+            ? "#6B7280"
+            : "linear-gradient(135deg, #3D6B68 0%, #5F8F8B 40%, #8E6FD8 100%)",
+          cursor: (!platformsReady || launched) ? "not-allowed" : "pointer",
+          opacity: !platformsReady ? 0.6 : 1,
         }}
       >
-        {loading ? "⏳ Running Research Pipeline…" : launched ? "✓ Deep Research Launched — Check Analytics for Results" : "🚀 Launch Monthly Deep Research"}
+        {!platformsReady
+          ? `🔗 Connect ${MIN_PLATFORMS_BASIC - connectedCount} More Platforms First`
+          : loading
+          ? "⏳ Running Research Pipeline…"
+          : launched
+          ? "✓ Deep Research Launched — Check Analytics for Results"
+          : "🚀 Launch Monthly Deep Research"}
       </button>
-      <p className="text-center text-[12px] text-[#9CA3AF]">Results will appear in Analytics → Report within 2-5 minutes</p>
+      <p className="text-center text-[12px] text-[#9CA3AF]">
+        {platformsReady
+          ? "Results will appear in Analytics → Report within 2-5 minutes"
+          : `Minimal ${MIN_PLATFORMS_BASIC} platform diperlukan untuk Deep Research optimal`}
+      </p>
     </div>
   );
 }
@@ -662,22 +748,31 @@ function ResearchTrigger({ onLaunch }: { onLaunch: () => void }) {
 ══════════════════════════════════════════════════════════════════════════ */
 export default function GettingStartedPage() {
   const router = useRouter();
-  const [selected, setSelected]     = useState<string>("brand_profile");
-  const [done, setDone]             = useState<Set<string>>(new Set());
-  const [mobileRightOpen, setMRO]   = useState(false);
-  const [researchDone, setRD]       = useState(false);
+  const [selected, setSelected]         = useState<string>("brand_profile");
+  const [done, setDone]                 = useState<Set<string>>(new Set());
+  const [mobileRightOpen, setMRO]       = useState(false);
+  const [researchDone, setRD]           = useState(false);
+  const [connectedPlatformCount, setCPC] = useState(0);
 
   // FAQ state per type
   const [faqGeneral, setFaqGeneral] = useState<FAQPair[]>([{ q: "", a: "" }]);
   const [faqProduct, setFaqProduct] = useState<FAQPair[]>([{ q: "", a: "" }]);
   const [faqGeo, setFaqGeo]         = useState<FAQPair[]>([{ q: "", a: "" }]);
 
-  // Load persisted done state from localStorage
+  // Load persisted done state from localStorage + connected platform count
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LS_KEY);
       if (saved) setDone(new Set(JSON.parse(saved)));
     } catch {}
+
+    // Fetch connected platform count from Supabase
+    supabase
+      .from("social_connections")
+      .select("platform", { count: "exact", head: true })
+      .eq("brand_id", FALLBACK_BRAND_ID)
+      .eq("status", "active")
+      .then(({ count }) => { if (count !== null) setCPC(count); });
   }, []);
 
   const toggleDone = (id: string) => {
@@ -786,7 +881,7 @@ export default function GettingStartedPage() {
     <div className="h-full overflow-y-auto">
       {selected === "research" ? (
         <div className="p-6">
-          <ResearchTrigger onLaunch={() => { setRD(true); router.push("/analytics"); }} />
+          <ResearchTrigger onLaunch={() => { setRD(true); router.push("/analytics"); }} connectedCount={connectedPlatformCount} />
         </div>
       ) : (
         <div className="p-6 flex flex-col gap-0">
@@ -822,7 +917,7 @@ export default function GettingStartedPage() {
               onConnectClick={() => { toggleDone(selected); setSelected("connect_all"); }}
             />
           )}
-          {selected === "connect_all" && <ConnectGuide />}
+          {selected === "connect_all" && <ConnectGuide connectedCount={connectedPlatformCount} />}
           {selected === "faq_general" && (
             <FAQBuilder type="general" pairs={faqGeneral} onChange={setFaqGeneral} />
           )}
