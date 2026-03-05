@@ -1381,11 +1381,11 @@ export default function CalendarPage() {
             })}
           </div>
         </div>
+        <CycleBanner brandId={DEMO_BRAND_ID} />
       </div>
 
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-3">
-        <CycleBanner brandId={DEMO_BRAND_ID} />
         {/* Status Tabs (Segmented) — task-filter-tabs-refined token */}
         <div
           className="flex items-center pt-3 pb-2"
