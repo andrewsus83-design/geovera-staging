@@ -5,10 +5,9 @@ import NavColumn from "@/components/shared/NavColumn";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 import PrioritySection from "@/components/calendar/PrioritySection";
 import TaskDetailPanel from "@/components/calendar/TaskDetailPanel";
-import type { Task, ReplyComment } from "@/components/calendar/TaskCard";
+import type { Task } from "@/components/calendar/TaskCard";
 import CycleBanner from "@/components/calendar/CycleBanner";
 import { supabase } from "@/lib/supabase";
-import { UserIcon, AiIcon, BoltIcon, CheckLineIcon, CheckCircleIcon, PaperPlaneIcon, PencilIcon, CloseLineIcon } from "@/icons";
 
 const DEMO_BRAND_ID = process.env.NEXT_PUBLIC_DEMO_BRAND_ID || "a37dee82-5ed5-4ba4-991a-4d93dde9ff7a";
 
@@ -858,7 +857,7 @@ function TikTokPhoneMockup({ post, caption, hashtags }: {
 }
 
 type TaskFilter = "inprogress" | "done" | "rejected";
-type SubTab = "content" | "comments" | "others";
+type SubTab = "content" | "others";
 
 // 7D window: 3 days back + today + 3 days ahead
 const getMaxDateStr = () => {
@@ -921,56 +920,6 @@ export default function CalendarPage() {
   const [editHashtags, setEditHashtags] = useState("");
 
   // Connected platforms from Supabase
-  const [connectedPlatforms, setConnectedPlatforms] = useState<{ platform: string; handle?: string; auto_reply_enabled: boolean }[]>([]);
-  const [autoReplyCount, setAutoReplyCount] = useState(0);
-
-  // Auto-open right panel when on comments tab (shows comment groups)
-  useEffect(() => {
-    if (subTab === "comments") setMobileRightOpen(true);
-  }, [subTab]);
-
-  // Auto-reply section UI state
-  const [arEditId, setArEditId] = useState<string | null>(null);
-  const [arEditText, setArEditText] = useState("");
-  const [arApprovedIds, setArApprovedIds] = useState<Set<string>>(new Set());
-  const [arSentIds, setArSentIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    supabase
-      .from("social_connections")
-      .select("platform, platform_username, auto_reply_enabled")
-      .eq("brand_id", DEMO_BRAND_ID)
-      .eq("status", "active")
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setConnectedPlatforms(data.map((c) => ({
-            platform: c.platform,
-            handle: c.platform_username || undefined,
-            auto_reply_enabled: c.auto_reply_enabled ?? false,
-          })));
-          setAutoReplyCount(data.filter((c) => c.auto_reply_enabled).length);
-        }
-      });
-  }, []);
-
-  // Save approved replies to reply_queue table
-  const handlePublishReplies = useCallback(async (taskId: string, replies: ReplyComment[]): Promise<{ queued: number }> => {
-    const rows = replies.map((r) => ({
-      brand_id: DEMO_BRAND_ID,
-      task_id: taskId,
-      platform: r.platform,
-      platform_icon: r.platformIcon,
-      author: r.author,
-      author_score: r.authorScore,
-      original_comment: r.comment,
-      draft_reply: r.draftReply,
-      status: "queued",
-    }));
-
-    const { error, data } = await supabase.from("reply_queue").insert(rows).select("id");
-    if (error) throw new Error(error.message);
-    return { queued: data?.length ?? rows.length };
-  }, []);
 
   // Mobile: open right panel when task selected
   const handleTaskSelect = (task: Task) => {
@@ -1006,29 +955,12 @@ export default function CalendarPage() {
   const contentTasks = useMemo(() =>
     baseTasks.filter((t) => t.taskType !== "reply" && t.agent !== "CEO"),
   [baseTasks]);
-  const commentTasks = useMemo(() =>
-    baseTasks.filter((t) => t.taskType === "reply"),
-  [baseTasks]);
   const othersTasks = useMemo(() =>
     baseTasks.filter((t) => t.agent === "CEO"),
   [baseTasks]);
 
-  // Aggregate replyQueue items from commentTasks for auto-reply sections
-  const allReplyItems = useMemo(
-    () => commentTasks.flatMap((t) => t.replyQueue || []),
-    [commentTasks]
-  );
-  const humanReplies = useMemo(
-    () => allReplyItems.filter((r) => r.authorScore >= 80),
-    [allReplyItems]
-  );
-  const aiReplies = useMemo(
-    () => allReplyItems.filter((r) => r.authorScore < 80),
-    [allReplyItems]
-  );
-
   // Active sub-tab tasks (for filter pill counts)
-  const activeBucket = subTab === "content" ? contentTasks : subTab === "comments" ? commentTasks : othersTasks;
+  const activeBucket = subTab === "content" ? contentTasks : othersTasks;
   const activeTasks   = activeBucket.filter((t) => !doneTaskIds.has(t.id) && !rejectedTaskIds.has(t.id));
   const doneTasks     = activeBucket.filter((t) => doneTaskIds.has(t.id));
   const rejectedTasks = activeBucket.filter((t) => rejectedTaskIds.has(t.id));
@@ -1386,8 +1318,7 @@ export default function CalendarPage() {
 
       {/* ── Scrollable tasks body ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 pb-3">
-        {/* Status Tabs (Segmented) — hidden on Comments sub-tab */}
-        {subTab !== "comments" && (
+        {/* Status Tabs (Segmented) */}
         <div
           className="flex items-center pt-3 pb-2"
           style={{
@@ -1433,125 +1364,7 @@ export default function CalendarPage() {
             );
           })}
         </div>
-        )}
 
-        {/* Comments tab — Settings (Left Column) */}
-        {subTab === "comments" && (
-          <div className="py-3 flex flex-col gap-4">
-
-            {/* Heading */}
-            <div>
-              <p className="text-[15px] font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>Auto Reply Settings</p>
-              <p className="text-[12px] mt-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>
-                Configure how comments are classified and replied to
-              </p>
-            </div>
-
-            {/* Day 1 — Claude analysis trigger */}
-            <div
-              className="rounded-[var(--gv-radius-md)] p-4"
-              style={{ background: "var(--gv-color-primary-50)", border: "1px solid var(--gv-color-primary-200)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <AiIcon className="w-4 h-4 flex-shrink-0" style={{ color: "var(--gv-color-primary-500)" }} />
-                <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-primary-700)" }}>Day 1 — Comment Analysis</p>
-              </div>
-              <p className="text-[12px] leading-relaxed mb-3" style={{ color: "var(--gv-color-primary-600)" }}>
-                Claude fetches last 300 comments across connected platforms, then classifies into Group 1 (needs human reply) and Group 2 (AI universal reply). Must run before automation starts next day.
-              </p>
-              <button
-                className="w-full py-2.5 text-[13px] font-semibold text-white flex items-center justify-center gap-2"
-                style={{ borderRadius: "var(--gv-radius-md)", background: "var(--gv-color-primary-500)" }}
-              >
-                <AiIcon className="w-4 h-4" /> Analyze Last 300 Comments
-              </button>
-            </div>
-
-            {/* Connected Platforms & toggles */}
-            <div>
-              <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--gv-color-neutral-700)" }}>
-                Platforms
-              </p>
-              {connectedPlatforms.length === 0 ? (
-                <div
-                  className="rounded-[var(--gv-radius-md)] p-3 text-center"
-                  style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}
-                >
-                  <p className="text-[12px]" style={{ color: "var(--gv-color-neutral-400)" }}>
-                    No platforms connected
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {connectedPlatforms.map((p) => (
-                    <div
-                      key={p.platform}
-                      className="flex items-center justify-between rounded-[var(--gv-radius-md)] p-3"
-                      style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}
-                    >
-                      <div>
-                        <p className="text-[13px] font-medium" style={{ color: "var(--gv-color-neutral-800)" }}>
-                          {p.handle ? `@${p.handle}` : p.platform}
-                        </p>
-                        <p className="text-[11px]" style={{ color: p.auto_reply_enabled ? "var(--gv-color-primary-600)" : "var(--gv-color-neutral-400)" }}>
-                          {p.auto_reply_enabled ? "Auto-reply ON" : "Manual only"}
-                        </p>
-                      </div>
-                      {/* Toggle switch */}
-                      <div
-                        className="relative flex-shrink-0"
-                        style={{
-                          width: 36,
-                          height: 20,
-                          borderRadius: "var(--gv-radius-full)",
-                          background: p.auto_reply_enabled ? "var(--gv-color-primary-500)" : "var(--gv-color-neutral-200)",
-                          transition: "background 0.2s",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <span
-                          style={{
-                            position: "absolute",
-                            top: 2,
-                            left: p.auto_reply_enabled ? 18 : 2,
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            background: "white",
-                            boxShadow: "var(--gv-shadow-card)",
-                            transition: "left 0.2s",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* AI Rate Limits */}
-            <div
-              className="rounded-[var(--gv-radius-md)] p-4"
-              style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-neutral-50)" }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <BoltIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--gv-color-neutral-500)" }} />
-                <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-700)" }}>AI Reply Rate — Group 2</p>
-              </div>
-              {[
-                { plan: "Partner", rate: "1 reply / 3 min" },
-                { plan: "Premium", rate: "1 reply / 5 min" },
-                { plan: "Basic",   rate: "1 reply / 10 min" },
-              ].map(({ plan, rate }) => (
-                <div key={plan} className="flex items-center justify-between mt-2">
-                  <p className="text-[12px] font-medium" style={{ color: "var(--gv-color-neutral-700)" }}>{plan}</p>
-                  <p className="text-[11px]" style={{ color: "var(--gv-color-neutral-500)" }}>{rate}</p>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        )}
         {/* Others tab — CEO tasks */}
         {subTab === "others" && (
           <div className="py-3 space-y-2">
@@ -1893,236 +1706,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  // Derived: all replied item IDs (sent by human or approved by AI)
-  const allDoneIds = new Set([...arSentIds, ...arApprovedIds]);
-
-  const right = subTab === "comments" ? (
-    /* ── Right Column: 3-Group Comment Display ── */
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div
-        className="flex-shrink-0 px-5 py-4"
-        style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}
-      >
-        <p className="text-[14px] font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>
-          Comments
-          {selectedDate && (
-            <span className="ml-2 text-[12px] font-normal" style={{ color: "var(--gv-color-neutral-400)" }}>
-              {new Date(selectedDate + "T00:00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })}
-            </span>
-          )}
-        </p>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="gv-badge" style={{ background: "var(--gv-color-warning-50)", color: "var(--gv-color-warning-700)", border: "1px solid var(--gv-color-warning-200)" }}>
-            {humanReplies.filter(r => !allDoneIds.has(r.id)).length} needs attention
-          </span>
-          <span className="gv-badge gv-badge-primary">
-            {aiReplies.filter(r => !allDoneIds.has(r.id)).length} AI queue
-          </span>
-          <span className="gv-badge" style={{ background: "var(--gv-color-success-50)", color: "var(--gv-color-success-700)", border: "1px solid var(--gv-color-success-200)" }}>
-            {allDoneIds.size} done
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
-
-        {allReplyItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-[14px] font-medium" style={{ color: "var(--gv-color-neutral-500)" }}>No comments for this date</p>
-            <p className="text-[12px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>Run Comment Analysis to populate groups</p>
-          </div>
-        ) : (
-          <>
-            {/* ── Group 1: Needs Attention (Human Reply) ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <UserIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--gv-color-warning-500)" }} />
-                <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--gv-color-warning-600)" }}>
-                  Group 1 — Needs Attention
-                </p>
-                <span className="gv-badge ml-auto" style={{ background: "var(--gv-color-warning-50)", color: "var(--gv-color-warning-700)", border: "1px solid var(--gv-color-warning-200)", fontSize: "11px" }}>
-                  {humanReplies.filter(r => !allDoneIds.has(r.id)).length}
-                </span>
-              </div>
-              {humanReplies.length === 0 ? (
-                <p className="text-[12px] text-center py-3" style={{ color: "var(--gv-color-neutral-400)" }}>No priority comments</p>
-              ) : (
-                <div className="space-y-2">
-                  {humanReplies.filter(r => !allDoneIds.has(r.id)).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[var(--gv-radius-md)] p-3"
-                      style={{ border: "1px solid var(--gv-color-warning-200)", background: "var(--gv-color-bg-surface)" }}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[13px]">{item.platformIcon}</span>
-                        <span className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-800)" }}>{item.author}</span>
-                        <span className="gv-badge ml-auto" style={{ background: "var(--gv-color-warning-50)", color: "var(--gv-color-warning-700)", border: "1px solid var(--gv-color-warning-100)", fontSize: "10px" }}>
-                          Score {item.authorScore}
-                        </span>
-                      </div>
-                      <p className="text-[12px] leading-relaxed mb-2" style={{ color: "var(--gv-color-neutral-600)" }}>
-                        &ldquo;{item.comment}&rdquo;
-                      </p>
-                      {arEditId === item.id ? (
-                        <div>
-                          <textarea
-                            value={arEditText}
-                            onChange={(e) => setArEditText(e.target.value)}
-                            rows={3}
-                            className="w-full text-[12px] p-2 resize-none"
-                            style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-300)", background: "var(--gv-color-bg-base)", color: "var(--gv-color-neutral-800)", outline: "none" }}
-                          />
-                          <div className="flex gap-2 mt-1.5">
-                            <button
-                              onClick={() => { setArSentIds((p) => new Set([...p, item.id])); setArEditId(null); }}
-                              className="flex-1 py-1.5 text-[12px] font-semibold text-white flex items-center justify-center gap-1"
-                              style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-primary-500)" }}
-                            >
-                              <PaperPlaneIcon className="w-3 h-3" /> Send
-                            </button>
-                            <button
-                              onClick={() => setArEditId(null)}
-                              className="px-3 py-1.5 text-[12px]"
-                              style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", color: "var(--gv-color-neutral-600)" }}
-                            >
-                              <CloseLineIcon className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-[11px] italic mb-2" style={{ color: "var(--gv-color-neutral-500)" }}>
-                            Draft: {item.draftReply.length > 70 ? item.draftReply.slice(0, 70) + "…" : item.draftReply}
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setArSentIds((p) => new Set([...p, item.id]))}
-                              className="flex-1 py-1.5 text-[12px] font-semibold text-white flex items-center justify-center gap-1"
-                              style={{ borderRadius: "var(--gv-radius-sm)", background: "var(--gv-color-primary-500)" }}
-                            >
-                              <PaperPlaneIcon className="w-3 h-3" /> Send Draft
-                            </button>
-                            <button
-                              onClick={() => { setArEditId(item.id); setArEditText(item.draftReply); }}
-                              className="px-3 py-1.5 text-[12px]"
-                              style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-neutral-200)", color: "var(--gv-color-neutral-600)" }}
-                            >
-                              <PencilIcon className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ height: "1px", background: "var(--gv-color-neutral-100)" }} />
-
-            {/* ── Group 2: Automated by AI ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <AiIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--gv-color-primary-500)" }} />
-                <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--gv-color-primary-600)" }}>
-                  Group 2 — Automated by AI
-                </p>
-                <span className="gv-badge gv-badge-primary ml-auto" style={{ fontSize: "11px" }}>
-                  {aiReplies.filter(r => !allDoneIds.has(r.id)).length}
-                </span>
-              </div>
-              {aiReplies.filter(r => !allDoneIds.has(r.id)).length > 0 && (
-                <button
-                  onClick={() => setArApprovedIds(new Set(aiReplies.map(r => r.id)))}
-                  className="w-full py-2 mb-2 text-[12px] font-semibold text-white flex items-center justify-center gap-1.5"
-                  style={{ borderRadius: "var(--gv-radius-md)", background: "var(--gv-color-primary-500)" }}
-                >
-                  <BoltIcon className="w-3.5 h-3.5" /> Approve All ({aiReplies.filter(r => !allDoneIds.has(r.id)).length})
-                </button>
-              )}
-              {aiReplies.length === 0 ? (
-                <p className="text-[12px] text-center py-3" style={{ color: "var(--gv-color-neutral-400)" }}>No AI auto-reply items</p>
-              ) : (
-                <div className="space-y-2">
-                  {aiReplies.filter(r => !allDoneIds.has(r.id)).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[var(--gv-radius-md)] p-3"
-                      style={{ border: "1px solid var(--gv-color-neutral-200)", background: "var(--gv-color-bg-surface)" }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px]">{item.platformIcon}</span>
-                        <span className="text-[12px] font-medium" style={{ color: "var(--gv-color-neutral-700)" }}>{item.author}</span>
-                        <span className="text-[10px] ml-1" style={{ color: "var(--gv-color-neutral-400)" }}>Score {item.authorScore}</span>
-                        <button
-                          onClick={() => setArApprovedIds((p) => new Set([...p, item.id]))}
-                          className="ml-auto p-1 flex items-center"
-                          style={{ borderRadius: "var(--gv-radius-sm)", border: "1px solid var(--gv-color-primary-200)", color: "var(--gv-color-primary-500)" }}
-                          title="Approve"
-                        >
-                          <CheckLineIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <p className="text-[11px] mt-1.5" style={{ color: "var(--gv-color-neutral-500)" }}>
-                        {item.comment.length > 80 ? item.comment.slice(0, 80) + "…" : item.comment}
-                      </p>
-                      <p className="text-[11px] italic mt-1" style={{ color: "var(--gv-color-primary-500)" }}>
-                        → {item.draftReply.length > 70 ? item.draftReply.slice(0, 70) + "…" : item.draftReply}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ height: "1px", background: "var(--gv-color-neutral-100)" }} />
-
-            {/* ── Group 3: Done / Replied ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircleIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--gv-color-success-500)" }} />
-                <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--gv-color-success-600)" }}>
-                  Group 3 — Done Replied
-                </p>
-                <span className="gv-badge ml-auto" style={{ background: "var(--gv-color-success-50)", color: "var(--gv-color-success-700)", border: "1px solid var(--gv-color-success-200)", fontSize: "11px" }}>
-                  {allDoneIds.size}
-                </span>
-              </div>
-              {allDoneIds.size === 0 ? (
-                <p className="text-[12px] text-center py-3" style={{ color: "var(--gv-color-neutral-400)" }}>No replies sent yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {allReplyItems.filter(r => allDoneIds.has(r.id)).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[var(--gv-radius-md)] p-3"
-                      style={{ border: "1px solid var(--gv-color-success-200)", background: "var(--gv-color-success-50)" }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px]">{item.platformIcon}</span>
-                        <span className="text-[12px] font-medium" style={{ color: "var(--gv-color-neutral-700)" }}>{item.author}</span>
-                        <div className="ml-auto flex items-center gap-1">
-                          <CheckLineIcon className="w-3.5 h-3.5" style={{ color: "var(--gv-color-success-500)" }} />
-                          <span className="text-[11px] font-medium" style={{ color: "var(--gv-color-success-700)" }}>
-                            {arSentIds.has(item.id) ? "Replied" : "Auto-sent"}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-[11px] mt-1.5" style={{ color: "var(--gv-color-neutral-500)" }}>
-                        {item.comment.length > 80 ? item.comment.slice(0, 80) + "…" : item.comment}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  ) : selectedPost ? (
+  const right = selectedPost ? (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex-shrink-0 px-5 py-4" style={{ borderBottom: "1px solid var(--gv-color-neutral-200)" }}>
@@ -2241,7 +1825,6 @@ export default function CalendarPage() {
       onPublish={handlePublish}
       onReject={handleReject}
       isRejected={selectedTask ? rejectedTaskIds.has(selectedTask.id) : false}
-      onPublishReplies={handlePublishReplies}
     />
   );
 
@@ -2286,15 +1869,6 @@ export default function CalendarPage() {
                   <polyline points="14 2 14 8 20 8" />
                   <line x1="16" y1="13" x2="8" y2="13" />
                   <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              ),
-            },
-            {
-              key: "comments" as SubTab,
-              label: "Comments",
-              icon: (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                 </svg>
               ),
             },
