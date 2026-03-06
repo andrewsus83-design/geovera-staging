@@ -114,20 +114,27 @@ export default function AutoReplyPage() {
   const [manualReply, setManualReply]   = useState("");
   const [aiEnabled, setAIEnabled]       = useState(true);
   const [aiTone, setAITone]             = useState<"professional" | "friendly" | "casual">("friendly");
-  const [filter, setFilter]             = useState<"all" | "queue" | "attention">("all");
+  const [filter, setFilter]             = useState<"all" | "replied">("all");
   const [sending, setSending]           = useState(false);
+  const [repliedComments, setReplied]   = useState<CommentItem[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [queueRes, attentionRes, rateLimitRes] = await Promise.all([
+    const [queueRes, attentionRes, rateLimitRes, sentRes, resolvedRes] = await Promise.all([
       supabase.from("gv_reply_queue").select("*").eq("brand_id", DEMO_BRAND_ID)
         .in("status", ["queued", "processing", "failed"]).order("weight", { ascending: false }).limit(100),
       supabase.from("gv_attention_queue").select("*").eq("brand_id", DEMO_BRAND_ID)
         .eq("is_resolved", false).order("created_at", { ascending: false }).limit(100),
       supabase.from("gv_reply_rate_limit").select("platform,last_reply_at,cooldown_seconds").eq("brand_id", DEMO_BRAND_ID),
+      // Replied tab — sent/skipped queue items
+      supabase.from("gv_reply_queue").select("*").eq("brand_id", DEMO_BRAND_ID)
+        .in("status", ["sent", "skipped"]).order("updated_at", { ascending: false }).limit(100),
+      // Replied tab — resolved attention items
+      supabase.from("gv_attention_queue").select("*").eq("brand_id", DEMO_BRAND_ID)
+        .eq("is_resolved", true).order("updated_at", { ascending: false }).limit(100),
     ]);
 
-    const qItems: CommentItem[] = (queueRes.data ?? []).map((r: Record<string, unknown>) => ({
+    const mapQueue = (r: Record<string, unknown>): CommentItem => ({
       id: r.id as string, source: "queue" as const,
       platform: r.platform as string,
       commenter_username: r.commenter_username as string,
@@ -138,9 +145,9 @@ export default function AutoReplyPage() {
       profile_tier: r.profile_tier as string,
       profile_score: r.profile_score as number,
       weight: r.weight as number,
-    }));
+    });
 
-    const aItems: CommentItem[] = (attentionRes.data ?? []).map((r: Record<string, unknown>) => ({
+    const mapAttention = (r: Record<string, unknown>): CommentItem => ({
       id: r.id as string, source: "attention" as const,
       platform: r.platform as string,
       commenter_username: r.commenter_username as string,
@@ -152,9 +159,20 @@ export default function AutoReplyPage() {
       urgency: r.urgency as string | null,
       is_read: r.is_read as boolean,
       is_resolved: r.is_resolved as boolean,
-    }));
+    });
 
-    setComments([...qItems, ...aItems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    const sort = (a: CommentItem, b: CommentItem) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+    setComments([
+      ...(queueRes.data ?? []).map(mapQueue),
+      ...(attentionRes.data ?? []).map(mapAttention),
+    ].sort(sort));
+
+    setReplied([
+      ...(sentRes.data ?? []).map(mapQueue),
+      ...(resolvedRes.data ?? []).map(mapAttention),
+    ].sort(sort));
+
     setRateLimits((rateLimitRes.data ?? []) as RateLimit[]);
     setLoading(false);
   }, []);
@@ -183,21 +201,19 @@ export default function AutoReplyPage() {
   }, [comments]);
 
   const filteredComments = useMemo(() => {
-    let base = comments.filter(c => toDateKey(c.created_at) === selectedDateKey);
-    if (filter === "queue")     base = base.filter(c => c.source === "queue");
-    if (filter === "attention") base = base.filter(c => c.source === "attention");
-    return base;
-  }, [comments, selectedDateKey, filter]);
+    if (filter === "replied") {
+      return repliedComments.filter(c => toDateKey(c.created_at) === selectedDateKey);
+    }
+    return comments.filter(c => toDateKey(c.created_at) === selectedDateKey);
+  }, [comments, repliedComments, selectedDateKey, filter]);
 
-  const selectedComment = comments.find(c => c.id === selectedId) ?? null;
+  const selectedComment = [...comments, ...repliedComments].find(c => c.id === selectedId) ?? null;
 
   const todayDateKey = new Date().toISOString().slice(0, 10);
 
   /* ── Tab counts ── */
-  const baseDateComments = useMemo(() => comments.filter(c => toDateKey(c.created_at) === selectedDateKey), [comments, selectedDateKey]);
-  const countAll       = baseDateComments.length;
-  const countQueue     = baseDateComments.filter(c => c.source === "queue").length;
-  const countAttention = baseDateComments.filter(c => c.source === "attention").length;
+  const countAll     = useMemo(() => comments.filter(c => toDateKey(c.created_at) === selectedDateKey).length, [comments, selectedDateKey]);
+  const countReplied = useMemo(() => repliedComments.filter(c => toDateKey(c.created_at) === selectedDateKey).length, [repliedComments, selectedDateKey]);
 
   /* ── Send AI reply ── */
   const handleSendAI = useCallback(async () => {
@@ -225,7 +241,9 @@ export default function AutoReplyPage() {
         }
       );
       if (res.ok) {
+        const sent = { ...selectedComment, status: "sent" as ReplyStatus };
         setComments(prev => prev.filter(c => c.id !== selectedComment.id));
+        setReplied(prev => [sent, ...prev]);
         setSelectedId(null);
       } else {
         const err = await res.json().catch(() => ({}));
@@ -261,7 +279,9 @@ export default function AutoReplyPage() {
       );
       if (res.ok) {
         setManualReply("");
+        const sent = { ...selectedComment, status: "sent" as ReplyStatus };
         setComments(prev => prev.filter(c => c.id !== selectedComment.id));
+        setReplied(prev => [sent, ...prev]);
         setSelectedId(null);
       }
     } finally {
@@ -285,7 +305,9 @@ export default function AutoReplyPage() {
           .update({ is_resolved: true, resolved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
           .eq("id", selectedComment.id);
       }
+      const skipped = { ...selectedComment, status: "skipped" as ReplyStatus, is_resolved: true };
       setComments(prev => prev.filter(c => c.id !== selectedComment.id));
+      setReplied(prev => [skipped, ...prev]);
       setSelectedId(null);
     } finally {
       setSending(false);
@@ -381,9 +403,8 @@ export default function AutoReplyPage() {
           }}
         >
           {([
-            { key: "all",       label: "All",      count: countAll },
-            { key: "queue",     label: "AI Queue",  count: countQueue },
-            { key: "attention", label: "Review",    count: countAttention },
+            { key: "all",     label: "All",     count: countAll },
+            { key: "replied", label: "Replied", count: countReplied },
           ] as { key: typeof filter; label: string; count: number }[]).map(f => {
             const isActive = filter === f.key;
             return (
@@ -429,9 +450,13 @@ export default function AutoReplyPage() {
         ) : filteredComments.length === 0 ? (
           <div className="flex flex-col items-center py-10 text-center">
             <span className="text-[24px] mb-2">💬</span>
-            <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-600)" }}>No comments</p>
+            <p className="text-[12px] font-semibold" style={{ color: "var(--gv-color-neutral-600)" }}>
+              {filter === "replied" ? "No replied comments" : "No comments"}
+            </p>
             <p className="text-[10px] mt-1" style={{ color: "var(--gv-color-neutral-400)" }}>
-              {selectedDateKey === todayDateKey ? "No comments today yet" : "No comments on this date"}
+              {filter === "replied"
+                ? "Sent & skipped replies will appear here"
+                : selectedDateKey === todayDateKey ? "No comments today yet" : "No comments on this date"}
             </p>
           </div>
         ) : (
