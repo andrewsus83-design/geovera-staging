@@ -1617,89 +1617,196 @@ export default function AnalyticsPage() {
 
   // ── Tier gate ─────────────────────────────────────────────────
   if (!hasAccess) {
-    return (
-      <div className="flex h-screen gap-[9px] p-[9px]">
-        {/* Left nav — identical to ThreeColumnLayout */}
-        <div className="w-[18%] flex-shrink-0 h-full overflow-y-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-x-hidden">
-          <div className="h-full overflow-y-auto custom-scrollbar">
-            <NavColumn />
+    const gateLeft = (
+      <NavColumn>
+        {/* ── Upgrade plan card ── */}
+        <div className="mt-4 flex flex-col gap-3">
+          {/* Current plan */}
+          <div className="rounded-[14px] px-3 py-3" style={{ background: "var(--gv-color-neutral-50)", border: "1px solid var(--gv-color-neutral-200)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--gv-color-neutral-400)" }}>Current Plan</p>
+            <p className="text-[13px] font-bold capitalize" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "Georgia, serif" }}>{currentTier}</p>
           </div>
-        </div>
 
-        {/* Center + Right merged — full remaining width */}
-        <div className="flex-1 h-full overflow-y-auto custom-scrollbar rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 flex items-center justify-center px-8">
-          <div className="w-full max-w-xl">
-            {/* Lock card */}
-            <div className="rounded-2xl border border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800/50 overflow-hidden shadow-sm">
-
-              {/* Top gradient strip */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-brand-400 via-brand-500 to-cyan-500" />
-
-              <div className="px-10 py-12 text-center">
-                {/* Lock icon */}
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-gray-500">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0110 0v4" />
-                  </svg>
+          {/* Plan tiers */}
+          {(["basic", "premium", "partner"] as const).map((tier) => {
+            const isActive = tier === currentTier;
+            const isTarget = tier === ANALYTICS_REQUIRES_TIER;
+            return (
+              <div
+                key={tier}
+                className="rounded-[14px] px-3 py-2.5"
+                style={{
+                  background: isTarget ? "var(--gv-color-primary-50)" : "var(--gv-color-bg-surface)",
+                  border: isTarget ? "1.5px solid var(--gv-color-primary-200)" : "1px solid var(--gv-color-neutral-200)",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-semibold capitalize" style={{ color: isTarget ? "var(--gv-color-primary-700)" : "var(--gv-color-neutral-700)" }}>
+                    {tier}
+                  </span>
+                  {isActive && (
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ background: "var(--gv-color-neutral-200)", color: "var(--gv-color-neutral-500)" }}>You</span>
+                  )}
+                  {isTarget && !isActive && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gv-color-primary-500)">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  )}
                 </div>
-
-                {/* Badge */}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-4">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                  Partner Tier Required
-                </span>
-
-                {/* Title */}
-                <h2 className="text-[22px] font-bold mb-2" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "Georgia, serif" }}>
-                  Analytics Dashboard
-                </h2>
-                <p className="text-sm mb-8 leading-relaxed" style={{ color: "var(--gv-color-neutral-500)" }}>
-                  Unlock deep performance insights across SEO, GEO visibility, and Social Algorithm — available exclusively for Partner tier members.
-                </p>
-
-                {/* Feature list — 3 columns side by side in wider space */}
-                <div className="mb-8 grid grid-cols-3 gap-3 text-left">
-                  {[
-                    { icon: "📈", title: "SEO Performance", desc: "Track content reach, engagement rate, and growth trends across all published articles and posts" },
-                    { icon: "🌐", title: "GEO Visibility", desc: "Monitor how AI engines like ChatGPT, Perplexity, Gemini, and Claude mention your brand" },
-                    { icon: "📊", title: "Social Algorithm Score", desc: "Analyze your top 10 social algorithm factors with per-post scoring and improvement tips" },
-                  ].map((f) => (
-                    <div key={f.title} className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                      <span className="text-2xl">{f.icon}</span>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{f.title}</p>
-                      <p className="text-[11px] text-gray-400 leading-relaxed">{f.desc}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <a
-                  href="/pricing-tables"
-                  className="inline-block w-full max-w-xs rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white text-center hover:bg-brand-600 transition-colors"
-                >
-                  Upgrade to Partner
-                </a>
-                <p className="mt-3 text-[11px] text-gray-400">
-                  Already a Partner?{" "}
-                  <a href="mailto:hello@geovera.xyz" className="text-brand-500 hover:underline">
-                    Contact support
-                  </a>{" "}
-                  to activate your access.
+                <p className="text-[10px] mt-0.5" style={{ color: isTarget ? "var(--gv-color-primary-600)" : "var(--gv-color-neutral-400)" }}>
+                  {tier === "basic" ? "Core features" : tier === "premium" ? "Advanced tools" : "Full analytics"}
                 </p>
               </div>
-            </div>
+            );
+          })}
 
-            {/* Current plan note */}
-            <p className="mt-4 text-center text-xs text-gray-400">
-              Current plan: <span className="font-medium text-gray-600 dark:text-gray-300 capitalize">{currentTier}</span> ·{" "}
-              Analytics requires <span className="font-medium text-amber-600 dark:text-amber-400 capitalize">{ANALYTICS_REQUIRES_TIER}</span>
-            </p>
-          </div>
+          {/* Upgrade CTA */}
+          <a
+            href="/billing"
+            className="block text-center rounded-[14px] py-2.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: "var(--gv-gradient-primary)", boxShadow: "0 3px 10px rgba(95,143,139,0.25)" }}
+          >
+            Upgrade to Partner
+          </a>
+          <p className="text-[10px] text-center leading-tight" style={{ color: "var(--gv-color-neutral-400)" }}>
+            Already a Partner?{" "}
+            <a href="mailto:hello@geovera.xyz" style={{ color: "var(--gv-color-primary-500)" }}>Contact support</a>
+          </p>
+        </div>
+      </NavColumn>
+    );
+
+    const gateCenter = (
+      <div className="flex flex-col justify-center h-full px-8 py-10">
+        {/* Lock icon + badge */}
+        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: "var(--gv-color-neutral-100)", border: "1px solid var(--gv-color-neutral-200)" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--gv-color-neutral-400)" }}>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold mb-4 w-fit" style={{ background: "var(--gv-color-primary-50)", color: "var(--gv-color-primary-600)", border: "1px solid var(--gv-color-primary-100)" }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          Partner Tier Required
+        </span>
+
+        <h2 className="text-[22px] font-bold mb-3" style={{ color: "var(--gv-color-neutral-900)", fontFamily: "Georgia, serif" }}>
+          Analytics Dashboard
+        </h2>
+        <p className="text-[13px] leading-relaxed mb-8" style={{ color: "var(--gv-color-neutral-500)" }}>
+          Deep performance insights across SEO, GEO AI visibility, and Social Algorithm — all in one dashboard. Available exclusively for Partner tier members.
+        </p>
+
+        {/* Mini preview cards */}
+        <div className="grid grid-cols-1 gap-2.5">
+          {[
+            { label: "SEO Score", value: "87", unit: "/100", trend: "+12%", desc: "Content performance" },
+            { label: "GEO Visibility", value: "3.2K", unit: "mentions", trend: "+24%", desc: "AI engine citations" },
+            { label: "Social Score", value: "74", unit: "/100", trend: "+8%", desc: "Algorithm alignment" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between rounded-[14px] px-4 py-3"
+              style={{ background: "var(--gv-color-neutral-50)", border: "1px solid var(--gv-color-neutral-100)", filter: "blur(2px)", userSelect: "none" }}
+            >
+              <div>
+                <p className="text-[11px] font-medium" style={{ color: "var(--gv-color-neutral-400)" }}>{item.label}</p>
+                <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>{item.desc}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[20px] font-bold leading-none" style={{ color: "var(--gv-color-primary-700)", fontFamily: "Georgia, serif" }}>{item.value}<span className="text-[11px] font-normal ml-0.5" style={{ color: "var(--gv-color-neutral-400)" }}>{item.unit}</span></p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--gv-color-primary-500)" }}>{item.trend}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-6 text-[11px]" style={{ color: "var(--gv-color-neutral-400)" }}>
+          Current plan: <span className="font-semibold capitalize" style={{ color: "var(--gv-color-neutral-600)" }}>{currentTier}</span>
+        </p>
+      </div>
+    );
+
+    const gateRight = (
+      <div className="flex flex-col h-full px-5 py-6 overflow-y-auto">
+        <p className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--gv-color-neutral-400)" }}>
+          What you&apos;ll unlock
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {[
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                  <polyline points="3 17 9 11 13 15 21 7" /><polyline points="15 7 21 7 21 13" />
+                </svg>
+              ),
+              title: "SEO Content Performance",
+              items: ["Reach & engagement per post", "Save rate & comment velocity", "Growth trend (weekly/monthly)", "Top performing content ranking"],
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                  <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              ),
+              title: "GEO AI Visibility Score",
+              items: ["ChatGPT, Perplexity, Gemini, Claude", "Queries where your brand is cited", "Average mention position", "Visibility trend over time"],
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                  <rect x="3" y="3" width="18" height="18" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+                </svg>
+              ),
+              title: "Social Algorithm Score",
+              items: ["10 algorithm factors scored", "Per-post evaluation breakdown", "Watch retention & CTR analysis", "Actionable improvement tips"],
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                </svg>
+              ),
+              title: "Automated Reports",
+              items: ["Biweekly performance digest", "Brand intelligence PDF export", "Competitor mention tracking", "Custom date range filters"],
+            },
+          ].map((section) => (
+            <div
+              key={section.title}
+              className="rounded-[16px] p-4"
+              style={{ background: "var(--gv-color-bg-surface)", border: "1px solid var(--gv-color-neutral-100)" }}
+            >
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-[8px]"
+                  style={{ background: "var(--gv-color-primary-50)", color: "var(--gv-color-primary-600)", border: "1px solid var(--gv-color-primary-100)" }}>
+                  {section.icon}
+                </span>
+                <p className="text-[12px] font-bold" style={{ color: "var(--gv-color-neutral-900)" }}>{section.title}</p>
+              </div>
+              <ul className="flex flex-col gap-1">
+                {section.items.map((item) => (
+                  <li key={item} className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--gv-color-neutral-500)" }}>
+                    <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "var(--gv-color-primary-400)" }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
+    );
+
+    return (
+      <ThreeColumnLayout
+        left={gateLeft}
+        center={gateCenter}
+        right={gateRight}
+      />
     );
   }
 

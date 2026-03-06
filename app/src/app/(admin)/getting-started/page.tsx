@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ThreeColumnLayout from "@/components/shared/ThreeColumnLayout";
 import NavColumn from "@/components/shared/NavColumn";
 import PlatformIcon from "@/components/shared/PlatformIcon";
+import PlatformProfilePanel from "@/components/shared/PlatformProfilePanel";
 import { supabase } from "@/lib/supabase";
 
 const PLATFORM_ID_MAP: Record<string, string> = {
@@ -505,8 +506,8 @@ function ConnectGuide({ connectedCount = 0 }: { connectedCount?: number }) {
         ] as const).map((p) => (
           <div key={p.id} className="flex items-center gap-3 mt-2 px-3 py-2 rounded-[10px]"
             style={{ background: "var(--gv-color-neutral-50)", border: "1px solid var(--gv-color-neutral-100)" }}>
-            <span className="flex-shrink-0" style={{ filter: "grayscale(1)", opacity: 0.65, display: "flex" }}>
-              <PlatformIcon id={p.id} size={18} />
+            <span className="flex-shrink-0" style={{ color: "var(--gv-color-primary-500)", display: "flex" }}>
+              <PlatformIcon id={p.id} size={18} mono />
             </span>
             <div>
               <p className="text-[13px] font-semibold" style={{ color: "var(--gv-color-neutral-900)" }}>{p.name}</p>
@@ -1740,8 +1741,8 @@ export default function GettingStartedPage() {
                     className="w-9 h-9 rounded-[var(--gv-radius-sm)] flex items-center justify-center flex-shrink-0"
                     style={{ background: "var(--gv-color-neutral-100)", border: "1px solid var(--gv-color-neutral-200)" }}
                   >
-                    <span style={{ filter: "grayscale(1)", opacity: 0.7, display: "flex" }}>
-                      <PlatformIcon id={platformId === "x_twitter" ? "x" : platformId === "google_business" ? "gbp" : platformId} size={20} />
+                    <span style={{ color: "var(--gv-color-primary-500)", display: "flex" }}>
+                      <PlatformIcon id={platformId === "x_twitter" ? "x" : platformId === "google_business" ? "gbp" : platformId} size={20} mono />
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1801,7 +1802,7 @@ export default function GettingStartedPage() {
                         });
                       }}
                       className="flex-1 h-7 flex items-center justify-center gap-1.5 rounded-[var(--gv-radius-xs)] text-[11px] font-semibold text-white transition-all hover:opacity-80"
-                      style={{ background: "var(--gv-gradient-primary)", boxShadow: "0 3px 10px rgba(95,143,139,0.25)" }}
+                      style={{ background: "var(--gv-color-primary-600)", boxShadow: "0 2px 6px rgba(63,101,98,0.20)" }}
                     >
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
@@ -1892,10 +1893,14 @@ export default function GettingStartedPage() {
           {/* Content per step */}
           {selected === "brand_profile" && <BrandProfileGuide />}
           {["instagram", "tiktok", "youtube", "linkedin", "x_twitter", "facebook", "pinterest", "google_business", "reddit", "website"].includes(selected) && (
-            <PlatformGuide
-              itemId={selected}
-              onConnectClick={() => { toggleDone(selected); setSelected("connect_all"); }}
-            />
+            done.has(selected) ? (
+              <PlatformProfilePanel platformId={selected} brandId={FALLBACK_BRAND_ID} />
+            ) : (
+              <PlatformGuide
+                itemId={selected}
+                onConnectClick={() => { toggleDone(selected); setSelected("connect_all"); }}
+              />
+            )
           )}
           {selected === "connect_all" && <ConnectGuide connectedCount={connectedPlatformCount} />}
           {selected === "faq_general" && (
