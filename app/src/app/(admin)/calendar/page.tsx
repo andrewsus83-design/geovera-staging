@@ -859,6 +859,36 @@ function TikTokPhoneMockup({ post, caption, hashtags }: {
 type TaskFilter = "inprogress" | "done" | "rejected";
 type SubTab = "content" | "others";
 
+// Map a raw gv_tasks DB row → Task UI type
+function mapDbTask(raw: Record<string, unknown>): Task {
+  const priority = (["high", "medium", "low"] as const).includes(raw.priority as "high" | "medium" | "low")
+    ? (raw.priority as "high" | "medium" | "low")
+    : "medium";
+  const impact: 1 | 2 | 3 = priority === "high" ? 3 : priority === "medium" ? 2 : 1;
+  const agent: "CEO" | "CMO" =
+    String(raw.category ?? "").toLowerCase().includes("ceo") ? "CEO" : "CMO";
+  const hashtags: string[] = Array.isArray(raw.hashtags)
+    ? (raw.hashtags as string[])
+    : typeof raw.hashtags === "string" && raw.hashtags
+      ? (raw.hashtags as string).split(",").map((h) => h.trim()).filter(Boolean)
+      : [];
+  return {
+    id: raw.id as string,
+    title: raw.title as string,
+    description: (raw.description as string) || (raw.ai_suggested_action as string) || "",
+    agent,
+    priority,
+    impact,
+    dueDate: (raw.due_date as string) || new Date().toISOString().slice(0, 10),
+    platform: raw.platform as string | undefined,
+    taskType: raw.content_type === "reply" ? "reply" : "content",
+    content: {
+      caption: (raw.description as string) || "",
+      hashtags,
+    },
+  };
+}
+
 // 7D window: 3 days back + today + 3 days ahead
 const getMaxDateStr = () => {
   const d = new Date();
@@ -885,6 +915,19 @@ export default function CalendarPage() {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("inprogress");
   const [subTab, setSubTab] = useState<SubTab>("content");
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+  const [realTasks, setRealTasks] = useState<Task[] | null>(null);
+
+  // Fetch real tasks from gv_tasks (fall back to demoTasks if none)
+  useEffect(() => {
+    fetch(`/api/tasks/list?brand_id=${DEMO_BRAND_ID}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.tasks) && data.tasks.length > 0) {
+          setRealTasks(data.tasks.map(mapDbTask));
+        }
+      })
+      .catch(() => { /* keep demoTasks */ });
+  }, []);
 
   // Connected platforms from localStorage (set by Home page toggles)
   const [lsConnectedIds, setLsConnectedIds] = useState<Set<string>>(new Set());
@@ -936,20 +979,26 @@ export default function CalendarPage() {
   const maxDateStr = useMemo(() => getMaxDateStr(), []);
   const minDateStr = useMemo(() => getMinDateStr(), []);
 
-  const taskDates = useMemo(() => demoTasks.map((t) => t.dueDate), []);
+  // Use real DB tasks when available, otherwise fall back to demo data
+  const sourceTasks = useMemo(
+    () => (realTasks !== null && realTasks.length > 0 ? realTasks : demoTasks),
+    [realTasks]
+  );
+
+  const taskDates = useMemo(() => sourceTasks.map((t) => t.dueDate), [sourceTasks]);
 
   // Base filter: selected date, or full 7D window (3 back + today + 3 forward)
   const baseTasks = useMemo(() => {
     if (selectedDate) {
-      return demoTasks.filter((t) => t.dueDate === selectedDate);
+      return sourceTasks.filter((t) => t.dueDate === selectedDate);
     }
     const minDate = new Date(minDateStr + "T00:00:00");
     const maxDate = new Date(maxDateStr + "T23:59:59");
-    return demoTasks.filter((t) => {
+    return sourceTasks.filter((t) => {
       const taskDate = new Date(t.dueDate + "T00:00:00");
       return taskDate >= minDate && taskDate <= maxDate;
     });
-  }, [selectedDate, minDateStr, maxDateStr]);
+  }, [selectedDate, minDateStr, maxDateStr, sourceTasks]);
 
   // Split by sub-tab type
   const contentTasks = useMemo(() =>
@@ -979,7 +1028,7 @@ export default function CalendarPage() {
     taskId: string,
     options?: { publishNow?: boolean; scheduledFor?: string }
   ) => {
-    const task = demoTasks.find((t) => t.id === taskId);
+    const task = sourceTasks.find((t) => t.id === taskId);
     const platform = (task?.platform || "instagram").toLowerCase();
     const caption = task?.content?.caption || task?.description || "";
     const hashtags = task?.content?.hashtags || [];
@@ -1008,7 +1057,7 @@ export default function CalendarPage() {
 
     // Mark done in UI only after successful publish
     setDoneTaskIds((prev) => new Set([...prev, taskId]));
-  }, []);
+  }, [sourceTasks]);
 
   const handleReject = (taskId: string, reason: string) => {
     setRejectedTaskIds((prev) => new Set([...prev, taskId]));
